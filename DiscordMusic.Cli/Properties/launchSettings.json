@@ -1,0 +1,29 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "DiscordMusic.Cli Help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help",
+      "environmentVariables": {
+      }
+    },
+    "DiscordMusic.Cli Test Help": {
+      "commandName": "Project",
+      "commandLineArgs": "test --help",
+      "environmentVariables": {
+      }
+    },
+    "DiscordMusic.Cli Register": {
+      "commandName": "Project",
+      "commandLineArgs": "register --verbosity trace --quiet false",
+      "environmentVariables": {
+      }
+    },
+    "DiscordMusic.Cli Test": {
+      "commandName": "Project",
+      "commandLineArgs": "test --verbosity trace --quiet false",
+      "environmentVariables": {
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+name: Test Linux
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+        
+      - name: Restore
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet build DiscordMusic.sln --configuration Release --no-restore
+        
+      - name: Test
+        run: dotnet test DiscordMusic.sln --configuration Release --no-restore
