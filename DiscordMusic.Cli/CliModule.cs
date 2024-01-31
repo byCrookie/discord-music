@@ -1,4 +1,7 @@
 using System.IO.Abstractions;
+using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
 using DiscordMusic.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,5 +16,14 @@ internal static class CliModule
         services.AddCore(configuration);
         services.AddSerilog();
         services.AddTransient<IFileSystem, FileSystem>();
+        services.AddSingleton(new DiscordSocketConfig
+        {
+            GatewayIntents = GatewayIntents.Guilds
+                             | GatewayIntents.GuildVoiceStates
+                             | GatewayIntents.GuildMessages
+                             | GatewayIntents.MessageContent
+        });
+        services.AddSingleton<DiscordSocketClient>();
+        services.AddSingleton<CommandService>();
     }
 }

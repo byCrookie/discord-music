@@ -1,13 +1,12 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DiscordMusic.Core.Utils.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordMusic.Core.Utils;
 
-public static class UtilsModule
+internal static class UtilsModule
 {
     public static void AddUtils(this IServiceCollection services)
     {
-        services.AddTransient<IDateTimeProvider, DateTimeProvider>();
-        services.AddTransient<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
-        services.AddTransient<IStopwatch, Stopwatch>();
+        services.AddTransient<IJsonSerializer, JsonSerializer>();
     }
 }

@@ -1,17 +1,18 @@
 ﻿using Cocona;
 using DiscordMusic.Cli;
 using DiscordMusic.Cli.Commands;
+using DiscordMusic.Cli.Configuration;
 using DiscordMusic.Cli.Logging;
-using Microsoft.Extensions.Configuration;
 using Serilog;
 
-Log.Logger = CliLogger
-    .Create(args)
+Log.Logger = Logging
+    .Initialize(args)
     .CreateLogger();
 
 TaskScheduler.UnobservedTaskException += (_, args) =>
 {
     Log.Fatal(args.Exception, "Unobserved task exception");
+    args.SetObserved();
 };
 
 var builder = CoconaApp.CreateBuilder(
@@ -19,13 +20,14 @@ var builder = CoconaApp.CreateBuilder(
     options => options.EnableShellCompletionSupport = true
 );
 
-builder.Configuration.AddUserSecrets<Program>();
+builder.AddConfiguration();
 
 builder.Services.AddCli(builder.Configuration);
 
 var app = builder.Build();
 
 app.AddCommands<RegisterCommand>();
-app.AddCommands<TestCommand>();
+app.AddCommands<RunCommand>();
+app.AddCommands<StoreCommand>();
 
 await app.RunAsync();

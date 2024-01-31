@@ -18,27 +18,41 @@
 
     <ItemGroup>
         <PackageReference Include="Cocona"/>
+        <PackageReference Include="Discord.Net"/>
         <PackageReference Include="JetBrains.Annotations"/>
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
-        <PackageReference Include="FluentValidation" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" />
-        <PackageReference Include="Serilog" />
-        <PackageReference Include="Serilog.Extensions.Hosting" />
-        <PackageReference Include="Serilog.Sinks.Console" />
-        <PackageReference Include="Serilog.Sinks.File" />
-        <PackageReference Include="System.Linq.Async" />
-        <PackageReference Include="System.Threading.RateLimiting" />
-        <PackageReference Include="TestableIO.System.IO.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
+        <PackageReference Include="FluentValidation"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting"/>
+        <PackageReference Include="Serilog"/>
+        <PackageReference Include="Serilog.Extensions.Hosting"/>
+        <PackageReference Include="Serilog.Sinks.Console"/>
+        <PackageReference Include="Serilog.Sinks.File"/>
+        <PackageReference Include="System.Linq.Async"/>
+        <PackageReference Include="TestableIO.System.IO.Abstractions"/>
         <PackageReference Include="TestableIO.System.IO.Abstractions.Analyzers">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions" />
-        <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
+        <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions"/>
+        <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
     </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="appsettings.Development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <Target Name="CopyOnPublish" AfterTargets="Publish">
+        <Copy Condition="!Exists($([System.IO.Path]::Combine('$(PublishDir)', 'appsettings.json')))" SourceFiles="appsettings.json" DestinationFolder="$(PublishDir)" />
+    </Target>
 
 </Project>

@@ -5,24 +5,40 @@
       "commandName": "Project",
       "commandLineArgs": "--help",
       "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
       }
     },
-    "DiscordMusic.Cli Test Help": {
+    "DiscordMusic.Cli Run Help": {
       "commandName": "Project",
-      "commandLineArgs": "test --help",
+      "commandLineArgs": "run --help",
       "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
       }
     },
     "DiscordMusic.Cli Register": {
       "commandName": "Project",
       "commandLineArgs": "register --verbosity trace --quiet false",
       "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
       }
     },
-    "DiscordMusic.Cli Test": {
+    "DiscordMusic.Cli Run": {
       "commandName": "Project",
-      "commandLineArgs": "test --verbosity trace --quiet false",
+      "commandLineArgs": "run --verbosity trace --quiet false",
       "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "DiscordMusic.Cli Store": {
+      "commandName": "Project",
+      "commandLineArgs": "store --verbosity trace --quiet false",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
       }
     }
   }

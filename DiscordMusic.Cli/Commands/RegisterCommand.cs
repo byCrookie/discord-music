@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Cli.Commands;
 
-public class RegisterCommand(IOptions<DiscordSecrets> discordSecrets, ILogger<RegisterCommand> logger)
+internal class RegisterCommand(IOptions<DiscordOptions> discordSecrets, ILogger<RegisterCommand> logger)
 {
     [UsedImplicitly]
     [Command("register")]

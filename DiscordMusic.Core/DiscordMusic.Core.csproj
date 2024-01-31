@@ -7,30 +7,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Flurl.Http" />
-        <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" />
-        <PackageReference Include="Microsoft.Extensions.Http" />
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" />
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
-        <PackageReference Include="Microsoft.Net.Http.Headers" />
-        <PackageReference Include="Polly" />
-        <PackageReference Include="Polly.Contrib.WaitAndRetry" />
-        <PackageReference Include="Polly.Extensions.Http" />
-        <PackageReference Include="Roslyn.System.IO.Abstractions.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="System.Linq.Async" />
-        <PackageReference Include="System.Runtime.Caching" />
-        <PackageReference Include="System.Threading.RateLimiting" />
-        <PackageReference Include="TestableIO.System.IO.Abstractions" />
-        <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions" />
+        <PackageReference Include="ByteSize"/>
+        <PackageReference Include="Discord.Net"/>
+        <PackageReference Include="JetBrains.Annotations"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting"/>
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
+        <PackageReference Include="System.Linq.Async"/>
+        <PackageReference Include="TestableIO.System.IO.Abstractions"/>
+        <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Discord\Gateway\Strategies\" />
+        <Content Include="opus.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="libsodium.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

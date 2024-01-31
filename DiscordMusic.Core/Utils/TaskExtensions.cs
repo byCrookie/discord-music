@@ -1,16 +1,9 @@
 ﻿namespace DiscordMusic.Core.Utils;
 
-public static class TaskExtensions
+internal static class TaskExtensions
 {
-    public static async Task<bool> BoolOrCanceledAsFalseAsync(this ValueTask<bool> task)
+    public static void FireAndForget(this Task task)
     {
-        try
-        {
-            return await task;
-        }
-        catch (TaskCanceledException)
-        {
-            return false;
-        }
+        Task.Run(async () => await task);
     }
 }
