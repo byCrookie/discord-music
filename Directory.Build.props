@@ -1,6 +1,7 @@
 <Project>
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <RuntimeIdentifiers>win-x64;win-x86;win-arm64;linux-x64;linux-musl-x64;linux-musl-arm64;linux-arm;linux-arm64;linux-bionic-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
         <LangVersion>12</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
