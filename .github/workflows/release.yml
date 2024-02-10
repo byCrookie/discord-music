@@ -130,11 +130,11 @@ jobs:
 
       - name: Zip
         run: |
-          zip -r linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip linux-x64/*
-          zip -r linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip linux-musl-x64/*
-          zip -r linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip linux-musl-arm64/*
-          zip -r linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip linux-arm/*
-          zip -r linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip linux-arm64/*
+          (cd linux-x64 && zip -r ../linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd linux-musl-x64 && zip -r ../linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd linux-musl-arm64 && zip -r ../linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd linux-arm && zip -r ../linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip .)
+          (cd linux-arm64 && zip -r ../linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
       - name: Upload Release Assets linux-x64
@@ -216,8 +216,8 @@ jobs:
 
       - name: Zip osx-x64
         run: |
-          zip -r osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip osx-x64/*
-          zip -r osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip osx-arm64/*
+          (cd linux-x64 && zip -r ../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd linux-x64 && zip -r ../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
       - name: Upload Release Assets osx-x64
