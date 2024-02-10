@@ -13,13 +13,13 @@ internal static class Logging
         
         var configuration = new LoggerConfiguration();
 
-        var logFile = args.GetArgValue<FileInfo?>("--log-file");
+        var logFile = args.GetArgValue<string?>("--log-file");
         if (logFile is not null)
         {
             configuration.WriteTo.File(
-                logFile.FullName,
+                logFile,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 100_000_000,
+                fileSizeLimitBytes: 1*10^7,
                 retainedFileCountLimit: 10,
                 rollingInterval: RollingInterval.Infinite
             ).MinimumLevel.Is(logEventLevel);
