@@ -216,8 +216,8 @@ jobs:
 
       - name: Zip osx-x64
         run: |
-          (cd linux-x64 && zip -r ../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
-          (cd linux-x64 && zip -r ../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd osx-x64 && zip -r ../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd osx-arm64 && zip -r ../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
       - name: Upload Release Assets osx-x64
