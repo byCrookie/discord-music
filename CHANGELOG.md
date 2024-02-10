@@ -1,5 +1,3 @@
-# Release v1.0.0
-
 We are happy to announce the first ever release of discord-music with the release
 of `v1.0.0` of the project. 
 
