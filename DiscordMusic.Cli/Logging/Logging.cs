@@ -14,7 +14,7 @@ internal static class Logging
         var configuration = new LoggerConfiguration();
 
         var logFile = args.GetArgValue<string?>("--log-file");
-        if (logFile is not null)
+        if (!string.IsNullOrWhiteSpace(logFile))
         {
             configuration.WriteTo.File(
                 logFile,

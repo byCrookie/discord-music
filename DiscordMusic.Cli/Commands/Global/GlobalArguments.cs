@@ -8,10 +8,10 @@ namespace DiscordMusic.Cli.Commands.Global;
 public record GlobalArguments(
     [Option("verbosity")] LogLevel Verbosity = GlobalArguments.DefaultVerbosity,
     [Option("quiet")] bool Quiet = GlobalArguments.DefaultQuiet,
-    [Option("log-file")] FileInfo? LogFile = GlobalArguments.DefaultLogFile
+    [Option("log-file")] string? LogFile = GlobalArguments.DefaultLogFile
 ) : ICommandParameterSet
 {
     public const LogLevel DefaultVerbosity = LogLevel.Information;
     public const bool DefaultQuiet = false;
-    public const FileInfo? DefaultLogFile = null;
+    public const string? DefaultLogFile = null;
 }
