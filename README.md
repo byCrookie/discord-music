@@ -1,6 +1,6 @@
 # discord-music
 
-Another music bot for discord. This bot is written in C# 
+Another music bot for discord. This bot is written in C#
 and uses the [Discord.Net](https://github.com/discord-net/Discord.Net) library,
 [FFmpeg](https://github.com/FFmpeg/FFmpeg) and [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
@@ -48,7 +48,7 @@ the yt-dlp executable.
 
 ```json
 {
-    "ytdlp": "C:\\yt-dlp\\yt-dlp.exe"
+  "ytdlp": "C:\\yt-dlp\\yt-dlp.exe"
 }
 ```
 
@@ -117,3 +117,15 @@ To publish the bot use the `dotnet publish` command.
 ```powershell
 dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic"
 ```
+
+`appsettings.json` will be included in the publish directory but not overwritten.
+
+### Settings
+
+To change settings use the `appsettings.Development.json` file. This file
+is generated once from the `appsettings.Example.json` file during the first build.
+The `appsettings.Development.json`is not included in the
+repository (`.gitignore`). `applicationId` and `token` are
+not included in the `appsettings.Example.json` file and should not
+be included in the `appsettings.Development.json` file. Instead use
+the `dotnet user-secrets` command to set the secrets.
