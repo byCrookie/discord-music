@@ -19,9 +19,8 @@ internal static class Logging
             configuration.WriteTo.File(
                 logFile,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 1*10^7,
-                retainedFileCountLimit: 10,
-                rollingInterval: RollingInterval.Infinite
+                fileSizeLimitBytes: 5*10^7,
+                retainedFileCountLimit: 2
             ).MinimumLevel.Is(logEventLevel);
         }
         
