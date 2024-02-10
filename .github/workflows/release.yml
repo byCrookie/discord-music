@@ -17,12 +17,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Nerdbank.GitVersioning
         uses: dotnet/nbgv@master
         with:
           setCommonVars: true
-      
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -57,12 +57,18 @@ jobs:
         run: dotnet test DiscordMusic.sln --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/win-x64 --runtime win-x64 --self-contained
+        run: |
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/win-x64 --runtime win-x64
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/win-x86 --runtime win-x86
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/win-arm64 --runtime win-arm64
 
       - name: Zip
-        run: Compress-Archive -Path ./publish/win-x64/* -DestinationPath ./publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
+        run: |
+          Compress-Archive -Path ./publish/win-x64/* -DestinationPath ./publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
+          Compress-Archive -Path ./publish/win-x86/* -DestinationPath ./publish/dm_win_x86_${{ needs.release.outputs.version }}.zip
+          Compress-Archive -Path ./publish/win-arm64/* -DestinationPath ./publish/dm_win_arm64_${{ needs.release.outputs.version }}.zip
 
-      - name: Upload Release Assets
+      - name: Upload Release Assets win-x64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +77,27 @@ jobs:
           asset_path: ./publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
           asset_name: dm_win_x64_${{ needs.release.outputs.version }}.zip
           asset_content_type: application/zip
-          
+
+      - name: Upload Release Assets win-x86
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/dm_win_x86_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_win_x86_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets win-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/dm_win_arm64_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_win_arm64_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+  
   linux:
     needs: release
     runs-on: ubuntu-latest
@@ -95,13 +121,25 @@ jobs:
         run: dotnet test DiscordMusic.sln --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-x64 --runtime linux-x64 --self-contained
-        
-      - name: Zip
-        run: zip -r dm_linux_x64_${{ needs.release.outputs.version }}.zip ./*
-        working-directory: ./publish/linux-x64/
+        run: |
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-x64 --runtime linux-x64
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-musl-x64 --runtime linux-musl-x64
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-musl-arm64 --runtime linux-musl-arm64
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-arm --runtime linux-arm
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-arm64 --runtime linux-arm64
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/linux-bionic-arm64 --runtime linux-bionic-arm64
 
-      - name: Upload Release Assets
+      - name: Zip
+        run: |
+          zip -r linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip linux-x64/*
+          zip -r linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip linux-musl-x64/*
+          zip -r linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip linux-musl-arm64/*
+          zip -r linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip linux-arm/*
+          zip -r linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip linux-arm64/*
+          zip -r linux-bionic-arm64/dm_linux_bionic_arm64_${{ needs.release.outputs.version }}.zip linux-bionic-arm64/*
+        working-directory: ./publish/
+
+      - name: Upload Release Assets linux-x64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,6 +147,56 @@ jobs:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: ./publish/linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip
           asset_name: dm_linux_x64_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets linux-musl-x64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets linux-musl-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets linux-arm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_linux_arm_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets linux-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_linux_arm64_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets linux-bionic-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/linux-bionic-arm64/dm_linux_bionic_arm64_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_linux_bionic_arm64_${{ needs.release.outputs.version }}.zip
           asset_content_type: application/zip
   
   macos:
@@ -134,13 +222,17 @@ jobs:
         run: dotnet test DiscordMusic.sln --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/osx-x64 --runtime osx-x64 --self-contained
+        run: |
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/osx-x64 --runtime osx-x64
+          dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/osx-arm64 --runtime osx-arm64
 
-      - name: Zip
-        run: zip -r dm_osx_x64_${{ needs.release.outputs.version }}.zip ./*
-        working-directory: ./publish/osx-x64/
+      - name: Zip osx-x64
+        run: |
+          zip -r osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip osx-x64/*
+          zio -r osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip osx-arm64/*
+        working-directory: ./publish/
 
-      - name: Upload Release Assets
+      - name: Upload Release Assets osx-x64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -148,4 +240,14 @@ jobs:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: ./publish/osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip
           asset_name: dm_osx_x64_${{ needs.release.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets osx-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./publish/osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip
+          asset_name: dm_osx_arm64_${{ needs.release.outputs.version }}.zip
           asset_content_type: application/zip
