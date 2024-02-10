@@ -21,7 +21,16 @@ internal sealed class DataStore(
 
         var appDataPath = fileSystem.Path.Combine(appdata!.FullName, directory);
         logger.LogDebug("Path for {Path} is {AppDataPath}", directory, appDataPath);
-        return fileSystem.DirectoryInfo.New(appDataPath);
+        var trackDirectory = fileSystem.DirectoryInfo.New(appDataPath);
+
+        if (fileSystem.Directory.Exists(trackDirectory.FullName))
+        {
+            return trackDirectory;
+        }
+
+        logger.LogDebug("Creating path {Path}", trackDirectory);
+        fileSystem.Directory.CreateDirectory(appDataPath);
+        return trackDirectory;
     }
 
     private bool TryGetAppData(out IDirectoryInfo? appData)
