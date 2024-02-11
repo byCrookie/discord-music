@@ -88,7 +88,7 @@ dm store --clear
 
 ## Counter Strike
 
-`dmc` is a command line tool to integrate discord-music with Counter Strike.
+`dmcs` is a command line tool to integrate discord-music with Counter Strike.
 Based on the current game round states the bot will play or pause the music.
 
 - [Reddit - GSI](https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/)
@@ -101,7 +101,7 @@ To initialize the Counter Strike integration use the `init` command. It
 will create a `gamestate_integration_dm.cfg` file in the `csgo/cfg` directory.
 
 ```powershell
-dmc init
+dmcs init
 ```
 
 ### Run
@@ -110,7 +110,7 @@ To run the Counter Strike integration use the `run` command. It will start
 the bot and interact with discord-music based on the current game round states.
 
 ```powershell
-dmc run
+dmcs run
 ```
 
 ## Development
