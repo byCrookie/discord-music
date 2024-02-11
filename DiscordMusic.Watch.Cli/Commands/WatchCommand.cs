@@ -36,6 +36,8 @@ internal class WatchCommand(
 
     private Task WatchAsync(CancellationToken ct)
     {
+        logger.LogInformation("Watching file {Watch} for changes...", discordOptions.Value.Watch);
+        
         var watchFile = fileSystem.FileInfo.New(discordOptions.Value.Watch);
         var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
         
