@@ -1,4 +1,4 @@
-namespace DiscordMusic.Watch.Cli.Utils;
+namespace DiscordMusic.Cs.Cli.Utils;
 
 internal static class ArgExtensions
 {

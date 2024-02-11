@@ -2,7 +2,7 @@ using Cocona;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 
-namespace DiscordMusic.Watch.Cli.Commands.Global;
+namespace DiscordMusic.Cs.Cli.Commands.Global;
 
 [UsedImplicitly]
 public record GlobalArguments(

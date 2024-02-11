@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Serilog.Events;
 
-namespace DiscordMusic.Watch.Cli.Utils;
+namespace DiscordMusic.Cs.Cli.Utils;
 
 internal static class LogLevelExtensions
 {

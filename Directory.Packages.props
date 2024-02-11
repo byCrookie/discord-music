@@ -4,6 +4,7 @@
     <PackageVersion Include="Bogus" Version="34.0.2" />
     <PackageVersion Include="ByteSize" Version="2.1.2" />
     <PackageVersion Include="Cocona" Version="2.2.0" />
+    <PackageVersion Include="CSGSI-Core" Version="1.2.0" />
     <PackageVersion Include="Discord.Net" Version="3.13.0" />
     <PackageVersion Include="FluentAssertions" Version="7.0.0-alpha.1" />
     <PackageVersion Include="FluentValidation" Version="11.8.1" />

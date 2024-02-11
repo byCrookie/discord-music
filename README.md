@@ -86,6 +86,29 @@ To clear your local storage use the store command with the clear option.
 dm store --clear
 ```
 
+## Counter Strike
+
+`dmc` is a command line tool to integrate discord-music with Counter Strike.
+Based on the current game round states the bot will play or pause the music.
+
+### Initialize
+
+To initialize the Counter Strike integration use the `init` command. It
+will create a `gamestate_integration_dm.cfg` file in the `csgo/cfg` directory.
+
+```powershell
+dmc init
+```
+
+### Run
+
+To run the Counter Strike integration use the `run` command. It will start
+the bot and interact with discord-music based on the current game round states.
+
+```powershell
+dmc run
+```
+
 ## Development
 
 ### Secrets

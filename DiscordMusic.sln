@@ -27,7 +27,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordMusic.Core", "DiscordMusic.Core\DiscordMusic.Core.csproj", "{7F098287-1825-44E0-B561-3B7AE162A352}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordMusic.Watch.Cli", "DiscordMusic.Watch.Cli\DiscordMusic.Watch.Cli.csproj", "{44CDE447-C40B-4200-A7FA-03D77F411D85}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordMusic.Cs.Cli", "DiscordMusic.Cs.Cli\DiscordMusic.Cs.Cli.csproj", "{44CDE447-C40B-4200-A7FA-03D77F411D85}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

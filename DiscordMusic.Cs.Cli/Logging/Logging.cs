@@ -1,8 +1,8 @@
-using DiscordMusic.Watch.Cli.Commands.Global;
-using DiscordMusic.Watch.Cli.Utils;
+using DiscordMusic.Cs.Cli.Commands.Global;
+using DiscordMusic.Cs.Cli.Utils;
 using Serilog;
 
-namespace DiscordMusic.Watch.Cli.Logging;
+namespace DiscordMusic.Cs.Cli.Logging;
 
 internal static class Logging
 {

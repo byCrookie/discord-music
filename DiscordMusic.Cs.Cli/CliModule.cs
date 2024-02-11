@@ -1,11 +1,11 @@
 using System.IO.Abstractions;
 using Discord.Rest;
-using DiscordMusic.Watch.Cli.Discord;
+using DiscordMusic.Cs.Cli.Discord;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
-namespace DiscordMusic.Watch.Cli;
+namespace DiscordMusic.Cs.Cli;
 
 internal static class CliModule
 {

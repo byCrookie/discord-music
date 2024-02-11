@@ -1,8 +1,8 @@
-﻿using DiscordMusic.Watch.Cli.Discord.Options;
+﻿using DiscordMusic.Cs.Cli.Discord.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DiscordMusic.Watch.Cli.Discord;
+namespace DiscordMusic.Cs.Cli.Discord;
 
 internal static class DiscordModule
 {

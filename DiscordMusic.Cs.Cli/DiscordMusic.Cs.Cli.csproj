@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-        <AssemblyName>dmc</AssemblyName>
+        <AssemblyName>dmcs</AssemblyName>
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <PackageReference Include="Cocona"/>
+        <PackageReference Include="CSGSI-Core"/>
         <PackageReference Include="Discord.Net"/>
         <PackageReference Include="JetBrains.Annotations"/>
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
@@ -40,12 +41,17 @@
         </Content>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Remove="Cs\gamestate_integration_dm.cfg"/>
+        <EmbeddedResource Include="Cs\gamestate_integration_dm.cfg"/>
+    </ItemGroup>
+
     <Target Name="CopyExampleToDev" BeforeTargets="BeforeBuild">
-        <Copy Condition="!Exists('appsettings.Development.json')" SourceFiles="appsettings.Example.json" DestinationFiles="appsettings.Development.json" />
+        <Copy Condition="!Exists('appsettings.Development.json')" SourceFiles="appsettings.Example.json" DestinationFiles="appsettings.Development.json"/>
     </Target>
 
     <Target Name="PublishAppSettings" AfterTargets="Publish">
-        <Copy Condition="!Exists($([System.IO.Path]::Combine('$(PublishDir)', 'appsettings.json')))" SourceFiles="appsettings.json" DestinationFolder="$(PublishDir)" />
+        <Copy Condition="!Exists($([System.IO.Path]::Combine('$(PublishDir)', 'appsettings.json')))" SourceFiles="appsettings.json" DestinationFolder="$(PublishDir)"/>
     </Target>
 
 </Project>

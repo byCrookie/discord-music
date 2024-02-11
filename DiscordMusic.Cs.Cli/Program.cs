@@ -1,8 +1,8 @@
 ﻿using Cocona;
-using DiscordMusic.Watch.Cli;
-using DiscordMusic.Watch.Cli.Commands;
-using DiscordMusic.Watch.Cli.Configuration;
-using DiscordMusic.Watch.Cli.Logging;
+using DiscordMusic.Cs.Cli;
+using DiscordMusic.Cs.Cli.Commands;
+using DiscordMusic.Cs.Cli.Configuration;
+using DiscordMusic.Cs.Cli.Logging;
 using Serilog;
 
 Log.Logger = Logging
@@ -26,6 +26,7 @@ builder.Services.AddCli(builder.Configuration);
 
 var app = builder.Build();
 
-app.AddCommands<WatchCommand>();
+app.AddCommands<InitializeCommand>();
+app.AddCommands<RunCommand>();
 
 await app.RunAsync();

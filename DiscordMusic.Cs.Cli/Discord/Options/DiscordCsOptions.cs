@@ -2,9 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 
-namespace DiscordMusic.Watch.Cli.Discord.Options;
+namespace DiscordMusic.Cs.Cli.Discord.Options;
 
-public class DiscordWatchOptions
+public class DiscordCsOptions
 {
     public const string SectionName = "discord";
 
@@ -25,6 +25,6 @@ public class DiscordWatchOptions
     public string Message { get; [UsedImplicitly] init; } = null!;
 
     [Required]
-    [ConfigurationKeyName("watch")]
-    public string Watch { get; [UsedImplicitly] init; } = null!;
+    [ConfigurationKeyName("cscfg")]
+    public string CsCfg { get; [UsedImplicitly] init; } = null!;
 }

@@ -2,7 +2,7 @@ using Cocona.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace DiscordMusic.Watch.Cli.Configuration;
+namespace DiscordMusic.Cs.Cli.Configuration;
 
 internal static class ConfigurationExtensions
 {
