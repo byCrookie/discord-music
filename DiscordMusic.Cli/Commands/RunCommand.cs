@@ -48,10 +48,16 @@ internal class RunCommand(
     private async Task MessageReceivedAsync(IMessage rawMessage)
     {
         logger.LogInformation("Message: {Message}", rawMessage.Content);
-
-        if (rawMessage is not SocketUserMessage { Source: MessageSource.User } message)
+        
+        if (rawMessage is not SocketUserMessage message)
         {
             logger.LogTrace("Message is not a user message");
+            return;
+        }
+
+        if (message.Source != MessageSource.User && message.Author.Id != client.CurrentUser.Id)
+        {
+            logger.LogTrace("Message is not a user message or is not from discord-music bot");
             return;
         }
 
