@@ -91,6 +91,10 @@ dm store --clear
 `dmc` is a command line tool to integrate discord-music with Counter Strike.
 Based on the current game round states the bot will play or pause the music.
 
+- [Reddit - GSI](https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/)
+- [Wiki - GSI](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive_Game_State_Integration)
+- [Github - rakijah (.NET GSI)](https://github.com/rakijah/CSGSI)
+
 ### Initialize
 
 To initialize the Counter Strike integration use the `init` command. It
