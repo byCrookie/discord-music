@@ -36,19 +36,39 @@ internal class WatchCommand(
 
     private Task WatchAsync(CancellationToken ct)
     {
+        var watchFile = fileSystem.FileInfo.New(discordOptions.Value.Watch);
+        var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        
+        Task.Run(async () =>
+        {
+            while (await periodicTimer.WaitForNextTickAsync(ct))
+            {
+                logger.LogTrace("Refreshing file {Watch}...", discordOptions.Value.Watch);
+                watchFile.Refresh();
+            }
+        }, ct);
+
         var fileWatcher = new FileSystemWatcher
         {
-            Path = fileSystem.Path.GetDirectoryName(discordOptions.Value.Watch)!,
-            NotifyFilter = NotifyFilters.LastWrite,
-            Filter = fileSystem.Path.GetFileName(discordOptions.Value.Watch)
+            Path = watchFile.DirectoryName!,
+            NotifyFilter = NotifyFilters.LastWrite
+                           | NotifyFilters.Size
+                           | NotifyFilters.LastAccess
+                           | NotifyFilters.CreationTime
+                           | NotifyFilters.Attributes
+                           | NotifyFilters.Security,
+            Filter = watchFile.Name
         };
-        
-        var fileStream = fileSystem.File.Open(discordOptions.Value.Watch, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+        var fileStream = fileSystem.File.Open(discordOptions.Value.Watch, FileMode.Open, FileAccess.Read,
+            FileShare.ReadWrite);
         var streamReader = new StreamReader(fileStream);
+        _ = streamReader.ReadToEndAsync(ct);
 
         fileWatcher.Changed += async (_, args) =>
         {
-            logger.LogTrace("File {Watch} changed - {Args}", discordOptions.Value.Watch, JsonSerializer.Serialize(args));
+            logger.LogTrace("File {Watch} changed - {Args}", discordOptions.Value.Watch,
+                JsonSerializer.Serialize(args));
             var guild = await client.GetGuildAsync(discordOptions.Value.GuildId);
             var channel = await guild.GetChannelAsync(discordOptions.Value.ChannelId);
 
@@ -57,10 +77,10 @@ internal class WatchCommand(
                 logger.LogError("Channel {ChannelId} is not a message channel", discordOptions.Value.ChannelId);
                 throw new ArgumentException($"Channel {discordOptions.Value.ChannelId} is not a message channel");
             }
-            
+
             var content = await streamReader.ReadToEndAsync(ct);
             var lines = content.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-            
+
             if (!lines.Any(line => line.Contains(discordOptions.Value.Message, StringComparison.OrdinalIgnoreCase)))
             {
                 logger.LogTrace("No {Command} found in change", discordOptions.Value.Message);
