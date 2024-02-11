@@ -305,8 +305,8 @@ jobs:
 
       - name: Zip osx-x64
         run: |
-          (cd osx-x64 && zip -r ../../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
-          (cd osx-arm64 && zip -r ../../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd osx-x64 && zip -r ../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd osx-arm64 && zip -r ../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
           (cd cs/osx-x64 && zip -r ../../cs/osx-x64/dmcs_osx_x64_${{ needs.release.outputs.version }}.zip .)
           (cd cs/osx-arm64 && zip -r ../../cs/osx-arm64/dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
