@@ -9,10 +9,6 @@ public class DiscordWatchOptions
     public const string SectionName = "discord";
 
     [Required]
-    [ConfigurationKeyName("applicationId")]
-    public string ApplicationId { get; [UsedImplicitly] init; } = null!;
-
-    [Required]
     [ConfigurationKeyName("token")]
     public string Token { get; [UsedImplicitly] init; } = null!;
     
