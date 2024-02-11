@@ -177,11 +177,11 @@ jobs:
           (cd linux-musl-arm64 && zip -r ../linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip .)
           (cd linux-arm && zip -r ../linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip .)
           (cd linux-arm64 && zip -r ../linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/linux-x64 && zip -r ../cs/linux-x64/dmcs_linux_x64_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/linux-musl-x64 && zip -r ../cs/linux-musl-x64/dmcs_linux_musl_x64_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/linux-musl-arm64 && zip -r ../cs/linux-musl-arm64/dmcs_linux_musl_arm64_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/linux-arm && zip -r ../cs/linux-arm/dmcs_linux_arm_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/linux-arm64 && zip -r ../cs/linux-arm64/dmcs_linux_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/linux-x64 && zip -r ../../cs/linux-x64/dmcs_linux_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/linux-musl-x64 && zip -r ../../cs/linux-musl-x64/dmcs_linux_musl_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/linux-musl-arm64 && zip -r ../../cs/linux-musl-arm64/dmcs_linux_musl_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/linux-arm && zip -r ../../cs/linux-arm/dmcs_linux_arm_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/linux-arm64 && zip -r ../../cs/linux-arm64/dmcs_linux_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
       - name: Upload Release Assets linux-x64
@@ -300,15 +300,15 @@ jobs:
         run: |
           dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/osx-x64 --runtime osx-x64
           dotnet publish DiscordMusic.Cli/DiscordMusic.Cli.csproj --configuration Release --output publish/osx-arm64 --runtime osx-arm64
-            dotnet publish DiscordMusic.Cs.Cli/DiscordMusic.Cs.Cli.csproj --configuration Release --output publish/cs/osx-x64 --runtime osx-x64
-            dotnet publish DiscordMusic.Cs.Cli/DiscordMusic.Cs.Cli.csproj --configuration Release --output publish/cs/osx-arm64 --runtime osx-arm64
+          dotnet publish DiscordMusic.Cs.Cli/DiscordMusic.Cs.Cli.csproj --configuration Release --output publish/cs/osx-x64 --runtime osx-x64
+          dotnet publish DiscordMusic.Cs.Cli/DiscordMusic.Cs.Cli.csproj --configuration Release --output publish/cs/osx-arm64 --runtime osx-arm64
 
       - name: Zip osx-x64
         run: |
-          (cd osx-x64 && zip -r ../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
-          (cd osx-arm64 && zip -r ../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/osx-x64 && zip -r ../cs/osx-x64/dmcs_osx_x64_${{ needs.release.outputs.version }}.zip .)
-          (cd cs/osx-arm64 && zip -r ../cs/osx-arm64/dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd osx-x64 && zip -r ../../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd osx-arm64 && zip -r ../../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/osx-x64 && zip -r ../../cs/osx-x64/dmcs_osx_x64_${{ needs.release.outputs.version }}.zip .)
+          (cd cs/osx-arm64 && zip -r ../../cs/osx-arm64/dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
       - name: Upload Release Assets osx-x64
