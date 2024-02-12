@@ -17,6 +17,14 @@
         "DOTNET_ENVIRONMENT": "Development"
       }
     },
+    "DiscordMusic.Cs.Cli Initialize Diff": {
+      "commandName": "Project",
+      "commandLineArgs": "init --verbosity trace --diff",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
     "DiscordMusic.Cs.Cli Initialize Force": {
       "commandName": "Project",
       "commandLineArgs": "init -a \"http://raspberrypi:3000\" --force --verbosity trace",
