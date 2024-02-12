@@ -28,5 +28,6 @@ var app = builder.Build();
 
 app.AddCommands<InitializeCommand>();
 app.AddCommands<RunCommand>();
+app.AddCommands<DestroyCommand>();
 
 await app.RunAsync();

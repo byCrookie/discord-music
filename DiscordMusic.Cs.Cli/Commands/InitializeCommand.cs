@@ -12,21 +12,32 @@ namespace DiscordMusic.Cs.Cli.Commands;
 internal class InitializeCommand(
     IFileSystem fileSystem,
     ILogger<InitializeCommand> logger,
-    IOptions<DiscordCsOptions> discordOptions)
+    IOptions<CsOptions> csOptions)
 {
     private const string GsiFileName = "gamestate_integration_dm.cfg";
 
     [UsedImplicitly]
-    [Command("init")]
-    public async Task InitializeAsync(GlobalArguments globalArguments)
+    [Command("init",
+        Description = "Initialize the client (where cs is running) by creating a gamestate integration file.")]
+    public async Task InitializeAsync(
+        GlobalArguments globalArguments,
+        [Option('a', Description = "Address of the dmcs server. Default is http://localhost:3000")]
+        string address = "http://localhost:3000",
+        [Option('t',
+            Description =
+                "Token to identify the client. Has to be whitelisted by the dmcs server. Default is no token, only works if the server has not whitelisted any tokens.")]
+        string token = "",
+        [Option('f', Description = "Force overwrite existing configurations.")]
+        bool force = false)
     {
-        var gsi = await EmbeddedResource.ReadAsync(typeof(InitializeCommand).Assembly, $"Cs.{GsiFileName}");
-        var path = fileSystem.Path.Combine(discordOptions.Value.CsCfg, GsiFileName);
+        var gsiTemplate = await EmbeddedResource.ReadAsync(typeof(InitializeCommand).Assembly, $"Cs.{GsiFileName}");
+        var path = fileSystem.Path.Combine(csOptions.Value.Cfg, GsiFileName);
 
-        if (!fileSystem.File.Exists(path))
+        if (!fileSystem.File.Exists(path) || force)
         {
             logger.LogInformation("Writing gamestate integration file to {Path}", path);
-            await fileSystem.File.WriteAllTextAsync(path, gsi);
+            var gsiContent = gsiTemplate.Replace("{{address}}", address).Replace("{{token}}", token);
+            await fileSystem.File.WriteAllTextAsync(path, gsiContent);
             return;
         }
 

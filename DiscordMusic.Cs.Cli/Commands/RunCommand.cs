@@ -16,7 +16,7 @@ namespace DiscordMusic.Cs.Cli.Commands;
 
 internal class RunCommand(
     [FromService] ICoconaAppContextAccessor contextAccessor,
-    IOptions<DiscordCsOptions> discordOptions,
+    IOptions<DiscordOptions> discordOptions,
     ILogger<RunCommand> logger,
     ILogger<DiscordSocketClient> clientLogger,
     DiscordRestClient client)

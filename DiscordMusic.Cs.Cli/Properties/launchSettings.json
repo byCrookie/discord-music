@@ -16,6 +16,22 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development"
       }
+    },
+    "DiscordMusic.Cs.Cli Initialize Force": {
+      "commandName": "Project",
+      "commandLineArgs": "init --force --verbosity trace",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "DiscordMusic.Cs.Cli Destroy": {
+      "commandName": "Project",
+      "commandLineArgs": "destroy --verbosity trace",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     }
   }
 }

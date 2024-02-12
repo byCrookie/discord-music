@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace DiscordMusic.Cs.Cli.Discord.Options;
 
-public class DiscordCsOptions
+public class DiscordOptions
 {
     public const string SectionName = "discord";
 
@@ -23,8 +23,4 @@ public class DiscordCsOptions
     [Required]
     [ConfigurationKeyName("message")]
     public string Message { get; [UsedImplicitly] init; } = null!;
-
-    [Required]
-    [ConfigurationKeyName("cscfg")]
-    public string CsCfg { get; [UsedImplicitly] init; } = null!;
 }
