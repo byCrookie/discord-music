@@ -7,7 +7,7 @@ public static class EmbeddedResource
     public static async Task<string> ReadAsync(Assembly assembly, string path)
     {
         var names = assembly.GetManifestResourceNames();
-        var resource = names.FirstOrDefault(name => name == $"{assembly.GetName().Name}.{path}");
+        var resource = names.FirstOrDefault(name => name.EndsWith(path, StringComparison.InvariantCulture));
 
         if (resource == null)
         {
