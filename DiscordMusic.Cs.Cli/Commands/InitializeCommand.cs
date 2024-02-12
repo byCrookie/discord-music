@@ -37,8 +37,16 @@ internal class InitializeCommand(
         
         if (diff)
         {
-            var currentGsi = await fileSystem.File.ReadAllTextAsync(path);
-            logger.LogInformation("Current gamestate integration file: {Current}", currentGsi);
+            if (!fileSystem.File.Exists(path))
+            {
+                logger.LogInformation("Current gamestate integration does not exist.");
+            }
+            else
+            {
+                var currentGsi = await fileSystem.File.ReadAllTextAsync(path);
+                logger.LogInformation("Current gamestate integration file: {Current}", currentGsi);
+            }
+
             logger.LogInformation("New gamestate integration file: {New}", gsiTemplate.Replace("{{address}}", address).Replace("{{token}}", token));
             return;
         }
