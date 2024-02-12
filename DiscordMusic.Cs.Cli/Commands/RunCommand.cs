@@ -25,7 +25,10 @@ internal class RunCommand(
 
     [UsedImplicitly]
     [Command("run")]
-    public async Task RunAsync(GlobalArguments globalArguments)
+    public async Task RunAsync(
+        GlobalArguments globalArguments,
+        [Option('u', Description = "Uri to listen to")]
+        string uri = "http://localhost:3000")
     {
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
 
@@ -33,7 +36,7 @@ internal class RunCommand(
         client.Log += logMessage => LogAsync(clientLogger, logMessage);
         await client.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
 
-        var gsl = new GameStateListener(3000);
+        var gsl = new GameStateListener(uri);
         gsl.RoundPhaseChanged += args => OnNewGameStateAsync(args).Wait(ct);
         gsl.EnableRaisingIntricateEvents = true;
 
@@ -86,7 +89,8 @@ internal class RunCommand(
             discordOptions.Value.ChannelId);
         var message = await messageChannel.SendMessageAsync(discordOptions.Value.Message);
         await Task.Delay(TimeSpan.FromSeconds(1));
-        logger.LogInformation("Deleting message {MessageId} from {ChannelId}...", message.Id, discordOptions.Value.ChannelId);
+        logger.LogInformation("Deleting message {MessageId} from {ChannelId}...", message.Id,
+            discordOptions.Value.ChannelId);
         await message.DeleteAsync();
     }
 

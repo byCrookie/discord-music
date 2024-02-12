@@ -19,7 +19,7 @@
     },
     "DiscordMusic.Cs.Cli Initialize Force": {
       "commandName": "Project",
-      "commandLineArgs": "init --force --verbosity trace",
+      "commandLineArgs": "init -a \"http://raspberrypi:3000\" --force --verbosity trace",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development"
