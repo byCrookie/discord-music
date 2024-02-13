@@ -1,4 +1,3 @@
-using System.Net;
 using Cocona;
 using Cocona.Application;
 using CSGSI;
@@ -10,7 +9,6 @@ using Discord.WebSocket;
 using DiscordMusic.Cs.Cli.Commands.Global;
 using DiscordMusic.Cs.Cli.Discord.Options;
 using JetBrains.Annotations;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Cs.Cli.Commands;
