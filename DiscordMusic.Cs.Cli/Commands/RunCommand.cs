@@ -10,6 +10,8 @@ using DiscordMusic.Cs.Cli.Commands.Global;
 using DiscordMusic.Cs.Cli.Discord.Options;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 using Serilog;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
@@ -36,9 +38,30 @@ internal class RunCommand(
     {
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
 
-        logger.LogInformation("Login in to Discord...");
         client.Log += logMessage => LogAsync(clientLogger, logMessage);
-        await client.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
+
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 5,
+                BackoffType = DelayBackoffType.Linear,
+                Delay = TimeSpan.FromSeconds(20)
+            })
+            .Build();
+
+        await pipeline.ExecuteAsync(async _ =>
+        {
+            try
+            {
+                logger.LogInformation("Logging in to Discord");
+                await client.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to login to Discord");
+                throw;
+            }
+        }, ct);
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(uri);
@@ -65,8 +88,7 @@ internal class RunCommand(
 
             return Results.Ok();
         });
-        
-        logger.LogInformation("Starting web server on {Uri}...", uri);
+
         await app.RunAsync();
         logger.LogInformation("Logout from Discord");
         await client.LogoutAsync();
