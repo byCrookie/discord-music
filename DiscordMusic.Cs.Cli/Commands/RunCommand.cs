@@ -1,3 +1,4 @@
+using System.Net;
 using Cocona;
 using Cocona.Application;
 using CSGSI;
@@ -17,6 +18,7 @@ namespace DiscordMusic.Cs.Cli.Commands;
 internal class RunCommand(
     [FromService] ICoconaAppContextAccessor contextAccessor,
     IOptions<DiscordOptions> discordOptions,
+    IOptions<CsOptions> csOptions,
     ILogger<RunCommand> logger,
     ILogger<DiscordSocketClient> clientLogger,
     DiscordRestClient client)
@@ -27,8 +29,8 @@ internal class RunCommand(
     [Command("run")]
     public async Task RunAsync(
         GlobalArguments globalArguments,
-        [Option('u', Description = "Uri to listen to")]
-        string uri = "http://localhost:3000")
+        [Option('u', Description = "Uri to listen to. Default is http://*:3000.")]
+        string uri = "http://*:3000")
     {
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
 
@@ -36,18 +38,50 @@ internal class RunCommand(
         client.Log += logMessage => LogAsync(clientLogger, logMessage);
         await client.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
 
-        var gsl = new GameStateListener(uri);
-        gsl.RoundPhaseChanged += args => OnNewGameStateAsync(args).Wait(ct);
-        gsl.EnableRaisingIntricateEvents = true;
+        var listener = new HttpListener();
+        listener.Prefixes.Add(uri + "/");
+        listener.Start();
+        logger.LogInformation("Listening to {Uri}...", uri);
 
-        try
+        _ = Task.Run(async () =>
         {
-            gsl.Start();
-            await Task.Delay(Timeout.Infinite, ct);
-        }
-        finally
+            try
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+            }
+            finally
+            {
+                listener.Stop();
+            }
+        }, ct);
+
+        while (!ct.IsCancellationRequested)
         {
-            gsl.Stop();
+            var context = await listener.GetContextAsync();
+            var request = context.Request;
+            var response = context.Response;
+            var reader = new StreamReader(request.InputStream);
+            var body = await reader.ReadToEndAsync(ct);
+            logger.LogTrace("Received body: {Body}", body);
+            var gameState = new GameState(body);
+
+            if (csOptions.Value.Whitelist.Count != 0 && !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
+            {
+                logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
+                response.StatusCode = 200;
+                response.StatusDescription = "Forbidden";
+                response.Close();
+                continue;
+            }
+
+            if (gameState.Previously.Round.Phase != gameState.Round.Phase)
+            {
+                await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
+            }
+
+            response.StatusCode = 200;
+            response.StatusDescription = "OK";
+            response.Close();
         }
     }
 
