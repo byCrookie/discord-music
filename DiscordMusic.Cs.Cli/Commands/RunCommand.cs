@@ -112,7 +112,6 @@ internal class RunCommand(
         logger.LogInformation("Sending message {Message} to {ChannelId}...", discordOptions.Value.Message,
             discordOptions.Value.ChannelId);
         var message = await messageChannel.SendMessageAsync(discordOptions.Value.Message);
-        await Task.Delay(TimeSpan.FromSeconds(1));
         logger.LogInformation("Deleting message {MessageId} from {ChannelId}...", message.Id,
             discordOptions.Value.ChannelId);
         await message.DeleteAsync();
