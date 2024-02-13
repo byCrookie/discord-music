@@ -66,6 +66,7 @@ internal class RunCommand(
             return Results.Ok();
         });
         
+        logger.LogInformation("Starting web server on {Uri}...", uri);
         await app.RunAsync();
         logger.LogInformation("Logout from Discord");
         await client.LogoutAsync();
