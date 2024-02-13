@@ -29,7 +29,7 @@ internal class RunCommand(
         GlobalArguments globalArguments,
         [Option('u',
             Description =
-                "Uri to listen to. Use on linux like http://*:3000 and on windows like http://localhost:3000.")]
+                "Uri to listen to. Use on linux like http://0.0.0.0:3000 and on windows like http://localhost:3000.")]
         string uri)
     {
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
@@ -102,12 +102,12 @@ internal class RunCommand(
             throw new ArgumentException($"Channel {discordOptions.Value.ChannelId} is not a message channel");
         }
 
-        var connections = await client.GetConnectionsAsync();
-        if (connections.Count == 0)
-        {
-            logger.LogWarning("Bot is not connected to any voice channel");
-            return;
-        }
+        // var connections = await client.GetConnectionsAsync();
+        // if (connections.Count == 0)
+        // {
+        //     logger.LogWarning("Bot is not connected to any voice channel");
+        //     return;
+        // }
 
         logger.LogInformation("Sending message {Message} to {ChannelId}...", discordOptions.Value.Message,
             discordOptions.Value.ChannelId);
