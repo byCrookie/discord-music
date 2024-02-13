@@ -10,6 +10,8 @@ using DiscordMusic.Cs.Cli.Commands.Global;
 using DiscordMusic.Cs.Cli.Discord.Options;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
+using Serilog;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace DiscordMusic.Cs.Cli.Commands;
 
@@ -40,6 +42,7 @@ internal class RunCommand(
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(uri);
+        builder.Services.AddSerilog();
         var app = builder.Build();
 
         app.MapPost("/", async (HttpRequest request) =>
