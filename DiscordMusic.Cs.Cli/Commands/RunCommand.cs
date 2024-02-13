@@ -62,8 +62,10 @@ internal class RunCommand(
 
             return Results.Ok();
         });
-
+        
         await app.RunAsync();
+        logger.LogInformation("Logout from Discord");
+        await client.LogoutAsync();
     }
 
     private Task OnNewGameStateAsync(RoundPhaseChangedEventArgs args)
