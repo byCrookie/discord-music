@@ -29,8 +29,8 @@ internal class RunCommand(
     [Command("run")]
     public async Task RunAsync(
         GlobalArguments globalArguments,
-        [Option('u', Description = "Uri to listen to. Default is http://*:3000.")]
-        string uri = "http://*:3000")
+        [Option('u', Description = "Uri to listen to. Use on linux like http://*:3000 and on windows like http://localhost:3000.")]
+        string uri)
     {
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
 

@@ -3,7 +3,7 @@
   "profiles": {
     "DiscordMusic.Cs.Cli Run": {
       "commandName": "Project",
-      "commandLineArgs": "run --verbosity trace",
+      "commandLineArgs": "run -u http://localhost:3000 --verbosity trace",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development"
