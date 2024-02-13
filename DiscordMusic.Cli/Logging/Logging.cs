@@ -1,3 +1,4 @@
+using ByteSizeLib;
 using DiscordMusic.Cli.Commands.Global;
 using DiscordMusic.Cli.Utils;
 using Serilog;
@@ -10,7 +11,7 @@ internal static class Logging
     {
         var verbosity = args.GetArgValue("--verbosity", GlobalArguments.DefaultVerbosity);
         var logEventLevel = verbosity.MicrosoftToSerilogLevel();
-        
+
         var configuration = new LoggerConfiguration();
 
         var logFile = args.GetArgValue<string?>("--log-file");
@@ -19,18 +20,18 @@ internal static class Logging
             configuration.WriteTo.File(
                 logFile,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 5*10^7,
+                fileSizeLimitBytes: (long)ByteSize.FromMegaBytes(50).Bytes,
                 retainedFileCountLimit: 2
             ).MinimumLevel.Is(logEventLevel);
         }
-        
+
         var quiet = args.GetArgValue("--quiet", GlobalArguments.DefaultQuiet);
         if (!quiet)
         {
             configuration.WriteTo.Console()
                 .MinimumLevel.Is(logEventLevel);
         }
-        
+
         return configuration;
     }
 }

@@ -1,3 +1,4 @@
+using ByteSizeLib;
 using DiscordMusic.Cs.Cli.Commands.Global;
 using DiscordMusic.Cs.Cli.Utils;
 using Serilog;
@@ -19,7 +20,7 @@ internal static class Logging
             configuration.WriteTo.File(
                 logFile,
                 rollOnFileSizeLimit: true,
-                fileSizeLimitBytes: 5*10^7,
+                fileSizeLimitBytes: (long)ByteSize.FromMegaBytes(50).Bytes,
                 retainedFileCountLimit: 2
             ).MinimumLevel.Is(logEventLevel);
         }

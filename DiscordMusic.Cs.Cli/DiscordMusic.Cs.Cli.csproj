@@ -16,6 +16,7 @@
     <ItemGroup>
         <PackageReference Include="Cocona"/>
         <PackageReference Include="CSGSI-Core"/>
+        <PackageReference Include="ByteSize"/>
         <PackageReference Include="Discord.Net"/>
         <PackageReference Include="JetBrains.Annotations"/>
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
