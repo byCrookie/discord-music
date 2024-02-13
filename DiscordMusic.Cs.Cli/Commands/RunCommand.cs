@@ -51,7 +51,9 @@ internal class RunCommand(
             }
             finally
             {
+                logger.LogInformation("Stopping listener...");
                 listener.Stop();
+                listener.Close();
             }
         }, ct);
 
@@ -83,6 +85,17 @@ internal class RunCommand(
             response.StatusDescription = "OK";
             response.Close();
         }
+
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogInformation("Cancellation was requested");
+        }
+        
+        logger.LogInformation("Logging out from Discord");
+        await client.LogoutAsync();
+        logger.LogInformation("Listener stopped");
+        listener.Stop();
+        listener.Close();
     }
 
     private Task OnNewGameStateAsync(RoundPhaseChangedEventArgs args)
@@ -117,6 +130,13 @@ internal class RunCommand(
         {
             logger.LogError("Channel {ChannelId} is not a message channel", discordOptions.Value.ChannelId);
             throw new ArgumentException($"Channel {discordOptions.Value.ChannelId} is not a message channel");
+        }
+        
+        var connections = await client.GetConnectionsAsync();
+        if (connections.Count == 0)
+        {
+            logger.LogWarning("Bot is not connected to any voice channel");
+            return;
         }
 
         logger.LogInformation("Sending message {Message} to {ChannelId}...", discordOptions.Value.Message,
