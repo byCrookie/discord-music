@@ -29,7 +29,9 @@ internal class RunCommand(
     [Command("run")]
     public async Task RunAsync(
         GlobalArguments globalArguments,
-        [Option('u', Description = "Uri to listen to. Use on linux like http://*:3000 and on windows like http://localhost:3000.")]
+        [Option('u',
+            Description =
+                "Uri to listen to. Use on linux like http://*:3000 and on windows like http://localhost:3000.")]
         string uri)
     {
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
@@ -57,45 +59,51 @@ internal class RunCommand(
             }
         }, ct);
 
-        while (!ct.IsCancellationRequested)
+        _ = Task.Run(async () =>
         {
-            var context = await listener.GetContextAsync();
-            var request = context.Request;
-            var response = context.Response;
-            var reader = new StreamReader(request.InputStream);
-            var body = await reader.ReadToEndAsync(ct);
-            logger.LogTrace("Received body: {Body}", body);
-            var gameState = new GameState(body);
-
-            if (csOptions.Value.Whitelist.Count != 0 && !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
+            while (!ct.IsCancellationRequested)
             {
-                logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
+                var context = await listener.GetContextAsync();
+                var request = context.Request;
+                var response = context.Response;
+                var reader = new StreamReader(request.InputStream);
+                var body = await reader.ReadToEndAsync(ct);
+                logger.LogTrace("Received body: {Body}", body);
+                var gameState = new GameState(body);
+
+                if (csOptions.Value.Whitelist.Count != 0 &&
+                    !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
+                {
+                    logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
+                    response.StatusCode = 200;
+                    response.StatusDescription = "Forbidden";
+                    response.Close();
+                    continue;
+                }
+
+                if (gameState.Previously.Round.Phase != gameState.Round.Phase)
+                {
+                    await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
+                }
+
                 response.StatusCode = 200;
-                response.StatusDescription = "Forbidden";
+                response.StatusDescription = "OK";
                 response.Close();
-                continue;
             }
 
-            if (gameState.Previously.Round.Phase != gameState.Round.Phase)
+            if (ct.IsCancellationRequested)
             {
-                await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
+                logger.LogInformation("Cancellation was requested");
             }
 
-            response.StatusCode = 200;
-            response.StatusDescription = "OK";
-            response.Close();
-        }
+            logger.LogInformation("Logging out from Discord");
+            await client.LogoutAsync();
+            logger.LogInformation("Listener stopped");
+            listener.Stop();
+            listener.Close();
+        }, ct);
 
-        if (ct.IsCancellationRequested)
-        {
-            logger.LogInformation("Cancellation was requested");
-        }
-        
-        logger.LogInformation("Logging out from Discord");
-        await client.LogoutAsync();
-        logger.LogInformation("Listener stopped");
-        listener.Stop();
-        listener.Close();
+        await Task.Delay(Timeout.Infinite, ct);
     }
 
     private Task OnNewGameStateAsync(RoundPhaseChangedEventArgs args)
@@ -131,7 +139,7 @@ internal class RunCommand(
             logger.LogError("Channel {ChannelId} is not a message channel", discordOptions.Value.ChannelId);
             throw new ArgumentException($"Channel {discordOptions.Value.ChannelId} is not a message channel");
         }
-        
+
         var connections = await client.GetConnectionsAsync();
         if (connections.Count == 0)
         {
