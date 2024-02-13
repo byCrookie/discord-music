@@ -40,70 +40,32 @@ internal class RunCommand(
         client.Log += logMessage => LogAsync(clientLogger, logMessage);
         await client.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
 
-        var listener = new HttpListener();
-        listener.Prefixes.Add(uri + "/");
-        listener.Start();
-        logger.LogInformation("Listening to {Uri}...", uri);
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls(uri);
+        var app = builder.Build();
 
-        _ = Task.Run(async () =>
+        app.MapPost("/", async (HttpRequest request) =>
         {
-            try
+            var body = await new StreamReader(request.Body).ReadToEndAsync(ct);
+            logger.LogTrace("Received body: {Body}", body);
+            var gameState = new GameState(body);
+
+            if (csOptions.Value.Whitelist.Count != 0 &&
+                !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
             {
-                await Task.Delay(Timeout.Infinite, ct);
-            }
-            finally
-            {
-                logger.LogInformation("Stopping listener...");
-                listener.Stop();
-                listener.Close();
-            }
-        }, ct);
-
-        _ = Task.Run(async () =>
-        {
-            while (!ct.IsCancellationRequested)
-            {
-                var context = await listener.GetContextAsync();
-                var request = context.Request;
-                var response = context.Response;
-                var reader = new StreamReader(request.InputStream);
-                var body = await reader.ReadToEndAsync(ct);
-                logger.LogTrace("Received body: {Body}", body);
-                var gameState = new GameState(body);
-
-                if (csOptions.Value.Whitelist.Count != 0 &&
-                    !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
-                {
-                    logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
-                    response.StatusCode = 200;
-                    response.StatusDescription = "Forbidden";
-                    response.Close();
-                    continue;
-                }
-
-                if (gameState.Previously.Round.Phase != gameState.Round.Phase)
-                {
-                    await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
-                }
-
-                response.StatusCode = 200;
-                response.StatusDescription = "OK";
-                response.Close();
+                logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
+                return Results.Ok("Forbidden");
             }
 
-            if (ct.IsCancellationRequested)
+            if (gameState.Previously.Round.Phase != gameState.Round.Phase)
             {
-                logger.LogInformation("Cancellation was requested");
+                await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
             }
 
-            logger.LogInformation("Logging out from Discord");
-            await client.LogoutAsync();
-            logger.LogInformation("Listener stopped");
-            listener.Stop();
-            listener.Close();
-        }, ct);
+            return Results.Ok();
+        });
 
-        await Task.Delay(Timeout.Infinite, ct);
+        await app.RunAsync();
     }
 
     private Task OnNewGameStateAsync(RoundPhaseChangedEventArgs args)

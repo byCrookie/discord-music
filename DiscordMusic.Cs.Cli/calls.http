@@ -1,0 +1,30 @@
+@HostAddress = http://localhost:3000
+@Token = 7MeOo0ZDz2
+
+POST {{HostAddress}}/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "round": {
+    "phase": "live"
+  },
+  "auth": {
+    "token": "{{Token}}"
+  }
+}
+
+###
+
+POST {{HostAddress}}/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "round": {
+    "phase": "over"
+  },
+  "auth": {
+    "token": "{{Token}}"
+  }
+}
