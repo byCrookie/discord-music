@@ -28,12 +28,12 @@
     <None Include="External\linux\libopus.so"/>
     <ContentWithTargetPath Include="External\linux\libopus.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>opus.dll</TargetPath>
+      <TargetPath>libopus.so</TargetPath>
     </ContentWithTargetPath>
     <None Include="External\linux\libsodium.so"/>
     <ContentWithTargetPath Include="External\linux\libsodium.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libsodium.dll</TargetPath>
+      <TargetPath>libsodium.so</TargetPath>
     </ContentWithTargetPath>
   </ItemGroup>
 
