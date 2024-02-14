@@ -7,6 +7,7 @@ public interface IMusicStore
 {
     Track GetOrAddTrack(TrackKey trackKey, Func<Guid, TrackKey, Track> factory);
     IFileInfo GetTrackFile(Track track);
+    Track? FindTrack(string link);
     ByteSize GetSize();
     Task ClearAsync();
 }

@@ -4,6 +4,7 @@ using Discord;
 using Discord.Audio;
 using DiscordMusic.Core.Discord.Music.Download;
 using DiscordMusic.Core.Discord.Music.Queue;
+using DiscordMusic.Core.Discord.Music.Store;
 using DiscordMusic.Core.Discord.Options;
 using DiscordMusic.Shared.Utils;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ namespace DiscordMusic.Core.Discord.Music.Streaming;
 
 internal class MusicStreamer(
     IMusicQueue queue,
+    IMusicStore store,
     IMusicDownloader downloader,
     ILogger<MusicStreamer> logger,
     IOptions<DiscordOptions> discordOptions)
@@ -235,6 +237,14 @@ internal class MusicStreamer(
         if (string.IsNullOrWhiteSpace(argument))
         {
             throw new UnreachableException();
+        }
+
+        var existingTrack = store.FindTrack(argument);
+        if (existingTrack is not null)
+        {
+            logger.LogDebug("Enqueue existing track {Track}.", existingTrack);
+            enqueue(new[] { existingTrack }, queue);
+            return;
         }
 
         if (!downloader.TryPrepare(argument, out var tracks))

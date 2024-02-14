@@ -100,6 +100,24 @@ internal class MusicStore : IMusicStore
         return Task.CompletedTask;
     }
 
+    public Track? FindTrack(string link)
+    {
+        _cache ??= _populate.Value;
+        _logger.LogTrace("Find track by {Link}.", link);
+        var track = _cache.Values.FirstOrDefault(t => t.Url == link);
+
+        if (track is null)
+        {
+            _logger.LogTrace("Track not found by {Link}.", link);
+        }
+        else
+        {
+            _logger.LogTrace("Found track {Track} by {Link}.", track, link);
+        }
+
+        return track;
+    }
+
     private IFileInfo GetPath(Track track)
     {
         var path = _fileSystem.Path.Combine(_location.Value.FullName, $"{track.Id}.opus");
