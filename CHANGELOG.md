@@ -5,3 +5,4 @@ This release includes the following bug fixes and improvements:
 - Counter Strike integration now supports linux and token based authentication
 - Global error handling now catches all errors and logs them correctly
 - Include correct binaries for different platforms
+- Search results are cached if they are not playlists
