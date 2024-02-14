@@ -1,8 +1,8 @@
 ﻿using Cocona;
 using DiscordMusic.Cli;
 using DiscordMusic.Cli.Commands;
-using DiscordMusic.Cli.Configuration;
-using DiscordMusic.Cli.Logging;
+using DiscordMusic.Shared.Configuration;
+using DiscordMusic.Shared.Logging;
 using Serilog;
 
 Log.Logger = Logging
@@ -20,7 +20,7 @@ var builder = CoconaApp.CreateBuilder(
     options => options.EnableShellCompletionSupport = true
 );
 
-builder.AddConfiguration();
+builder.AddConfiguration(typeof(Program).Assembly);
 
 builder.Services.AddCli(builder.Configuration);
 

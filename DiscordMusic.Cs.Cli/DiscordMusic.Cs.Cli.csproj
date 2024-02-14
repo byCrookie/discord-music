@@ -50,6 +50,10 @@
         <EmbeddedResource Include="Cs\gamestate_integration_dm.cfg"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DiscordMusic.Shared\DiscordMusic.Shared.csproj" />
+    </ItemGroup>
+
     <Target Name="CopyExampleToDev" BeforeTargets="BeforeBuild">
         <Copy Condition="!Exists('appsettings.Development.json')" SourceFiles="appsettings.Example.json" DestinationFiles="appsettings.Development.json"/>
     </Target>

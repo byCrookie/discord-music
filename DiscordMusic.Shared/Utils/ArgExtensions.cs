@@ -1,6 +1,6 @@
-namespace DiscordMusic.Cli.Utils;
+namespace DiscordMusic.Shared.Utils;
 
-internal static class ArgExtensions
+public static class ArgExtensions
 {
     public static T? GetArgValue<T>(
         this IEnumerable<string> args,

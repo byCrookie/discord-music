@@ -3,6 +3,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using DiscordMusic.Core;
+using DiscordMusic.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -25,5 +26,6 @@ internal static class CliModule
         });
         services.AddSingleton<DiscordSocketClient>();
         services.AddSingleton<CommandService>();
+        services.AddShared();
     }
 }

@@ -1,6 +1,6 @@
-﻿namespace DiscordMusic.Core.Utils;
+﻿namespace DiscordMusic.Shared.Utils;
 
-internal static class TaskExtensions
+public static class TaskExtensions
 {
     public static void FireAndForget(this Task task)
     {

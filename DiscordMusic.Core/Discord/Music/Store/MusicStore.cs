@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using ByteSizeLib;
 using DiscordMusic.Core.Data;
-using DiscordMusic.Core.Utils.Json;
+using DiscordMusic.Shared.Utils.Json;
 using Microsoft.Extensions.Logging;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 

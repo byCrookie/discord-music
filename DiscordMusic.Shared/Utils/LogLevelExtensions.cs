@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Serilog.Events;
 
-namespace DiscordMusic.Cli.Utils;
+namespace DiscordMusic.Shared.Utils;
 
-internal static class LogLevelExtensions
+public static class LogLevelExtensions
 {
     public static LogEventLevel MicrosoftToSerilogLevel(this LogLevel logLevel)
     {

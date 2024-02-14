@@ -36,6 +36,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
+        <ProjectReference Include="..\DiscordMusic.Shared\DiscordMusic.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>

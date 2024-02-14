@@ -1,11 +1,11 @@
 using ByteSizeLib;
-using DiscordMusic.Cli.Commands.Global;
-using DiscordMusic.Cli.Utils;
+using DiscordMusic.Shared.Global;
+using DiscordMusic.Shared.Utils;
 using Serilog;
 
-namespace DiscordMusic.Cli.Logging;
+namespace DiscordMusic.Shared.Logging;
 
-internal static class Logging
+public static class Logging
 {
     public static LoggerConfiguration Initialize(string[] args)
     {

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace DiscordMusic.Core.Utils.Json;
+namespace DiscordMusic.Shared.Utils.Json;
 
 internal class JsonSerializer : IJsonSerializer
 {

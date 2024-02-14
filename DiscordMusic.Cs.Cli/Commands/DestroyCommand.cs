@@ -1,10 +1,8 @@
 using System.IO.Abstractions;
 using Cocona;
-using DiscordMusic.Cs.Cli.Commands.Global;
 using DiscordMusic.Cs.Cli.Discord.Options;
-using DiscordMusic.Cs.Cli.Utils;
+using DiscordMusic.Shared.Global;
 using JetBrains.Annotations;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Cs.Cli.Commands;

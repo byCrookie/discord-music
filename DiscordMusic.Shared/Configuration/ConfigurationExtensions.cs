@@ -1,18 +1,19 @@
+using System.Reflection;
 using Cocona.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace DiscordMusic.Cli.Configuration;
+namespace DiscordMusic.Shared.Configuration;
 
-internal static class ConfigurationExtensions
+public static class ConfigurationExtensions
 {
-    public static void AddConfiguration(this CoconaAppBuilder coconaAppBuilder)
+    public static void AddConfiguration(this CoconaAppBuilder coconaAppBuilder, Assembly secretsAssembly)
     {
         coconaAppBuilder.Configuration.Sources.Clear();
 
         if (coconaAppBuilder.Environment.IsDevelopment())
         {
-            coconaAppBuilder.Configuration.AddUserSecrets<Program>();
+            coconaAppBuilder.Configuration.AddUserSecrets(secretsAssembly);
             coconaAppBuilder.Configuration.AddJsonFile("appsettings.Development.json");
         }
         else

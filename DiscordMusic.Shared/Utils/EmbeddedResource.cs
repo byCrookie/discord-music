@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace DiscordMusic.Cs.Cli.Utils;
+namespace DiscordMusic.Shared.Utils;
 
 public static class EmbeddedResource
 {

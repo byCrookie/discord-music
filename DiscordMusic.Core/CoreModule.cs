@@ -1,7 +1,7 @@
 using DiscordMusic.Core.Data;
 using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Environment;
-using DiscordMusic.Core.Utils;
+using DiscordMusic.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +14,6 @@ public static class CoreModule
         services.AddDiscord(configuration);
         services.AddEnvironment();
         services.AddData();
-        services.AddUtils();
+        services.AddShared();
     }
 }

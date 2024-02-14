@@ -1,7 +1,7 @@
-﻿using DiscordMusic.Core.Utils.Json;
+﻿using DiscordMusic.Shared.Utils.Json;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DiscordMusic.Core.Utils;
+namespace DiscordMusic.Shared.Utils;
 
 internal static class UtilsModule
 {

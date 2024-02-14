@@ -5,7 +5,7 @@ using Discord.Audio;
 using DiscordMusic.Core.Discord.Music.Download;
 using DiscordMusic.Core.Discord.Music.Queue;
 using DiscordMusic.Core.Discord.Options;
-using DiscordMusic.Core.Utils;
+using DiscordMusic.Shared.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

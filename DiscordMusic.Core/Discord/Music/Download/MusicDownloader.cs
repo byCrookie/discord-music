@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Discord.Music.Store;
 using DiscordMusic.Core.Discord.Options;
-using DiscordMusic.Core.Utils.Json;
+using DiscordMusic.Shared.Utils.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

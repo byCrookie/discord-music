@@ -1,5 +1,5 @@
-@HostAddress = http://localhost:3000
-@Token = 7MeOo0ZDz2
+@HostAddress = http://raspberrypi:3000
+@Token = RcnKquHWeQ
 
 POST {{HostAddress}}/
 Accept: application/json
