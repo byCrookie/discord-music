@@ -1,6 +1,7 @@
-@HostAddress = http://raspberrypi:3000
-@Token = RcnKquHWeQ
+@HostAddress = http://localhost:3000
+@Token = 7MeOo0ZDz2
 
+### Update Round Phase (Live)
 POST {{HostAddress}}/
 Accept: application/json
 Content-Type: application/json
@@ -14,8 +15,7 @@ Content-Type: application/json
   }
 }
 
-###
-
+### Update Round Phase (Over)
 POST {{HostAddress}}/
 Accept: application/json
 Content-Type: application/json
