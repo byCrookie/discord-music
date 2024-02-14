@@ -8,7 +8,7 @@ internal interface IMusicStreamer
 
     Task ConnectAsync(IDiscordClient client, IVoiceChannel channel);
     Task DisconnectAsync();
-    
+
     Task PlayAsync(string? argument);
     Task PlayNextAsync(string? argument);
     Task SkipAsync();

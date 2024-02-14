@@ -14,19 +14,19 @@ internal class PlayCommand(IMusicStreamer streamer, ILogger<PlayCommand> logger)
     public async Task PlayAsync([Remainder] string? argument = null)
     {
         logger.LogTrace("Command play");
-        
+
         if (!await CommandGuards.IsConnectedToVoiceChannelAsync(Context, logger))
         {
             return;
         }
-        
+
         var guildUser = (IGuildUser)Context.User;
-        
+
         await streamer.ConnectAsync(
             Context.Client,
             guildUser.VoiceChannel
         );
-        
+
         await streamer.PlayAsync(argument);
     }
 }

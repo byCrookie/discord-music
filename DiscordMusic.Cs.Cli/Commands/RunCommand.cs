@@ -45,9 +45,7 @@ internal class RunCommand(
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
-                MaxRetryAttempts = 5,
-                BackoffType = DelayBackoffType.Linear,
-                Delay = TimeSpan.FromSeconds(20)
+                MaxRetryAttempts = 5, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(20)
             })
             .Build();
 

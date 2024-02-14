@@ -16,7 +16,7 @@ internal class MusicQueue(ILogger<MusicQueue> logger) : IMusicQueue
             _queue.AddLast(track);
         }
     }
-    
+
     public void EnqueueNext(Track track)
     {
         lock (_lock)
@@ -36,7 +36,7 @@ internal class MusicQueue(ILogger<MusicQueue> logger) : IMusicQueue
                 track = null;
                 return false;
             }
-            
+
             track = _queue.First?.Value;
             logger.LogTrace("Dequeue track {Track}.", track);
             _queue.RemoveFirst();
@@ -54,7 +54,7 @@ internal class MusicQueue(ILogger<MusicQueue> logger) : IMusicQueue
                 track = null;
                 return false;
             }
-            
+
             track = _queue.First?.Value;
             logger.LogTrace("Peek track {Track}.", track);
             return true;

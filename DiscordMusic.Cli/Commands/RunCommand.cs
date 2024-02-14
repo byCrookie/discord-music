@@ -50,7 +50,7 @@ internal class RunCommand(
     private async Task MessageReceivedAsync(IMessage rawMessage)
     {
         logger.LogInformation("Message: {Message}", rawMessage.Content);
-        
+
         if (rawMessage is not SocketUserMessage message)
         {
             logger.LogTrace("Message is not a user message");

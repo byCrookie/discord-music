@@ -35,7 +35,7 @@ internal class InitializeCommand(
     {
         var gsiTemplate = await EmbeddedResource.ReadAsync(typeof(InitializeCommand).Assembly, $"Cs.{GsiFileName}");
         var path = fileSystem.Path.Combine(csOptions.Value.Cfg, GsiFileName);
-        
+
         if (diff)
         {
             if (!fileSystem.File.Exists(path))
@@ -48,7 +48,8 @@ internal class InitializeCommand(
                 logger.LogInformation("Current gamestate integration file: {Current}", currentGsi);
             }
 
-            logger.LogInformation("New gamestate integration file: {New}", gsiTemplate.Replace("{{address}}", address).Replace("{{token}}", token));
+            logger.LogInformation("New gamestate integration file: {New}",
+                gsiTemplate.Replace("{{address}}", address).Replace("{{token}}", token));
             return;
         }
 

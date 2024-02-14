@@ -21,7 +21,7 @@ internal class QueueCommand(IMusicStreamer streamer, IMusicQueue queue, ILogger<
         {
             return;
         }
-        
+
         var tracks = queue.GetAll().ToList();
 
         if (tracks.Count == 0)

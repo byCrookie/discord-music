@@ -28,7 +28,7 @@ internal class BobrCommand(IMusicStreamer streamer, ILogger<BobrCommand> logger)
             Context.Client,
             guildUser.VoiceChannel
         );
-        
+
         await streamer.PlayAsync(Link);
     }
 }

@@ -30,7 +30,7 @@ internal class QueueClearCommand(IMusicQueue queue, ILogger<QueueClearCommand> l
 
             return;
         }
-        
+
         queue.Clear();
 
         await CommandReplies.OkAsync(

@@ -16,7 +16,7 @@ internal class LeaveCommand(
     public async Task LeaveAsync()
     {
         logger.LogTrace("Command leave");
-        
+
         if (!await CommandGuards.IsConnectedToVoiceChannelAsync(Context, logger))
         {
             return;

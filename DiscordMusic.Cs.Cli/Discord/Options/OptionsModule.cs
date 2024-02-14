@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace DiscordMusic.Cs.Cli.Discord.Options;
 
 internal static class OptionsModule
@@ -11,7 +8,7 @@ internal static class OptionsModule
             .Bind(configuration.GetSection(CsOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        
+
         services.AddOptions<DiscordOptions>()
             .Bind(configuration.GetSection(DiscordOptions.SectionName))
             .ValidateDataAnnotations()

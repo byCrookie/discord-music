@@ -13,12 +13,12 @@ internal class PauseCommand(IMusicStreamer streamer, ILogger<PauseCommand> logge
     public async Task PauseAsync()
     {
         logger.LogTrace("Command pause");
-        
+
         if (!await CommandGuards.IsConnectedToVoiceChannelAsync(Context, logger))
         {
             return;
         }
-        
+
         await streamer.PauseAsync();
     }
 }

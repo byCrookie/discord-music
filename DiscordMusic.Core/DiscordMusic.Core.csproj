@@ -1,36 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <ItemGroup>
-        <PackageReference Include="ByteSize"/>
-        <PackageReference Include="Discord.Net"/>
-        <PackageReference Include="JetBrains.Annotations"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting"/>
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
-        <PackageReference Include="System.Linq.Async"/>
-        <PackageReference Include="TestableIO.System.IO.Abstractions"/>
-        <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions"/>
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ByteSize"/>
+    <PackageReference Include="Discord.Net"/>
+    <PackageReference Include="JetBrains.Annotations"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
+    <PackageReference Include="System.Linq.Async"/>
+    <PackageReference Include="TestableIO.System.IO.Abstractions"/>
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions"/>
+  </ItemGroup>
 
-    <ItemGroup Condition="($(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR $([MSBuild]::IsOSPlatform('Windows'))">
-        <Content Include="opus.dll">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="libsodium.dll">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+  <ItemGroup Condition="($(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR $([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="opus.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="libsodium.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
-    <ItemGroup Condition="($(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR !$([MSBuild]::IsOSPlatform('Windows'))">
-        <Content Include="libopus.so">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="libsodium.so">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+  <ItemGroup Condition="($(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR !$([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="libopus.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="libsodium.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\DiscordMusic.Shared\DiscordMusic.Shared.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DiscordMusic.Shared\DiscordMusic.Shared.csproj"/>
+  </ItemGroup>
 
 </Project>

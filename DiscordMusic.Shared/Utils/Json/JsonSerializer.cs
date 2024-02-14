@@ -6,9 +6,7 @@ internal class JsonSerializer : IJsonSerializer
 {
     private static readonly JsonSerializerOptions Options = new()
     {
-        PropertyNameCaseInsensitive = false,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        PropertyNameCaseInsensitive = false, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true
     };
 
     public string Serialize<T>(T obj)

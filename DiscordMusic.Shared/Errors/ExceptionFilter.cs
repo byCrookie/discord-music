@@ -5,7 +5,8 @@ namespace DiscordMusic.Shared.Errors;
 
 public class ExceptionFilter : CommandFilterAttribute
 {
-    public override async ValueTask<int> OnCommandExecutionAsync(CoconaCommandExecutingContext ctx, CommandExecutionDelegate next)
+    public override async ValueTask<int> OnCommandExecutionAsync(CoconaCommandExecutingContext ctx,
+        CommandExecutionDelegate next)
     {
         Log.Verbose($"Start Command: {ctx.Command.Name}");
         try

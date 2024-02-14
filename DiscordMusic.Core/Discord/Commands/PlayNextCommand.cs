@@ -26,7 +26,7 @@ internal class PlayNextCommand(IMusicStreamer streamer, ILogger<PlayNextCommand>
             Context.Client,
             guildUser.VoiceChannel
         );
-        
+
         await streamer.PlayNextAsync(argument);
     }
 }

@@ -15,7 +15,7 @@ internal class SkipCommand(IMusicStreamer streamer, IMusicQueue queue, ILogger<S
     public async Task SkipAsync([Remainder] int? index = 0)
     {
         logger.LogTrace("Command skip");
-        
+
         if (!await CommandGuards.IsConnectedToVoiceChannelAsync(Context, logger))
         {
             return;
@@ -38,7 +38,7 @@ internal class SkipCommand(IMusicStreamer streamer, IMusicQueue queue, ILogger<S
             await streamer.SkipAsync();
             return;
         }
-        
+
         queue.SkipTo(index.Value - 1);
         await streamer.SkipAsync();
     }

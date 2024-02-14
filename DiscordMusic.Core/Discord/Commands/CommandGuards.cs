@@ -18,7 +18,7 @@ internal static class CommandGuards
         {
             return true;
         }
-        
+
         await CommandReplies.ErrorAsync(
             context,
             logger,

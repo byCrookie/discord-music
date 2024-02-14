@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class HelpCommand(IOptions<DiscordOptions> discordOptions, ILogger<HelpCommand> logger) : ModuleBase<CommandContext>
+internal class HelpCommand(IOptions<DiscordOptions> discordOptions, ILogger<HelpCommand> logger)
+    : ModuleBase<CommandContext>
 {
     [UsedImplicitly]
     [Command("help")]
@@ -15,7 +16,7 @@ internal class HelpCommand(IOptions<DiscordOptions> discordOptions, ILogger<Help
     public async Task HelpAsync()
     {
         logger.LogTrace("Command help");
-        
+
         var prefix = discordOptions.Value.Prefix;
 
         var embed = new EmbedBuilder()
@@ -37,7 +38,7 @@ internal class HelpCommand(IOptions<DiscordOptions> discordOptions, ILogger<Help
             .WithFooter("Discord Music Bot")
             .WithColor(Color.Blue)
             .Build();
-        
+
         await ReplyAsync(embed: embed);
     }
 }

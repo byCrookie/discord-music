@@ -18,15 +18,15 @@ internal class MusicStreamer(
     IOptions<DiscordOptions> discordOptions)
     : IMusicStreamer
 {
-    private IDiscordClient? _discordClient;
-    private IVoiceChannel? _channel;
     private IAudioClient? _audioClient;
+    private IVoiceChannel? _channel;
 
     private CancellationTokenSource? _cts;
-
-    public Track? CurrentTrack { get; private set; }
+    private IDiscordClient? _discordClient;
 
     private CancellationTokenSource? _pauseCts;
+
+    public Track? CurrentTrack { get; private set; }
 
     public async Task ConnectAsync(IDiscordClient client, IVoiceChannel channel)
     {

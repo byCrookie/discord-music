@@ -14,7 +14,7 @@ internal class NowPlayingCommand(IMusicStreamer streamer, ILogger<NowPlayingComm
     public async Task LeaveAsync()
     {
         logger.LogTrace("Command nowplaying");
-        
+
         if (!await CommandGuards.IsConnectedToVoiceChannelAsync(Context, logger))
         {
             return;

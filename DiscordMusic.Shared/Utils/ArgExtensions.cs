@@ -8,7 +8,7 @@ public static class ArgExtensions
         T? defaultValue = default)
     {
         var arguments = args.ToList();
-        
+
         var argumentIndex = arguments.FindIndex(a => a.StartsWith(name));
         if (argumentIndex == -1)
         {
@@ -27,7 +27,7 @@ public static class ArgExtensions
             {
                 return (T)Enum.Parse(typeof(T), argument, true);
             }
-            
+
             return (T)Convert.ChangeType(argument, typeof(T));
         }
         catch (Exception e)

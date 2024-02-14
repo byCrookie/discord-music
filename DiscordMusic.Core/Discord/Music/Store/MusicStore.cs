@@ -11,12 +11,12 @@ namespace DiscordMusic.Core.Discord.Music.Store;
 internal class MusicStore : IMusicStore
 {
     private readonly IFileSystem _fileSystem;
-    private readonly ILogger<MusicStore> _logger;
     private readonly IJsonSerializer _jsonSerializer;
+    private readonly Lazy<IDirectoryInfo> _location;
+    private readonly ILogger<MusicStore> _logger;
+    private readonly Lazy<ConcurrentDictionary<TrackKey, Track>> _populate;
 
     private ConcurrentDictionary<TrackKey, Track>? _cache;
-    private readonly Lazy<IDirectoryInfo> _location;
-    private readonly Lazy<ConcurrentDictionary<TrackKey, Track>> _populate;
 
     public MusicStore(
         IFileSystem fileSystem,
@@ -77,20 +77,6 @@ internal class MusicStore : IMusicStore
         }));
     }
 
-    private IFileInfo GetPath(Track track)
-    {
-        var path = _fileSystem.Path.Combine(_location.Value.FullName, $"{track.Id}.opus");
-        _logger.LogTrace("Audio file path for {Track} is {Path}.", track, path);
-        return _fileSystem.FileInfo.New(path);
-    }
-
-    private IFileInfo GetJsonPath(Track track)
-    {
-        var path = _fileSystem.Path.Combine(_location.Value.FullName, $"{track.Id}.json");
-        _logger.LogTrace("Metadata path for {Track} is {Path}.", track, path);
-        return _fileSystem.FileInfo.New(path);
-    }
-
     public ByteSize GetSize()
     {
         _logger.LogTrace("Get music store size.");
@@ -112,5 +98,19 @@ internal class MusicStore : IMusicStore
         }
 
         return Task.CompletedTask;
+    }
+
+    private IFileInfo GetPath(Track track)
+    {
+        var path = _fileSystem.Path.Combine(_location.Value.FullName, $"{track.Id}.opus");
+        _logger.LogTrace("Audio file path for {Track} is {Path}.", track, path);
+        return _fileSystem.FileInfo.New(path);
+    }
+
+    private IFileInfo GetJsonPath(Track track)
+    {
+        var path = _fileSystem.Path.Combine(_location.Value.FullName, $"{track.Id}.json");
+        _logger.LogTrace("Metadata path for {Track} is {Path}.", track, path);
+        return _fileSystem.FileInfo.New(path);
     }
 }

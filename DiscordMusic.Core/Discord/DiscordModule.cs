@@ -7,9 +7,9 @@ namespace DiscordMusic.Core.Discord;
 
 internal static class DiscordModule
 {
-   public static void AddDiscord(this IServiceCollection services, IConfiguration configuration)
-   {
-      services.AddDiscordOptions(configuration);
-      services.AddMusic();
-   }
+    public static void AddDiscord(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDiscordOptions(configuration);
+        services.AddMusic();
+    }
 }
