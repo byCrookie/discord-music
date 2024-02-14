@@ -51,7 +51,7 @@ public static class CommandReplies
             .WithColor(Color.Red)
             .Build();
 
-        await context
+        var response = await context
             .Channel
             .SendMessageAsync(
                 embed: embed,
@@ -60,5 +60,11 @@ public static class CommandReplies
                     context.Channel.Id,
                     context.Guild.Id
                 ));
+
+        logger.LogTrace("Waiting 10 seconds before deleting message {MessageId} from {ChannelId}...", response.Id,
+            context.Channel.Id);
+        await Task.Delay(TimeSpan.FromSeconds(10));
+        logger.LogTrace("Deleting message {MessageId} from {ChannelId}...", response.Id, context.Channel.Id);
+        await response.DeleteAsync();
     }
 }
