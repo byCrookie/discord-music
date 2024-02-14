@@ -7,6 +7,7 @@ using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
 using DiscordMusic.Cs.Cli.Discord.Options;
+using DiscordMusic.Shared.Errors;
 using DiscordMusic.Shared.Global;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
@@ -28,6 +29,7 @@ internal class RunCommand(
     private bool _isPaused;
 
     [UsedImplicitly]
+    [ExceptionFilter]
     [Command("run")]
     public async Task RunAsync(
         GlobalArguments globalArguments,

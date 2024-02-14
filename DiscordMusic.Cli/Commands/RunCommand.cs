@@ -5,6 +5,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordMusic.Core.Discord.Commands;
 using DiscordMusic.Core.Discord.Options;
+using DiscordMusic.Shared.Errors;
 using DiscordMusic.Shared.Global;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ internal class RunCommand(
     CommandService commands)
 {
     [UsedImplicitly]
+    [ExceptionFilter]
     [Cocona.Command("run")]
     public async Task RunAsync(GlobalArguments globalArguments)
     {

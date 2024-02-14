@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using Cocona;
 using DiscordMusic.Cs.Cli.Discord.Options;
+using DiscordMusic.Shared.Errors;
 using DiscordMusic.Shared.Global;
 using DiscordMusic.Shared.Utils;
 using JetBrains.Annotations;
@@ -16,6 +17,7 @@ internal class InitializeCommand(
     private const string GsiFileName = "gamestate_integration_dm.cfg";
 
     [UsedImplicitly]
+    [ExceptionFilter]
     [Command("init",
         Description = "Initialize the client (where cs is running) by creating a gamestate integration file.")]
     public async Task InitializeAsync(

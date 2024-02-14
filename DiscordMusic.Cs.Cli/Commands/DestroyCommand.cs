@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using Cocona;
 using DiscordMusic.Cs.Cli.Discord.Options;
+using DiscordMusic.Shared.Errors;
 using DiscordMusic.Shared.Global;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,7 @@ internal class DestroyCommand(
     private const string GsiFileName = "gamestate_integration_dm.cfg";
 
     [UsedImplicitly]
+    [ExceptionFilter]
     [Command("destroy", Description = "Remove gamestate integration file from the client (where cs is running).")]
     public Task InitializeAsync(GlobalArguments globalArguments)
     {

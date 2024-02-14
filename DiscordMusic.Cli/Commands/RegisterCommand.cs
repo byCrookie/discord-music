@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Cocona;
 using DiscordMusic.Core.Discord.Options;
+using DiscordMusic.Shared.Errors;
 using DiscordMusic.Shared.Global;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ namespace DiscordMusic.Cli.Commands;
 internal class RegisterCommand(IOptions<DiscordOptions> discordOptions, ILogger<RegisterCommand> logger)
 {
     [UsedImplicitly]
+    [ExceptionFilter]
     [Command("register")]
     public Task RegisterAsync(GlobalArguments globalArguments)
     {
