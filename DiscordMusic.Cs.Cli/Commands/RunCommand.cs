@@ -9,6 +9,7 @@ using Discord.WebSocket;
 using DiscordMusic.Cs.Cli.Discord.Options;
 using DiscordMusic.Shared.Errors;
 using DiscordMusic.Shared.Global;
+using DiscordMusic.Shared.Utils;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -72,19 +73,23 @@ internal class RunCommand(
         {
             var body = await new StreamReader(request.Body).ReadToEndAsync(ct);
             logger.LogTrace("Received body: {Body}", body);
-            var gameState = new GameState(body);
 
-            if (csOptions.Value.Whitelist.Count != 0 &&
-                !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
+            Task.Run(async () =>
             {
-                logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
-                return Results.Ok("Forbidden");
-            }
+                var gameState = new GameState(body);
 
-            if (gameState.Previously.Round.Phase != gameState.Round.Phase)
-            {
-                await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
-            }
+                if (csOptions.Value.Whitelist.Count != 0 &&
+                    !csOptions.Value.Whitelist.Contains(gameState.Auth.Token))
+                {
+                    logger.LogWarning("Forbidden token {Token}. Not whitelisted.", gameState.Auth.Token);
+                    return;
+                }
+
+                if (gameState.Previously.Round.Phase != gameState.Round.Phase)
+                {
+                    await OnNewGameStateAsync(new RoundPhaseChangedEventArgs(gameState));
+                }
+            }, ct).FireAndForget();
 
             return Results.Ok();
         });
