@@ -113,6 +113,11 @@ the bot and interact with discord-music based on the current game round states.
 dmcs run
 ```
 
+## Lyrics
+
+Thanks [asrvd - lyrist](https://github.com/asrvd/lyrist) for the lyrics api. The bot
+uses the lyrics api to get the lyrics of the current song.
+
 ## Development
 
 ### Secrets
