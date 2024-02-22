@@ -27,6 +27,7 @@ internal class HelpCommand(IOptions<DiscordOptions> discordOptions, ILogger<Help
             .AddField($"{prefix}playnext ({prefix}pn)",
                 "Queues a url/search from YouTube to play next or resumes if is paused.")
             .AddField($"{prefix}nowplaying ({prefix}np)", "Shows the current track.")
+            .AddField($"{prefix}lyrics ({prefix}ly)", "Shows the lyrics of the current track.")
             .AddField($"{prefix}skip [index] ({prefix}s [index])",
                 "Skips the current track or index given. Index is optional. Default is 1.")
             .AddField($"{prefix}pause ({prefix}pa)", "Pauses the current track.")

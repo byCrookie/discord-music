@@ -3,6 +3,8 @@
   <ItemGroup>
     <PackageReference Include="ByteSize"/>
     <PackageReference Include="Discord.Net"/>
+    <PackageReference Include="Flurl"/>
+    <PackageReference Include="Flurl.Http"/>
     <PackageReference Include="JetBrains.Annotations"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>

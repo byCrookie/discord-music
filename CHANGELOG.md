@@ -4,3 +4,4 @@ This release includes the following bug fixes and improvements:
 
 - Delete error messages after 10 seconds
 - Fix performance issues with game state integration
+- Add command to show lyrics for the current song

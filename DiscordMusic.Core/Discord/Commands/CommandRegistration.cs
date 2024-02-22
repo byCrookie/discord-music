@@ -18,5 +18,6 @@ public static class CommandRegistration
         await commands.AddModuleAsync<BobrCommand>(serviceProvider);
         await commands.AddModuleAsync<QueueClearCommand>(serviceProvider);
         await commands.AddModuleAsync<PlayNextCommand>(serviceProvider);
+        await commands.AddModuleAsync<LyricsCommand>(serviceProvider);
     }
 }
