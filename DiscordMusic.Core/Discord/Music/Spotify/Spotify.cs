@@ -34,7 +34,8 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
                 ];
             case var _ when argument.Contains("playlist"):
                 var playlistId = argument.Split("/").Last().Split("?").First();
-                var playlistTracks = await spotify.Playlists.GetItems(playlistId);
+                var playlistTracks =
+                    await spotify.Playlists.GetItems(playlistId, new PlaylistGetItemsRequest { Limit = 100 });
                 return (from playlistTrack in playlistTracks.Items?.Select(i => (FullTrack)i.Track) ??
                                               Enumerable.Empty<FullTrack>()
                     select new Track(
@@ -42,7 +43,7 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
                         TimeSpan.Zero, Guid.Empty)).ToList();
             case var _ when argument.Contains("album"):
                 var albumId = argument.Split("/").Last().Split("?").First();
-                var albumTracks = await spotify.Albums.GetTracks(albumId);
+                var albumTracks = await spotify.Albums.GetTracks(albumId, new AlbumTracksRequest { Limit = 50 });
                 return albumTracks.Items
                     ?.Select(albumTrack => new Track(albumTrack.Name,
                         string.Join("&", albumTrack.Artists.Select(a => a.Name)), string.Empty,
