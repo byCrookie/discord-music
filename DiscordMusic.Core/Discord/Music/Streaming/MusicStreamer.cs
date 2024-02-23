@@ -122,6 +122,8 @@ internal class MusicStreamer(
             }
         });
 
+        DownloadNextTrackAsync(CancellationToken.None);
+
         _pauseCts ??= new CancellationTokenSource();
         await SetSpeakingAsync(true);
     }
@@ -232,7 +234,13 @@ internal class MusicStreamer(
                 return;
             }
 
-            downloader.TryDownload(preTrack!, out _);
+            if (!downloader.TryDownload(preTrack!, out var updatedTrack))
+            {
+                return;
+            }
+
+            queue.TryDequeue(out _);
+            queue.EnqueueNext(updatedTrack!.Track);
         }, ct).FireAndForget();
     }
 
