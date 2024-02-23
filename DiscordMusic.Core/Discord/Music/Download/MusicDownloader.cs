@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO.Abstractions;
 using DiscordMusic.Core.Discord.Music.Store;
 using DiscordMusic.Core.Discord.Options;
 using DiscordMusic.Shared.Utils.Json;
@@ -57,15 +56,28 @@ internal class MusicDownloader(
         return false;
     }
 
-    public bool TryDownload(Track track, out IFileInfo? file)
+    public bool TryDownload(Track track, out UpdatedTrack? updatedTrack)
     {
+        if (string.IsNullOrWhiteSpace(track.Url))
+        {
+            if (TryPrepare($"{track.Title} - {track.Author}", out var preparedTracks))
+            {
+                track = preparedTracks.First();
+            }
+            else
+            {
+                updatedTrack = null;
+                return false;
+            }
+        }
+
         logger.LogDebug("Download track {Track}.", track);
         var output = store.GetTrackFile(track);
 
         if (output.Exists)
         {
             logger.LogDebug("Track already exists at {File}.", output.FullName);
-            file = output;
+            updatedTrack = new UpdatedTrack(track, output);
             return true;
         }
 
@@ -90,12 +102,12 @@ internal class MusicDownloader(
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             process.WaitForExit();
-            file = output;
+            updatedTrack = new UpdatedTrack(track, output);
             return true;
         }
 
         logger.LogWarning("Failed to download track.");
-        file = null;
+        updatedTrack = null;
         return false;
     }
 

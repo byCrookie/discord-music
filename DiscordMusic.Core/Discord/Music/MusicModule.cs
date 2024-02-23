@@ -1,6 +1,7 @@
 using DiscordMusic.Core.Discord.Music.Download;
 using DiscordMusic.Core.Discord.Music.Lyrics;
 using DiscordMusic.Core.Discord.Music.Queue;
+using DiscordMusic.Core.Discord.Music.Spotify;
 using DiscordMusic.Core.Discord.Music.Store;
 using DiscordMusic.Core.Discord.Music.Streaming;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ internal static class MusicModule
         services.AddSingleton<IMusicStreamer, MusicStreamer>();
         services.AddTransient<IMusicDownloader, MusicDownloader>();
         services.AddTransient<ILyricsService, LyricsService>();
+        services.AddTransient<ISpotify, Spotify.Spotify>();
 
         services.AddHostedService<MusicHost>();
     }

@@ -4,6 +4,7 @@ using Discord;
 using Discord.Audio;
 using DiscordMusic.Core.Discord.Music.Download;
 using DiscordMusic.Core.Discord.Music.Queue;
+using DiscordMusic.Core.Discord.Music.Spotify;
 using DiscordMusic.Core.Discord.Music.Store;
 using DiscordMusic.Core.Discord.Options;
 using DiscordMusic.Shared.Utils;
@@ -17,7 +18,8 @@ internal class MusicStreamer(
     IMusicStore store,
     IMusicDownloader downloader,
     ILogger<MusicStreamer> logger,
-    IOptions<DiscordOptions> discordOptions)
+    IOptions<DiscordOptions> discordOptions,
+    ISpotify spotify)
     : IMusicStreamer
 {
     private IAudioClient? _audioClient;
@@ -89,7 +91,7 @@ internal class MusicStreamer(
         }
 
         logger.LogDebug("Play {Argument}", argument);
-        Prepare(argument, (tracks, q) =>
+        await PrepareAsync(argument, (tracks, q) =>
         {
             foreach (var track in tracks)
             {
@@ -112,7 +114,7 @@ internal class MusicStreamer(
         }
 
         logger.LogDebug("Play next {Argument}", argument);
-        Prepare(argument, (tracks, q) =>
+        await PrepareAsync(argument, (tracks, q) =>
         {
             foreach (var track in tracks.Reverse())
             {
@@ -187,12 +189,14 @@ internal class MusicStreamer(
 
         CurrentTrack = track;
 
-        if (!downloader.TryDownload(track!, out var file))
+        if (!downloader.TryDownload(track!, out var updatedTrack))
         {
             return;
         }
 
-        var streamProcess = CreateStream(file!);
+        CurrentTrack = updatedTrack!.Track;
+
+        var streamProcess = CreateStream(updatedTrack.File);
 
         DownloadNextTrackAsync(ct);
 
@@ -232,7 +236,7 @@ internal class MusicStreamer(
         }, ct).FireAndForget();
     }
 
-    private void Prepare(string? argument, Action<IEnumerable<Track>, IMusicQueue> enqueue)
+    private async Task PrepareAsync(string? argument, Action<IEnumerable<Track>, IMusicQueue> enqueue)
     {
         if (string.IsNullOrWhiteSpace(argument))
         {
@@ -244,6 +248,20 @@ internal class MusicStreamer(
         {
             logger.LogDebug("Enqueue existing track {Track}.", existingTrack);
             enqueue(new[] { existingTrack }, queue);
+            return;
+        }
+
+        if (argument.StartsWith("http") && argument.Contains("spotify.com"))
+        {
+            var spotifyTracks = await spotify.GetTracksAsync(argument);
+
+            logger.LogDebug("Enqueue {Count} spotify tracks.", spotifyTracks.Count);
+            foreach (var track in spotifyTracks)
+            {
+                logger.LogTrace("Enqueue track: {Track} - {Author}", track.Title, track.Author);
+            }
+
+            enqueue(spotifyTracks, queue);
             return;
         }
 

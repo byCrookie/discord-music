@@ -1,3 +1,4 @@
+using DiscordMusic.Core.Discord.Options.Spotify;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,11 @@ internal static class OptionsModule
     {
         services.AddOptions<DiscordOptions>()
             .Bind(configuration.GetSection(DiscordOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<SpotifyOptions>()
+            .Bind(configuration.GetSection(SpotifyOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
     }
