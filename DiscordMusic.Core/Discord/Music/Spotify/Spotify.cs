@@ -34,21 +34,27 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
                 ];
             case var _ when argument.Contains("playlist"):
                 var playlistId = argument.Split("/").Last().Split("?").First();
-                var playlistTracks =
-                    await spotify.Playlists.GetItems(playlistId, new PlaylistGetItemsRequest { Limit = 100 });
-                return (from playlistTrack in playlistTracks.Items?.Select(i => (FullTrack)i.Track) ??
-                                              Enumerable.Empty<FullTrack>()
-                    select new Track(
-                        playlistTrack.Name, string.Join("&", playlistTrack.Artists.Select(a => a.Name)), string.Empty,
-                        TimeSpan.Zero, Guid.Empty)).ToList();
+                return await GetPagedAsync(
+                    100,
+                    offset => spotify.Playlists.GetItems(playlistId,
+                        new PlaylistGetItemsRequest { Limit = 100, Offset = offset }),
+                    playlistTrack =>
+                    {
+                        var fullTrack = (FullTrack)playlistTrack.Track;
+                        return new Track(fullTrack.Name, string.Join("&", fullTrack.Artists.Select(a => a.Name)),
+                            string.Empty, TimeSpan.Zero, Guid.Empty);
+                    }
+                );
             case var _ when argument.Contains("album"):
                 var albumId = argument.Split("/").Last().Split("?").First();
-                var albumTracks = await spotify.Albums.GetTracks(albumId, new AlbumTracksRequest { Limit = 50 });
-                return albumTracks.Items
-                    ?.Select(albumTrack => new Track(albumTrack.Name,
-                        string.Join("&", albumTrack.Artists.Select(a => a.Name)), string.Empty,
-                        TimeSpan.Zero, Guid.Empty))
-                    .ToList() ?? [];
+                return await GetPagedAsync(50,
+                    offset => spotify.Albums.GetTracks(
+                        albumId,
+                        new AlbumTracksRequest { Limit = 50, Offset = offset }),
+                    simpleTrack => new Track(simpleTrack.Name,
+                        string.Join("&", simpleTrack.Artists.Select(a => a.Name)), string.Empty,
+                        TimeSpan.Zero, Guid.Empty)
+                );
             case var _ when argument.Contains("artist"):
                 var artistId = argument.Split("/").Last().Split("?").First();
                 var topTracks = await spotify.Artists.GetTopTracks(artistId,
@@ -60,5 +66,27 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
         }
 
         return [];
+    }
+
+    private static async Task<List<Track>> GetPagedAsync<T>(int limit, Func<int, Task<Paging<T>>> getTracksAsync,
+        Func<T, Track> map)
+    {
+        var tracks = new List<Track>();
+        var offset = 0;
+        while (true)
+        {
+            var page = await getTracksAsync(offset);
+            var mapped = page.Items?.Select(map).ToList() ?? [];
+            tracks.AddRange(mapped);
+
+            if (mapped.Count < limit)
+            {
+                break;
+            }
+
+            offset += limit;
+        }
+
+        return tracks;
     }
 }
