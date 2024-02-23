@@ -30,6 +30,7 @@ jobs:
           name: Release ${{ env.GitBuildVersionSimple }}
           tag_name: ${{ env.GitBuildVersionSimple }}
           body_path: CHANGELOG.md
+          fail_on_unmatched_files: true
           files: |
             CHANGELOG.md
             LICENSE
@@ -74,65 +75,20 @@ jobs:
           Compress-Archive -Path ./publish/cs/win-x86/* -DestinationPath ./publish/cs/dmcs_win_x86_${{ needs.release.outputs.version }}.zip
           Compress-Archive -Path ./publish/cs/win-arm64/* -DestinationPath ./publish/cs/dmcs_win_arm64_${{ needs.release.outputs.version }}.zip
 
-      - name: Upload Release Assets win-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Assets
+        id: upload_release
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_win_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets win-x86
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/dm_win_x86_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_win_x86_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets win-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/dm_win_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_win_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs win-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/dmcs_win_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_win_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs win-x86
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/dmcs_win_x86_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_win_x86_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs win-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/dmcs_win_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_win_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
+          name: Release ${{ needs.release.outputs.version }}
+          tag_name: ${{ needs.release.outputs.version }}
+          fail_on_unmatched_files: true
+          files: |
+            ./publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/dm_win_x86_${{ needs.release.outputs.version }}.zip
+            ./publish/dm_win_arm64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/dmcs_win_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/dmcs_win_x86_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/dmcs_win_arm64_${{ needs.release.outputs.version }}.zip
   
   
   linux:
@@ -184,95 +140,24 @@ jobs:
           (cd cs/linux-arm64 && zip -r ../../cs/linux-arm64/dmcs_linux_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
-      - name: Upload Release Assets linux-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Assets
+        id: upload_release
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_linux_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets linux-musl-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets linux-musl-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets linux-arm
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_linux_arm_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets linux-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_linux_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs linux-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/linux-x64/dmcs_linux_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_linux_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs linux-musl-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/linux-musl-x64/dmcs_linux_musl_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_linux_musl_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs linux-musl-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/linux-musl-arm64/dmcs_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs linux-arm
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/linux-arm/dmcs_linux_arm_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_linux_arm_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
+          name: Release ${{ needs.release.outputs.version }}
+          tag_name: ${{ needs.release.outputs.version }}
+          fail_on_unmatched_files: true
+          files: |
+            ./publish/linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
+            ./publish/linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip
+            ./publish/linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/linux-x64/dmcs_linux_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/linux-musl-x64/dmcs_linux_musl_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/linux-musl-arm64/dmcs_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/linux-arm/dmcs_linux_arm_${{ needs.release.outputs.version }}.zip
+  
   
   macos:
     needs: release
@@ -311,42 +196,15 @@ jobs:
           (cd cs/osx-arm64 && zip -r ../../cs/osx-arm64/dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip .)
         working-directory: ./publish/
 
-      - name: Upload Release Assets osx-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Assets
+        id: upload_release
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_osx_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets osx-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dm_osx_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs osx-x64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/osx-x64/dmcs_osx_x64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_osx_x64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Assets Cs osx-arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./publish/cs/osx-arm64/dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip
-          asset_name: dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip
-          asset_content_type: application/zip
+          name: Release ${{ needs.release.outputs.version }}
+          tag_name: ${{ needs.release.outputs.version }}
+          fail_on_unmatched_files: true
+          files: |
+            ./publish/osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/osx-x64/dmcs_osx_x64_${{ needs.release.outputs.version }}.zip
+            ./publish/cs/osx-arm64/dmcs_osx_arm64_${{ needs.release.outputs.version }}.zip
