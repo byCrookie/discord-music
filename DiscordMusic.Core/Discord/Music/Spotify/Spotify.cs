@@ -27,11 +27,7 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
             case var _ when argument.Contains("track"):
                 var trackId = argument.Split("/").Last().Split("?").First();
                 var track = await spotify.Tracks.Get(trackId);
-                return
-                [
-                    new Track(track.Name, string.Join("&", track.Artists.Select(a => a.Name)), string.Empty,
-                        TimeSpan.Zero, Guid.Empty)
-                ];
+                return [new Track(track.Name, BuildArtists(track.Artists), string.Empty, TimeSpan.Zero, Guid.Empty)];
             case var _ when argument.Contains("playlist"):
                 var playlistId = argument.Split("/").Last().Split("?").First();
                 return await GetPagedAsync(
@@ -41,7 +37,7 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
                     playlistTrack =>
                     {
                         var fullTrack = (FullTrack)playlistTrack.Track;
-                        return new Track(fullTrack.Name, string.Join("&", fullTrack.Artists.Select(a => a.Name)),
+                        return new Track(fullTrack.Name, BuildArtists(fullTrack.Artists),
                             string.Empty, TimeSpan.Zero, Guid.Empty);
                     }
                 );
@@ -51,21 +47,23 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
                     offset => spotify.Albums.GetTracks(
                         albumId,
                         new AlbumTracksRequest { Limit = 50, Offset = offset }),
-                    simpleTrack => new Track(simpleTrack.Name,
-                        string.Join("&", simpleTrack.Artists.Select(a => a.Name)), string.Empty,
+                    simpleTrack => new Track(simpleTrack.Name, BuildArtists(simpleTrack.Artists), string.Empty,
                         TimeSpan.Zero, Guid.Empty)
                 );
             case var _ when argument.Contains("artist"):
                 var artistId = argument.Split("/").Last().Split("?").First();
                 var topTracks = await spotify.Artists.GetTopTracks(artistId,
                     new ArtistsTopTracksRequest(CultureInfo.CurrentCulture.TwoLetterISOLanguageName));
-                return topTracks.Tracks.Select(albumTrack => new Track(albumTrack.Name,
-                        string.Join("&", albumTrack.Artists.Select(a => a.Name)), string.Empty,
-                        TimeSpan.Zero, Guid.Empty))
-                    .ToList();
+                return topTracks.Tracks.Select(topTrack => new Track(topTrack.Name, BuildArtists(topTrack.Artists),
+                    string.Empty, TimeSpan.Zero, Guid.Empty)).ToList();
         }
 
         return [];
+    }
+
+    private static string BuildArtists(IEnumerable<SimpleArtist> artists)
+    {
+        return string.Join(" & ", artists.Select(a => a.Name));
     }
 
     private static async Task<List<Track>> GetPagedAsync<T>(int limit, Func<int, Task<Paging<T>>> getTracksAsync,
