@@ -188,7 +188,7 @@ jobs:
           dotnet publish DiscordMusic.Cs.Cli/DiscordMusic.Cs.Cli.csproj --configuration Release --output publish/cs/osx-x64 --runtime osx-x64
           dotnet publish DiscordMusic.Cs.Cli/DiscordMusic.Cs.Cli.csproj --configuration Release --output publish/cs/osx-arm64 --runtime osx-arm64
 
-      - name: Zip osx-x64
+      - name: Zip
         run: |
           (cd osx-x64 && zip -r ../osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip .)
           (cd osx-arm64 && zip -r ../osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip .)
