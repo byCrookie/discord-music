@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class PingCommand(ILogger<PingCommand> logger) : ModuleBase<SocketCommandContext>
+internal class PingCommand(ILogger<PingCommand> logger) : ModuleBase<CommandContext>
 {
     [UsedImplicitly]
     [Command("ping")]

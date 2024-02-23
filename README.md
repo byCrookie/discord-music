@@ -1,20 +1,31 @@
 # discord-music
 
-Another music bot for discord. This bot is written in C#
-and uses the [Discord.Net](https://github.com/discord-net/Discord.Net) library,
-[FFmpeg](https://github.com/FFmpeg/FFmpeg) and [yt-dlp](https://github.com/yt-dlp/yt-dlp).
+Another music bot for discord. This bot is written in C# and
+uses [Discord.Net](https://github.com/discord-net/Discord.Net), [FFmpeg](https://github.com/FFmpeg/FFmpeg), [yt-dlp](https://github.com/yt-dlp/yt-dlp),
+[SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET)
+and [lyrist](https://github.com/asrvd/lyrist).
 
 ## Setup
-
-Go to https://discord.com/developers/applications and create a new application.
-
-Replace the `ApplicationId` in the `appsettings.json` file with the application id of your new application.
-Next replace the `Token` in the `appsettings.json` file with the token of your new application.
 
 > Warning: The token should be kept secret and not shared with anyone. If the token is shared, it should be regenerated.
 
 > Note: If you dont want to use the `appsettings.json` file, you can use environment variables prefixed
 > with `DISCORD_MUSIC_`.
+
+### Discord
+
+Go to https://discord.com/developers/applications and create a new application.
+
+Replace the `Discord:ApplicationId` in the `appsettings.json` file with the application id of your new application.
+Next replace the `Discord:Token` in the `appsettings.json` file with the token of your new application.
+
+### Spotify
+
+Go to https://developer.spotify.com/dashboard/applications and create a new application.
+
+Replace the `Spotify:ClientId` in the `appsettings.json` file with the client
+id of your new application. Next replace the `Spotify:ClientSecret` in the `appsettings.json`
+file with the client secret of your new application.
 
 ### Register
 
