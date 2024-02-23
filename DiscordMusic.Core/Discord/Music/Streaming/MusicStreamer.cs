@@ -239,8 +239,7 @@ internal class MusicStreamer(
                 return;
             }
 
-            queue.TryDequeue(out _);
-            queue.EnqueueNext(updatedTrack!.Track);
+            queue.EnqueueNextWithDequeue(updatedTrack!.Track);
         }, ct).FireAndForget();
     }
 

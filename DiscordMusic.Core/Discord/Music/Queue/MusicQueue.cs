@@ -26,6 +26,16 @@ internal class MusicQueue(ILogger<MusicQueue> logger) : IMusicQueue
         }
     }
 
+    public void EnqueueNextWithDequeue(Track track)
+    {
+        lock (_lock)
+        {
+            _ = TryDequeue(out _);
+            logger.LogTrace("Enqueue next track {Track}.", track);
+            _queue.AddFirst(track);
+        }
+    }
+
     public bool TryDequeue(out Track? track)
     {
         lock (_lock)
