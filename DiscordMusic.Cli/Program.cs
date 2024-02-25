@@ -1,8 +1,8 @@
 ﻿using Cocona;
 using DiscordMusic.Cli;
 using DiscordMusic.Cli.Commands;
-using DiscordMusic.Shared.Configuration;
-using DiscordMusic.Shared.Logging;
+using DiscordMusic.Core.Configuration;
+using DiscordMusic.Core.Logging;
 using Serilog;
 
 Log.Logger = Logging

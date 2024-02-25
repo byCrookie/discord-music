@@ -51,7 +51,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DiscordMusic.Shared\DiscordMusic.Shared.csproj"/>
+    <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
   </ItemGroup>
 
   <Target Name="CopyExampleToDev" BeforeTargets="BeforeBuild">

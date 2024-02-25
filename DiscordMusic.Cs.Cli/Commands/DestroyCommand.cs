@@ -1,8 +1,8 @@
 using System.IO.Abstractions;
 using Cocona;
+using DiscordMusic.Core.Errors;
+using DiscordMusic.Core.Global;
 using DiscordMusic.Cs.Cli.Discord.Options;
-using DiscordMusic.Shared.Errors;
-using DiscordMusic.Shared.Global;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
 

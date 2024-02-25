@@ -2,8 +2,10 @@ using System.IO.Abstractions;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordMusic.Cli.Data;
+using DiscordMusic.Cli.Discord;
+using DiscordMusic.Cli.Environment;
 using DiscordMusic.Core;
-using DiscordMusic.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -14,7 +16,6 @@ internal static class CliModule
 {
     public static void AddCli(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddCore(configuration);
         services.AddSerilog();
         services.AddTransient<IFileSystem, FileSystem>();
         services.AddSingleton(new DiscordSocketConfig
@@ -26,6 +27,10 @@ internal static class CliModule
         });
         services.AddSingleton<DiscordSocketClient>();
         services.AddSingleton<CommandService>();
-        services.AddShared();
+
+        services.AddCore(configuration);
+        services.AddDiscord(configuration);
+        services.AddEnvironment();
+        services.AddData();
     }
 }
