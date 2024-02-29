@@ -1,8 +1,11 @@
-﻿namespace DiscordMusic.Cs.Cli.Discord;
+﻿using DiscordMusic.Cs.Cli.Discord.Options;
+using Microsoft.Extensions.Options;
 
-internal class State : IState
+namespace DiscordMusic.Cs.Cli.Discord;
+
+internal class State(IOptions<CsOptions> options) : IState
 {
-    public bool PlayOnFreeze { get; set; } = true;
-    public bool Listen { get; set; } = true;
-    public bool IsPaused { get; set; } = false;
+    public bool PlayOnFreeze { get; set; } = options.Value.PlayOnFreeze;
+    public bool Listen { get; set; } = options.Value.Listen;
+    public bool IsPaused { get; set; } = options.Value.IsPaused;
 }
