@@ -4,8 +4,6 @@
     <PackageReference Include="ByteSize"/>
     <PackageReference Include="Cocona"/>
     <PackageReference Include="Discord.Net"/>
-    <PackageReference Include="Flurl"/>
-    <PackageReference Include="Flurl.Http"/>
     <PackageReference Include="JetBrains.Annotations"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations"/>
@@ -13,24 +11,14 @@
     <PackageReference Include="Serilog.Extensions.Hosting"/>
     <PackageReference Include="Serilog.Sinks.Console"/>
     <PackageReference Include="Serilog.Sinks.File"/>
-    <PackageReference Include="SpotifyAPI.Web"/>
     <PackageReference Include="System.Linq.Async"/>
     <PackageReference Include="TestableIO.System.IO.Abstractions"/>
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions"/>
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers"/>
-  </ItemGroup>
-
-  <ItemGroup Condition="($(RuntimeIdentifier) != '' AND !$(RuntimeIdentifier.StartsWith('win'))) OR ($(RuntimeIdentifier) == '' AND !$([MSBuild]::IsOSPlatform('Windows')))">
-    <None Include="External\linux\libopus.so"/>
-    <ContentWithTargetPath Include="External\linux\libopus.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libopus.so</TargetPath>
-    </ContentWithTargetPath>
-    <None Include="External\linux\libsodium.so"/>
-    <ContentWithTargetPath Include="External\linux\libsodium.so">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>libsodium.so</TargetPath>
-    </ContentWithTargetPath>
   </ItemGroup>
 
 </Project>
