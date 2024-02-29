@@ -5,6 +5,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordMusic.Cli.Discord.Commands;
 using DiscordMusic.Cli.Discord.Options;
+using DiscordMusic.Core.Discord.Commands;
 using DiscordMusic.Core.Errors;
 using DiscordMusic.Core.Global;
 using JetBrains.Annotations;

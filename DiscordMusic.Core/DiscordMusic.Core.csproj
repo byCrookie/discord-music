@@ -17,6 +17,7 @@
     <PackageReference Include="System.Linq.Async"/>
     <PackageReference Include="TestableIO.System.IO.Abstractions"/>
     <PackageReference Include="TestableIO.System.IO.Abstractions.Extensions"/>
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers"/>
   </ItemGroup>
 
   <ItemGroup Condition="($(RuntimeIdentifier) != '' AND !$(RuntimeIdentifier.StartsWith('win'))) OR ($(RuntimeIdentifier) == '' AND !$([MSBuild]::IsOSPlatform('Windows')))">

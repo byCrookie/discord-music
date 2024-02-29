@@ -2,6 +2,7 @@ using Discord;
 using Discord.Commands;
 using DiscordMusic.Cli.Discord.Music.Lyrics;
 using DiscordMusic.Cli.Discord.Music.Streaming;
+using DiscordMusic.Core.Discord.Commands;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 

@@ -1,5 +1,6 @@
 using Discord.Commands;
 using DiscordMusic.Cli.Discord.Music.Queue;
+using DiscordMusic.Core.Discord.Commands;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 

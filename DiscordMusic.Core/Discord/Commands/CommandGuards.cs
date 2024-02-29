@@ -2,9 +2,9 @@ using Discord;
 using Discord.Commands;
 using Microsoft.Extensions.Logging;
 
-namespace DiscordMusic.Cli.Discord.Commands;
+namespace DiscordMusic.Core.Discord.Commands;
 
-internal static class CommandGuards
+public static class CommandGuards
 {
     public static async Task<bool> IsConnectedToVoiceChannelAsync<T>(ICommandContext context, ILogger<T> logger)
         where T : class

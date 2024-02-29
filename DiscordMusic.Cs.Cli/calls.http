@@ -28,3 +28,17 @@ Content-Type: application/json
     "token": "{{Token}}"
   }
 }
+
+### Update Round Phase (Freeze)
+POST {{HostAddress}}/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "round": {
+    "phase": "freezeTime"
+  },
+  "auth": {
+    "token": "{{Token}}"
+  }
+}

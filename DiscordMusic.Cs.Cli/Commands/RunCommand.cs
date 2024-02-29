@@ -4,11 +4,15 @@ using CSGSI;
 using CSGSI.Events;
 using CSGSI.Nodes;
 using Discord;
+using Discord.Commands;
 using Discord.Rest;
 using Discord.WebSocket;
+using DiscordMusic.Core.Discord.Commands;
 using DiscordMusic.Core.Errors;
 using DiscordMusic.Core.Global;
 using DiscordMusic.Core.Utils;
+using DiscordMusic.Cs.Cli.Discord;
+using DiscordMusic.Cs.Cli.Discord.Commands;
 using DiscordMusic.Cs.Cli.Discord.Options;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
@@ -16,22 +20,27 @@ using Polly;
 using Polly.Retry;
 using Serilog;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
+using IResult = Discord.Commands.IResult;
 
 namespace DiscordMusic.Cs.Cli.Commands;
 
 internal class RunCommand(
+    IServiceProvider serviceProvider,
     [FromService] ICoconaAppContextAccessor contextAccessor,
     IOptions<DiscordOptions> discordOptions,
     IOptions<CsOptions> csOptions,
     ILogger<RunCommand> logger,
     ILogger<DiscordSocketClient> clientLogger,
-    DiscordRestClient client)
+    ILogger<DiscordRestClient> clientRestLogger,
+    ILogger<CommandService> commandLogger,
+    DiscordSocketClient client,
+    DiscordRestClient restClient,
+    CommandService commands,
+    IState state)
 {
-    private bool _isPaused;
-
     [UsedImplicitly]
     [ExceptionFilter]
-    [Command("run")]
+    [Cocona.Command("run")]
     public async Task RunAsync(
         GlobalArguments globalArguments,
         [Option('u',
@@ -42,6 +51,7 @@ internal class RunCommand(
         var ct = contextAccessor.Current?.CancellationToken ?? CancellationToken.None;
 
         client.Log += logMessage => LogAsync(clientLogger, logMessage);
+        restClient.Log += logMessage => LogAsync(clientRestLogger, logMessage);
 
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
@@ -56,6 +66,7 @@ internal class RunCommand(
             {
                 logger.LogInformation("Logging in to Discord");
                 await client.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
+                await restClient.LoginAsync(TokenType.Bot, discordOptions.Value.Token);
             }
             catch (Exception ex)
             {
@@ -63,6 +74,15 @@ internal class RunCommand(
                 throw;
             }
         }, ct);
+
+        logger.LogInformation("Starting Discord client...");
+        await client.StartAsync();
+        commands.Log += logMessage => LogAsync(commandLogger, logMessage);
+
+        commands.CommandExecuted += CommandExecuteAsync;
+        client.MessageReceived += MessageReceivedAsync;
+
+        await CommandRegistration.AddCommandsAsync(commands, serviceProvider);
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(uri);
@@ -73,6 +93,12 @@ internal class RunCommand(
         {
             var body = await new StreamReader(request.Body).ReadToEndAsync(ct);
             logger.LogTrace("Received body: {Body}", body);
+
+            if (!state.Listen)
+            {
+                logger.LogInformation("Not listening");
+                return Results.Ok();
+            }
 
             Task.Run(async () =>
             {
@@ -99,6 +125,69 @@ internal class RunCommand(
         await client.LogoutAsync();
     }
 
+    private async Task MessageReceivedAsync(IMessage rawMessage)
+    {
+        logger.LogInformation("Message: {Message}", rawMessage.Content);
+
+        if (rawMessage is not SocketUserMessage message)
+        {
+            logger.LogTrace("Message is not a user message");
+            return;
+        }
+
+        if (message.Source != MessageSource.User && message.Author.Id != client.CurrentUser.Id)
+        {
+            logger.LogTrace("Message is not a user message or is not from discord-music bot");
+            return;
+        }
+
+        if (discordOptions.Value.Whitelist.Count == 0 &&
+            !discordOptions.Value.Whitelist.Contains(rawMessage.Channel.Name))
+        {
+            logger.LogDebug("Channel {Channel} not in whitelist", rawMessage.Channel.Name);
+            return;
+        }
+
+        if (discordOptions.Value.Blacklist.Contains(rawMessage.Channel.Name))
+        {
+            logger.LogDebug("Channel {Channel} in blacklist", rawMessage.Channel.Name);
+            return;
+        }
+
+        var argPos = 0;
+        if (!message.HasStringPrefix(discordOptions.Value.Prefix, ref argPos) &&
+            !message.HasMentionPrefix(client.CurrentUser, ref argPos))
+        {
+            logger.LogDebug("Message does not have prefix or mention");
+            return;
+        }
+
+        await commands.ExecuteAsync(new CommandContext(client, message), argPos, serviceProvider);
+    }
+
+    private Task CommandExecuteAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
+    {
+        if (!command.IsSpecified)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (result.IsSuccess)
+        {
+            logger.LogTrace("Command executed: {Command}", command.Value.Name);
+            return Task.CompletedTask;
+        }
+
+        return CommandReplies.ErrorAsync(
+            context,
+            logger,
+            $"{result}",
+            "Command {Command} failed with error {Error}",
+            command.Value.Name,
+            $"{result}"
+        );
+    }
+
     private Task OnNewGameStateAsync(RoundPhaseChangedEventArgs args)
     {
         if (args.CurrentPhase == RoundPhase.Undefined)
@@ -109,13 +198,16 @@ internal class RunCommand(
 
         logger.LogInformation("Round phase: {Phase}", args.CurrentPhase);
 
-        switch (_isPaused)
+        switch (state.IsPaused)
         {
-            case true when args.CurrentPhase is RoundPhase.FreezeTime or RoundPhase.Over:
-                _isPaused = false;
+            case true when state.PlayOnFreeze && args.CurrentPhase is RoundPhase.FreezeTime or RoundPhase.Over:
+                state.IsPaused = false;
+                return SendAsync();
+            case false when !state.PlayOnFreeze && args.CurrentPhase is RoundPhase.FreezeTime or RoundPhase.Over:
+                state.IsPaused = true;
                 return SendAsync();
             case false when args.CurrentPhase == RoundPhase.Live:
-                _isPaused = true;
+                state.IsPaused = true;
                 return SendAsync();
         }
 
@@ -124,7 +216,7 @@ internal class RunCommand(
 
     private async Task SendAsync()
     {
-        var guild = await client.GetGuildAsync(discordOptions.Value.GuildId);
+        var guild = await restClient.GetGuildAsync(discordOptions.Value.GuildId);
         var channel = await guild.GetChannelAsync(discordOptions.Value.ChannelId);
 
         if (channel is not IMessageChannel messageChannel)

@@ -3,7 +3,7 @@ using Discord.Commands;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 
-namespace DiscordMusic.Cli.Discord.Commands;
+namespace DiscordMusic.Core.Discord.Commands;
 
 public static class CommandReplies
 {
