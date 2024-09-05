@@ -5,6 +5,10 @@ uses [Discord.Net](https://github.com/discord-net/Discord.Net), [FFmpeg](https:/
 [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET)
 and [lyrist](https://github.com/asrvd/lyrist).
 
+## Runtimes
+
+> Warning: Only win-x64 and linux-arm64 is currently supported. The bot will not work on other architectures.
+
 ## Setup
 
 > Warning: The token should be kept secret and not shared with anyone. If the token is shared, it should be regenerated.
@@ -51,8 +55,6 @@ the target runtime of the image. The default value is `linux-x64`. All config va
 variables.
 This can be achieved by using the `--env-file` option of the `docker run` command or other methods to pass environment
 variables to the container.
-
-> Warning: Only linux-arm64 is currently supported. The bot will not work on architectures other than linux-arm64.
 
 ```powershell
 

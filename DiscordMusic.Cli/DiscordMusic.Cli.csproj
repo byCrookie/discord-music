@@ -30,7 +30,7 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup Condition="($(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR ($(RuntimeIdentifier) == '' AND $([MSBuild]::IsOSPlatform('Windows')))">
+  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))">
     <None Include="External\win\opus.dll"/>
     <ContentWithTargetPath Include="External\win\opus.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -43,7 +43,7 @@
     </ContentWithTargetPath>
   </ItemGroup>
 
-  <ItemGroup Condition="($(RuntimeIdentifier) != '' AND !$(RuntimeIdentifier.StartsWith('win'))) OR ($(RuntimeIdentifier) == '' AND !$([MSBuild]::IsOSPlatform('Windows')))">
+  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND !$(RuntimeIdentifier.StartsWith('win'))">
     <None Include="External\linux\libopus.so"/>
     <ContentWithTargetPath Include="External\linux\libopus.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
