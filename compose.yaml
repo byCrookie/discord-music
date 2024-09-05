@@ -2,5 +2,7 @@ services:
   discord-music:
     build:
       context: .
+      args:
+        RUNTIME: linux-x64
     env_file:
       - .env.docker
