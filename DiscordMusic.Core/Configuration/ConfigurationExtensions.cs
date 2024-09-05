@@ -13,13 +13,13 @@ public static class ConfigurationExtensions
 
         if (coconaAppBuilder.Environment.IsDevelopment())
         {
+            coconaAppBuilder.Configuration.AddJsonFile("appsettings.Development.json", true);
             coconaAppBuilder.Configuration.AddUserSecrets(secretsAssembly);
-            coconaAppBuilder.Configuration.AddJsonFile("appsettings.Development.json");
         }
         else
         {
+            coconaAppBuilder.Configuration.AddJsonFile("appsettings.json", true);
             coconaAppBuilder.Configuration.AddEnvironmentVariables("DISCORD_MUSIC_");
-            coconaAppBuilder.Configuration.AddJsonFile("appsettings.json");
         }
     }
 }

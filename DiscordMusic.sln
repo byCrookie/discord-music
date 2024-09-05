@@ -14,6 +14,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{767A61DB-59D5-4F
 		LICENSE = LICENSE
 		CHANGELOG.md = CHANGELOG.md
 		.editorconfig = .editorconfig
+		.dockerignore = .dockerignore
+		compose.yaml = compose.yaml
+		Dockerfile = Dockerfile
+		.env.docker = .env.docker
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{7F376CC7-AF38-4BA0-B3F2-5B870D87FF54}"

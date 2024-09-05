@@ -9,8 +9,16 @@ and [lyrist](https://github.com/asrvd/lyrist).
 
 > Warning: The token should be kept secret and not shared with anyone. If the token is shared, it should be regenerated.
 
-> Note: If you dont want to use the `appsettings.json` file, you can use environment variables prefixed
-> with `DISCORD_MUSIC_`.
+> Note: If you do not want to use the `appsettings.json` file, you can use environment variables prefixed
+> with `DISCORD_MUSIC_`. Further information can be found in the [Configuration](#Configuration) section.
+
+### Configuration
+
+The bot uses the `appsettings.json` file for configuration values. If a value is not found in the `appsettings.json`
+file it will look for an environment variable prefixed with `DISCORD_MUSIC_`.
+Make sure to use double underscores `__` for nested properties. Example: `DISCORD_MUSIC_DISCORD__TOKEN`.
+When providing a list, use an indexer `__0` for the first item, `__1` for the second item and so on.
+Example: `DISCORD_MUSIC_DISCORD__WHITELIST__0=music`.
 
 ### Discord
 
@@ -19,7 +27,7 @@ Go to https://discord.com/developers/applications and create a new application.
 Replace the `Discord:ApplicationId` in the `appsettings.json` file with the application id of your new application.
 Next replace the `Discord:Token` in the `appsettings.json` file with the token of your new application.
 
-### Spotify
+### Spotify (Optional)
 
 Go to https://developer.spotify.com/dashboard/applications and create a new application.
 
