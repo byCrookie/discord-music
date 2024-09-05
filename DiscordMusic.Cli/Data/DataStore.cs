@@ -14,12 +14,7 @@ internal sealed class DataStore(
 
     public IDirectoryInfo Require(string directory)
     {
-        if (!TryGetAppData(out var appdata))
-        {
-            throw new Exception("Cannot retrieve appdata path.");
-        }
-
-        var appDataPath = fileSystem.Path.Combine(appdata!.FullName, directory);
+        var appDataPath = fileSystem.Path.Combine(GetAppDataPath().FullName, directory);
         logger.LogDebug("Path for {Path} is {AppDataPath}", directory, appDataPath);
         var trackDirectory = fileSystem.DirectoryInfo.New(appDataPath);
 
@@ -28,12 +23,12 @@ internal sealed class DataStore(
             return trackDirectory;
         }
 
-        logger.LogDebug("Creating path {Path}", trackDirectory);
+        logger.LogDebug("Creating directory {Path}", trackDirectory);
         fileSystem.Directory.CreateDirectory(appDataPath);
         return trackDirectory;
     }
 
-    private bool TryGetAppData(out IDirectoryInfo? appData)
+    private IDirectoryInfo GetAppDataPath()
     {
         var appDataPath = environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData).FullName;
         logger.LogTrace("AppData path is {AppDataPath}", appDataPath);
@@ -46,27 +41,24 @@ internal sealed class DataStore(
             if (fileSystem.Directory.Exists(appPath))
             {
                 logger.LogTrace("Path {Path} exists", appPath);
-                appData = fileSystem.DirectoryInfo.New(appPath);
-                return true;
+                return fileSystem.DirectoryInfo.New(appPath);
             }
 
             try
             {
                 logger.LogTrace("Creating path {Path}", appPath);
                 fileSystem.Directory.CreateDirectory(appPath);
-                appData = fileSystem.DirectoryInfo.New(appPath);
-                return true;
+                return fileSystem.DirectoryInfo.New(appPath);
             }
             catch (Exception)
             {
                 logger.LogWarning("Unable to create path {Path}", appPath);
-                appData = null;
-                return false;
             }
         }
 
-        logger.LogWarning("AppData path {Path} does not exist", appDataPath);
-        appData = null;
-        return false;
+        var currentDirectory = fileSystem.Directory.GetCurrentDirectory();
+        logger.LogWarning("AppData path {Path} does not exist, using current directory {CurrentDir}", appDataPath,
+            currentDirectory);
+        return fileSystem.DirectoryInfo.New(currentDirectory);
     }
 }

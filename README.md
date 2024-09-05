@@ -163,13 +163,21 @@ dotnet user-secrets set "Discord:ApplicationId" ""
 
 ### Publish
 
-To publish the bot use the `dotnet publish` command.
+To publish the bot use the `dotnet publish` command. `appsettings.json` will be included in the publish directory but
+not overwritten.
 
 ```powershell
 dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic"
 ```
 
-`appsettings.json` will be included in the publish directory but not overwritten.
+#### Runtime
+
+To specify the runtime use the `--runtime` option. Available runtimes can be
+found [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog).
+
+```powershell
+dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic" --runtime win-x64
+```
 
 ### Settings
 
