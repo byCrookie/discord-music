@@ -10,7 +10,8 @@ and [lyrist](https://github.com/asrvd/lyrist).
 > Warning: The token should be kept secret and not shared with anyone. If the token is shared, it should be regenerated.
 
 > Note: If you do not want to use the `appsettings.json` file, you can use environment variables prefixed
-> with `DISCORD_MUSIC_`. Further information can be found in the [Configuration](#Configuration) section.
+> with `DISCORD_MUSIC_`. This is required when using docker to deploy discord-music. Further information can be found in
+> the [Configuration](#Configuration) section.
 
 ### Configuration
 
@@ -42,6 +43,18 @@ Use the register command to add the bot to a server.
 ```powershell
 dm register
 ```
+
+### Docker
+
+[Dockerfile](Dockerfile) lets you build a docker image of the bot. The argument RUNTIME defines
+the target runtime of the image. The default value is `linux-x64`. All config values have to be provided as environment
+variables.
+This can be achieved by using the `--env-file` option of the `docker run` command or other methods to pass environment
+variables to the container.
+
+> Warning: Only linux-arm64 is currently supported. The bot will not work on architectures other than linux-arm64.
+
+```powershell
 
 ## FFmpeg
 
