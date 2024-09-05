@@ -1,0 +1,6 @@
+services:
+  discord-music:
+    build:
+      context: .
+    env_file:
+      - .env.docker

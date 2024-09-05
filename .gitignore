@@ -14,3 +14,6 @@ appsettings.Development.json
 # External
 ffmpeg.exe
 yt-dlp.exe
+
+# Environment
+.env.docker

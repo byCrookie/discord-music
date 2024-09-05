@@ -9,6 +9,12 @@ internal class Spotify(IOptions<SpotifyOptions> spotifyOptions) : ISpotify
 {
     public Task<List<Track>> GetTracksAsync(string argument)
     {
+        if (string.IsNullOrWhiteSpace(spotifyOptions.Value.ClientId) ||
+            string.IsNullOrWhiteSpace(spotifyOptions.Value.ClientSecret))
+        {
+            throw new Exception("Spotify client id and secret not set");
+        }
+
         var config = SpotifyClientConfig
             .CreateDefault()
             .WithAuthenticator(new ClientCredentialsAuthenticator(

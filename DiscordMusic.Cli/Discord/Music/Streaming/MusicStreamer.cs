@@ -291,7 +291,7 @@ internal class MusicStreamer(
         logger.LogDebug("Send stream to discord.");
         await using var output = stream;
         logger.LogTrace("Create PCM stream.");
-        await using var discord = client.CreatePCMStream(AudioApplication.Mixed);
+        await using var discord = client.CreatePCMStream(AudioApplication.Music);
 
         while (!ct.IsCancellationRequested)
         {
