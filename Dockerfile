@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /source
 COPY . .
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish ./DiscordMusic.Cli/DiscordMusic.Cli.csproj --use-current-runtime --output /app
+    dotnet publish ./DiscordMusic.Cli/DiscordMusic.Cli.csproj --runtime linux-x64 --output /app
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS final
 WORKDIR /app
