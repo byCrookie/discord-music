@@ -34,6 +34,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordMusic.Core", "Discor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordMusic.Cs.Cli", "DiscordMusic.Cs.Cli\DiscordMusic.Cs.Cli.csproj", "{44CDE447-C40B-4200-A7FA-03D77F411D85}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".natives", ".natives", "{E67D7ECD-5291-48F8-A52A-717033BE6B8F}"
+	ProjectSection(SolutionItems) = preProject
+		.natives\Dockerfile = .natives\Dockerfile
+		.natives\compose.yaml = .natives\compose.yaml
+		.natives\zig.sh = .natives\zig.sh
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,5 +63,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{7F376CC7-AF38-4BA0-B3F2-5B870D87FF54} = {767A61DB-59D5-4F65-A9AD-CAD3EE911C8D}
 		{09BBD093-469E-4B6F-BF7C-F1F2874A0080} = {7F376CC7-AF38-4BA0-B3F2-5B870D87FF54}
+		{E67D7ECD-5291-48F8-A52A-717033BE6B8F} = {767A61DB-59D5-4F65-A9AD-CAD3EE911C8D}
 	EndGlobalSection
 EndGlobal

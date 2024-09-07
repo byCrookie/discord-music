@@ -1,0 +1,15 @@
+services:
+  linux-amd64:
+    build:
+      context: .
+      args:
+        ZIG_TARGETOS: linux
+        ZIG_TARGETARCH: x86_64
+    platform: linux/amd64
+  linux-arm64:
+    build:
+      context: .
+      args:
+        ZIG_TARGETOS: linux
+        ZIG_TARGETARCH: aarch64
+    platform: linux/arm64

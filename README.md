@@ -86,6 +86,19 @@ the yt-dlp executable.
 }
 ```
 
+## Opus
+
+The bot requires the Opus codec to be installed on the system. Some platforms/runtimes are directly supported
+by discord-music and do not require the Opus codec to be installed. If you receive an error message about the Opus
+codec not being found, download it from https://opus-codec.org/downloads/ if possible or build it from source.
+
+## Libsodium
+
+The bot requires the Libsodium library to be installed on the system. Some platforms/runtimes are directly supported
+by discord-music and do not require the Libsodium library to be installed. If you receive an error message about the
+Libsodium library not being found, download it from https://download.libsodium.org/doc/ if possible or build it from
+source.
+
 ## Running
 
 Run the bot using the run command.
