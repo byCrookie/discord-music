@@ -30,27 +30,64 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND $(RuntimeIdentifier.StartsWith('win'))">
-    <None Include="External\win\opus.dll"/>
-    <ContentWithTargetPath Include="External\win\opus.dll">
+  <ItemGroup Condition="$(RuntimeIdentifier) == '' OR $(RuntimeIdentifier) == 'win-x64'">
+    <None Include="External\win-x86_64\opus.dll"/>
+    <ContentWithTargetPath Include="External\win-x86_64\opus.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>opus.dll</TargetPath>
     </ContentWithTargetPath>
-    <None Include="External\win\libsodium.dll"/>
-    <ContentWithTargetPath Include="External\win\libsodium.dll">
+    <None Include="External\win-x86_64\libsodium.dll"/>
+    <ContentWithTargetPath Include="External\win-x86_64\libsodium.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>libsodium.dll</TargetPath>
     </ContentWithTargetPath>
   </ItemGroup>
 
-  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND !$(RuntimeIdentifier.StartsWith('win'))">
-    <None Include="External\linux\libopus.so"/>
-    <ContentWithTargetPath Include="External\linux\libopus.so">
+  <ItemGroup Condition="$(RuntimeIdentifier) == '' OR $(RuntimeIdentifier) == 'win-arm64'">
+    <None Include="External\win-aarch64\libsodium.dll"/>
+    <ContentWithTargetPath Include="External\win-aarch64\libsodium.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libsodium.dll</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+
+  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND $(RuntimeIdentifier) == 'linux-x64'">
+    <None Include="External\linux-x86_64\libopus.so"/>
+    <ContentWithTargetPath Include="External\linux-x86_64\libopus.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>libopus.so</TargetPath>
     </ContentWithTargetPath>
-    <None Include="External\linux\libsodium.so"/>
-    <ContentWithTargetPath Include="External\linux\libsodium.so">
+    <None Include="External\linux-x86_64\libsodium.so"/>
+    <ContentWithTargetPath Include="External\linux-x86_64\libsodium.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libsodium.so</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+
+  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND $(RuntimeIdentifier) == 'linux-arm64'">
+    <None Include="External\linux-aarch64\libopus.so"/>
+    <ContentWithTargetPath Include="External\linux-aarch64\libopus.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libopus.so</TargetPath>
+    </ContentWithTargetPath>
+    <None Include="External\linux-aarch64\libsodium.so"/>
+    <ContentWithTargetPath Include="External\linux-aarch64\libsodium.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libsodium.so</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+
+  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND $(RuntimeIdentifier) == 'osx-x64'">
+    <None Include="External\macos-x86_64\libsodium.so"/>
+    <ContentWithTargetPath Include="External\macos-x86_64\libsodium.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libsodium.so</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+
+  <ItemGroup Condition="$(RuntimeIdentifier) != '' AND $(RuntimeIdentifier) == 'osx-arm64'">
+    <None Include="External\macos-aarch64\libsodium.so"/>
+    <ContentWithTargetPath Include="External\macos-aarch64\libsodium.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>libsodium.so</TargetPath>
     </ContentWithTargetPath>

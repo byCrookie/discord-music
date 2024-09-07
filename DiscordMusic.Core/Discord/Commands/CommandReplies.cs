@@ -7,14 +7,13 @@ namespace DiscordMusic.Core.Discord.Commands;
 
 public static class CommandReplies
 {
-    public static async Task OkAsync<T>(
+    public static async Task OkAsync(
         ICommandContext context,
-        ILogger<T> logger,
+        ILogger logger,
         string title,
         string publicMessage,
         [StructuredMessageTemplate] string? message,
         params object?[] args)
-        where T : class
     {
         logger.LogTrace(message, args);
 
@@ -35,13 +34,12 @@ public static class CommandReplies
                 ));
     }
 
-    public static async Task ErrorAsync<T>(
+    public static async Task ErrorAsync(
         ICommandContext context,
-        ILogger<T> logger,
+        ILogger logger,
         string publicError,
         [StructuredMessageTemplate] string? message,
         params object?[] args)
-        where T : class
     {
         logger.LogTrace(message, args);
 
