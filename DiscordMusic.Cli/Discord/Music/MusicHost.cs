@@ -28,7 +28,7 @@ internal class MusicHost(
                     continue;
                 }
 
-                logger.LogTrace("Waiting {Delay} for music streamer", delay);
+                logger.LogTrace("Waiting {Delay}s for music streamer", delay);
                 await Task.Delay(TimeSpan.FromSeconds(delay), stoppingToken);
                 delay = Math.Min(delay + 1, maxDelay);
             }
