@@ -44,12 +44,18 @@ RUN mkdir -p /app/libs
 
 # Opus
 
-RUN apt-get install -y wget git autoconf automake libtool gcc make coreutils p7zip-full p7zip-rar --fix-missing
+#RUN apt-get install -y wget git autoconf automake libtool gcc make coreutils p7zip-full p7zip-rar --fix-missing
+#
+#RUN git clone --depth 1 https://gitlab.xiph.org/xiph/opus.git
+#RUN cd /app/opus && ./autogen.sh && ./configure && make && make install
+#RUN cp $(readlink -f /app/opus/.libs/libopus.so) /app/libs/libopus.so
+#RUN file /app/libs/libopus.so > /app/libs/libopus.so.info
+#RUN 7z a -tzip /app/libs/libopus.so.${TARGETOS}-${TARGETARCH}.zip /app/libs/libopus.so /app/libs/libopus.so.info
 
-RUN git clone --depth 1 https://gitlab.xiph.org/xiph/opus.git
-RUN cd /app/opus && ./autogen.sh && ./configure && make && make install
-RUN cp $(readlink -f /app/opus/.libs/libopus.so) /app/libs/libopus.so
-RUN file /app/libs/libopus.so > /app/libs/libopus.so.info
-RUN 7z a -tzip /app/libs/libopus.so.${TARGETOS}-${TARGETARCH}.zip /app/libs/libopus.so /app/libs/libopus.so.info
+RUN apt-get install p7zip-full p7zip-rar libopus0 libsodium-dev -y --fix-missing
+RUN dpkg -L libopus0
+RUN dpkg -L libsodium-dev
+RUN 7z a -tzip /app/libs/libopus.${TARGETOS}-${TARGETARCH}.zip $(find /usr -name "*libopus*.so*")
+RUN 7z a -tzip /app/libs/libsodium.${TARGETOS}-${TARGETARCH}.zip $(find /usr -name "*libsodium*.so*")
 
 ENTRYPOINT ["bash", "-c", "while true; do sleep 1; done"]

@@ -13,3 +13,17 @@ services:
         ZIG_TARGETOS: linux
         ZIG_TARGETARCH: aarch64
     platform: linux/arm64
+#  windows-amd64:
+#    build:
+#      context: .
+#      args:
+#        ZIG_TARGETOS: windows
+#        ZIG_TARGETARCH: x86_64
+#    platform: windows/amd64
+#  windows-arm64:
+#    build:
+#      context: .
+#      args:
+#        ZIG_TARGETOS: windows
+#        ZIG_TARGETARCH: aarch64
+#    platform: windows/arm64
