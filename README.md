@@ -7,7 +7,9 @@ and [lyrist](https://github.com/asrvd/lyrist).
 
 ## Runtimes
 
-> Warning: Only win-x64 and linux-arm64 is currently supported. The bot will not work on other architectures.
+> Warning: Only win-x64, linux-x64 and linux-arm64 are currently fully supported. The bot will not work on other
+> architectures if
+> opus and libsodium are not installed on the system.
 
 ## Setup
 
@@ -90,13 +92,13 @@ the yt-dlp executable.
 
 The bot requires the Opus codec to be installed on the system. Some platforms/runtimes are directly supported
 by discord-music and do not require the Opus codec to be installed. If you receive an error message about the Opus
-codec not being found, download it from https://opus-codec.org/downloads/ if possible or build it from source.
+codec not being found, download it from https://opus-codec.org/ if possible or build it from source.
 
 ## Libsodium
 
 The bot requires the Libsodium library to be installed on the system. Some platforms/runtimes are directly supported
 by discord-music and do not require the Libsodium library to be installed. If you receive an error message about the
-Libsodium library not being found, download it from https://download.libsodium.org/doc/ if possible or build it from
+Libsodium library not being found, download it from https://libsodium.org/ if possible or build it from
 source.
 
 ## Running
