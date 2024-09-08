@@ -30,17 +30,17 @@ internal sealed class DataStore(
 
     private IDirectoryInfo GetAppDataPath()
     {
-        var appDataPath = environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData).FullName;
-        logger.LogTrace("AppData path is {AppDataPath}", appDataPath);
+        var dataPath = environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData).FullName;
+        logger.LogTrace("Base path is {DataPath}", dataPath);
 
-        if (fileSystem.Directory.Exists(appDataPath))
+        if (fileSystem.Directory.Exists(dataPath))
         {
-            var appPath = fileSystem.Path.Combine(appDataPath, AppDirectory);
-            logger.LogTrace("Appdata path is {AppPath}", appPath);
+            var appPath = fileSystem.Path.Combine(dataPath, AppDirectory);
+            logger.LogTrace("Data path is {AppPath}", appPath);
 
             if (fileSystem.Directory.Exists(appPath))
             {
-                logger.LogTrace("Path {Path} exists", appPath);
+                logger.LogTrace("Path {Path} already exists", appPath);
                 return fileSystem.DirectoryInfo.New(appPath);
             }
 
@@ -56,9 +56,7 @@ internal sealed class DataStore(
             }
         }
 
-        var currentDirectory = fileSystem.Directory.GetCurrentDirectory();
-        logger.LogWarning("AppData path {Path} does not exist, using current directory {CurrentDir}", appDataPath,
-            currentDirectory);
-        return fileSystem.DirectoryInfo.New(currentDirectory);
+        logger.LogError("Path {DataPath} does not exist or is not accessible", dataPath);
+        throw new Exception($"Path {dataPath} does not exist or is not accessible.");
     }
 }
