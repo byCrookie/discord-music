@@ -14,17 +14,23 @@ internal class MusicHost(
         return Task.Run(async () =>
         {
             logger.LogTrace("Starting music host");
+
+            var delay = 1;
+            const int maxDelay = 10;
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 if (streamer.CanExecute())
                 {
                     logger.LogTrace("Executing music streamer");
                     await streamer.ExecuteAsync(stoppingToken);
+                    delay = 1;
                     continue;
                 }
 
-                logger.LogTrace("Waiting for music streamer");
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                logger.LogTrace("Waiting {Delay} for music streamer", delay);
+                await Task.Delay(TimeSpan.FromSeconds(delay), stoppingToken);
+                delay = Math.Min(delay + 1, maxDelay);
             }
 
             logger.LogTrace("Stopping music host");
