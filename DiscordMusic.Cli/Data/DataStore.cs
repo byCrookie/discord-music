@@ -1,12 +1,15 @@
 ﻿using System.IO.Abstractions;
+using DiscordMusic.Cli.Discord.Options;
 using DiscordMusic.Cli.Environment;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Cli.Data;
 
 internal sealed class DataStore(
     IFileSystem fileSystem,
     IEnvironment environment,
+    IOptions<DiscordOptions> discordOptions,
     ILogger<DataStore> logger)
     : IDataStore
 {
@@ -30,6 +33,14 @@ internal sealed class DataStore(
 
     private IDirectoryInfo GetAppDataPath()
     {
+        if (!string.IsNullOrWhiteSpace(discordOptions.Value.Data) &&
+            fileSystem.Directory.Exists(discordOptions.Value.Data))
+        {
+            logger.LogTrace("Using data path {DataPath} from options", discordOptions.Value.Data);
+            return fileSystem.DirectoryInfo.New(discordOptions.Value.Data);
+        }
+
+        logger.LogTrace("Data path not set or does not exist, evaluating different paths to store data");
         var dataPath = environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData).FullName;
         logger.LogTrace("Base path is {DataPath}", dataPath);
 

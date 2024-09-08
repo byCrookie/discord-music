@@ -4,5 +4,7 @@ services:
       context: .
       args:
         RUNTIME: linux-x64
+        VERBOSITY: trace
+        VOLUME: /volume
     env_file:
       - .env.docker

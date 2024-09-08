@@ -32,4 +32,7 @@ public class DiscordOptions
 
     [ConfigurationKeyName("ytdlp")]
     public string Ytdlp { get; [UsedImplicitly] init; } = "yt-dlp";
+
+    [ConfigurationKeyName("data")]
+    public string? Data { get; [UsedImplicitly] init; }
 }
