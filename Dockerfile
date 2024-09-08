@@ -1,6 +1,7 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /source
 ARG RUNTIME=linux-x64
+ARG VERBOSITY=info
 COPY . .
 RUN dotnet publish ./DiscordMusic.Cli/DiscordMusic.Cli.csproj --runtime ${RUNTIME} --output /app
 
@@ -15,4 +16,4 @@ RUN chmod +x yt-dlp
 
 USER $APP_UID
 
-ENTRYPOINT ["/app/dm", "run", "--verbosity", "trace"]
+ENTRYPOINT ["/app/dm", "run", "--verbosity", "$VERBOSITY"]
