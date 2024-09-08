@@ -40,7 +40,8 @@ internal sealed class DataStore(
             return fileSystem.DirectoryInfo.New(discordOptions.Value.Data);
         }
 
-        logger.LogTrace("Data path not set or does not exist, evaluating different paths to store data");
+        logger.LogTrace("Data path {DataPath} not set or does not exist, evaluating different paths to store data",
+            discordOptions.Value.Data);
         var dataPath = environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData).FullName;
         logger.LogTrace("Base path is {DataPath}", dataPath);
 
