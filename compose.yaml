@@ -1,10 +1,8 @@
 services:
-  discord-music:
-    build:
-      context: .
-      args:
-        RUNTIME: linux-x64
-        VERBOSITY: trace
-        VOLUME: /volume
-    env_file:
-      - .env.docker
+    discord-music:
+        build:
+            context: .
+        env_file:
+            - .env
+        volumes:
+            - D:\Temp\cache:/app/cache

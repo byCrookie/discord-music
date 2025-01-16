@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="ErrorOr"/>
+        <PackageReference Include="Flurl.Http"/>
+        <PackageReference Include="HtmlAgilityPack"/>
+        <PackageReference Include="Humanizer.Core"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration"/>
+        <PackageReference Include="Microsoft.Extensions.Options"/>
+        <PackageReference Include="NetCord.Hosting.AspNetCore"/>
+        <PackageReference Include="NetCord.Hosting.Services"/>
+        <PackageReference Include="SpotifyAPI.Web"/>
+        <PackageReference Include="System.Interactive.Async.Providers"/>
+        <PackageReference Include="Testably.Abstractions"/>
+        <PackageReference Include="ValueOf"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageVersion Update="SpotifyAPI.Web" Version="7.2.1"/>
+    </ItemGroup>
+
+</Project>

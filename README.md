@@ -1,15 +1,25 @@
 # discord-music
 
 Another music bot for discord. This bot is written in C# and
-uses [Discord.Net](https://github.com/discord-net/Discord.Net), [FFmpeg](https://github.com/FFmpeg/FFmpeg), [yt-dlp](https://github.com/yt-dlp/yt-dlp),
+uses [NetCord](https://github.com/necordjs/necord), [FFmpeg](https://github.com/FFmpeg/FFmpeg), [yt-dlp](https://github.com/yt-dlp/yt-dlp),
 [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET)
-and [lyrist](https://github.com/asrvd/lyrist).
+and [Genius](https://genius.com) for lyrics.
+
+## Docker
+
+> Recommended: Use the docker image to run the bot.
+
+[Dockerfile](Dockerfile) lets you build a docker image of the bot. The argument BUILDPLATFORM can be used to specify
+the target runtime of the image. The default value is `linux-x64`. All config values have to be provided as environment
+variables.
+This can be achieved by using the `--env-file` option of the `docker run` command or other methods to pass environment
+variables to the container.
 
 ## Runtimes
 
 > Warning: Only win-x64, linux-x64 and linux-arm64 are currently fully supported. The bot will not work on other
-> architectures if
-> opus and libsodium are not installed on the system.
+> architectures if opus and libsodium are not installed on the system. It is recommended to use the docker image for
+> to run the bot.
 
 ## Setup
 
@@ -25,7 +35,7 @@ The bot uses the `appsettings.json` file for configuration values. If a value is
 file it will look for an environment variable prefixed with `DISCORD_MUSIC_`.
 Make sure to use double underscores `__` for nested properties. Example: `DISCORD_MUSIC_DISCORD__TOKEN`.
 When providing a list, use an indexer `__0` for the first item, `__1` for the second item and so on.
-Example: `DISCORD_MUSIC_DISCORD__WHITELIST__0=music`.
+Example: `DISCORD_MUSIC_DISCORD__ALLOW__0=music`.
 
 ### Discord
 
@@ -33,6 +43,9 @@ Go to https://discord.com/developers/applications and create a new application.
 
 Replace the `Discord:ApplicationId` in the `appsettings.json` file with the application id of your new application.
 Next replace the `Discord:Token` in the `appsettings.json` file with the token of your new application.
+Environment variables can be used to set the token and application id.
+- `DISCORD_MUSIC_DISCORD__TOKEN`
+- `DISCORD_MUSIC_DISCORD__APPLICATIONID`
 
 ### Spotify (Optional)
 
@@ -41,26 +54,11 @@ Go to https://developer.spotify.com/dashboard/applications and create a new appl
 Replace the `Spotify:ClientId` in the `appsettings.json` file with the client
 id of your new application. Next replace the `Spotify:ClientSecret` in the `appsettings.json`
 file with the client secret of your new application.
+Environment variables can be used to set the client id and client secret.
+- `DISCORD_MUSIC_SPOTIFY__CLIENTID`
+- `DISCORD_MUSIC_SPOTIFY__CLIENTSECRET`
 
-### Register
-
-Use the register command to add the bot to a server.
-
-```powershell
-dm register
-```
-
-### Docker
-
-[Dockerfile](Dockerfile) lets you build a docker image of the bot. The argument RUNTIME defines
-the target runtime of the image. The default value is `linux-x64`. All config values have to be provided as environment
-variables.
-This can be achieved by using the `--env-file` option of the `docker run` command or other methods to pass environment
-variables to the container.
-
-```powershell
-
-## FFmpeg
+### FFmpeg
 
 The bot requires FFmpeg to be installed on the system. Download it
 from https://www.ffmpeg.org/download.html and add it to the system path
@@ -74,7 +72,7 @@ the FFmpeg executable.
 }
 ```
 
-## yt-dlp
+### yt-dlp
 
 The bot requires yt-dlp to be installed on the system. Download it
 from https://github.com/yt-dlp/yt-dlp/releases and add it to the system path
@@ -88,86 +86,21 @@ the yt-dlp executable.
 }
 ```
 
-## Opus
+## Development
+
+### Opus
 
 The bot requires the Opus codec to be installed on the system. Some platforms/runtimes are directly supported
 by discord-music and do not require the Opus codec to be installed. If you receive an error message about the Opus
-codec not being found, download it from https://opus-codec.org/ if possible or build it from source.
+codec not being found, find it under [Natives](natives) or download it from https://opus-codec.org/ if possible. If
+downloading the codec is not possible, build it from source or try to find a pre-built version of the dll for your platform.
 
-## Libsodium
+### Libsodium
 
 The bot requires the Libsodium library to be installed on the system. Some platforms/runtimes are directly supported
 by discord-music and do not require the Libsodium library to be installed. If you receive an error message about the
 Libsodium library not being found, download it from https://libsodium.org/ if possible or build it from
 source.
-
-## Running
-
-Run the bot using the run command.
-
-```powershell
-dm run
-```
-
-### Logging
-
-Logging can be configured using options on all commands.
-
-```powershell
-dm run --verbosity debug --log-file log.txt --quiet false
-```
-
-## Other Commands
-
-### Store
-
-To get your local storage size use the store command.
-
-```powershell
-dm store
-```
-
-#### Clear
-
-To clear your local storage use the store command with the clear option.
-
-```powershell
-dm store --clear
-```
-
-## Counter Strike
-
-`dmcs` is a command line tool to integrate discord-music with Counter Strike.
-Based on the current game round states the bot will play or pause the music.
-
-- [Reddit - GSI](https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/)
-- [Wiki - GSI](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive_Game_State_Integration)
-- [Github - rakijah (.NET GSI)](https://github.com/rakijah/CSGSI)
-
-### Initialize
-
-To initialize the Counter Strike integration use the `init` command. It
-will create a `gamestate_integration_dm.cfg` file in the `csgo/cfg` directory.
-
-```powershell
-dmcs init
-```
-
-### Run
-
-To run the Counter Strike integration use the `run` command. It will start
-the bot and interact with discord-music based on the current game round states.
-
-```powershell
-dmcs run
-```
-
-## Lyrics
-
-Thanks [asrvd - lyrist](https://github.com/asrvd/lyrist) for the lyrics api. The bot
-uses the lyrics api to get the lyrics of the current song.
-
-## Development
 
 ### Secrets
 
@@ -211,10 +144,6 @@ dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic"
 
 ### Settings
 
-To change settings use the `appsettings.Development.json` file. This file
-is generated once from the `appsettings.Example.json` file during the first build.
-The `appsettings.Development.json`is not included in the
-repository (`.gitignore`). `applicationId` and `token` are
-not included in the `appsettings.Example.json` file and should not
-be included in the `appsettings.Development.json` file. Instead use
-the `dotnet user-secrets` command to set the secrets.
+During development use the `appsettings.Development.json` file to store settings. 
+Secrets should not be included in the `appsettings.Development.json` file,
+instead use the `dotnet user-secrets` command to set the secrets.
