@@ -1,0 +1,12 @@
+# Build
+[Bb]in/
+[Oo]bj/
+
+# Intellj
+.idea
+
+# Testing
+*.received.*
+
+# User-specific files
+*.user

@@ -1,0 +1,40 @@
+﻿<Solution>
+  <Folder Name="/_/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="version.json" />
+    <File Path="..\.dockerignore" />
+    <File Path="..\.env.example" />
+    <File Path="..\CHANGELOG.md" />
+    <File Path="..\compose.yaml" />
+    <File Path="..\Dockerfile" />
+    <File Path="..\LICENSE" />
+    <File Path="..\README.md" />
+    <File Path="..\.env" />
+  </Folder>
+  <Folder Name="/_/.github/" />
+  <Folder Name="/_/.github/workflows/">
+    <File Path="..\.github\workflows\release.yml" />
+    <File Path="..\.github\workflows\test_linux_x64.yml" />
+    <File Path="..\.github\workflows\test_osx_x64.yml" />
+    <File Path="..\.github\workflows\test_win_x64.yml" />
+  </Folder>
+  <Folder Name="/_/natives/">
+    <File Path="..\natives\LICENSE.opus" />
+  </Folder>
+  <Folder Name="/_/natives/linux-aarch64/">
+    <File Path="..\natives\linux-aarch64\libopus.so" />
+  </Folder>
+  <Folder Name="/_/natives/linux-x86_64/">
+    <File Path="..\natives\linux-x86_64\libopus.so" />
+  </Folder>
+  <Folder Name="/_/natives/win-x86_64/">
+    <File Path="..\natives\win-x86_64\opus.dll" />
+  </Folder>
+  <Project Path="DiscordMusic.Client\DiscordMusic.Client.csproj" Type="Classic C#" />
+  <Project Path="DiscordMusic.Core.Tests\DiscordMusic.Core.Tests.csproj" Type="Classic C#" />
+  <Project Path="DiscordMusic.Core\DiscordMusic.Core.csproj" Type="Classic C#" />
+</Solution>

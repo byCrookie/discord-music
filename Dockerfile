@@ -1,24 +1,29 @@
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
+COPY . /source
 WORKDIR /source
-ARG RUNTIME=linux-x64
-COPY . .
-RUN dotnet publish ./DiscordMusic.Cli/DiscordMusic.Cli.csproj --runtime ${RUNTIME} --output /app
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS final
+ARG TARGETARCH
+RUN echo "Building for $TARGETARCH" && \
+    case "$TARGETARCH" in \
+        amd64)  RID="linux-x64";   LIB="linux-x86_64/libopus.so"; OUT="libopus.so" ;; \
+        arm)    RID="linux-arm";   LIB="linux-aarch64/libopus.so"; OUT="libopus.so" ;; \
+        arm64)  RID="linux-arm64"; LIB="win-x86_64/opus.dll"; OUT="opus.dll" ;; \
+        *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
+    esac && \
+    echo "RID: $RID" && \
+    dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r "$RID" -o /app -v minimal && \
+    cp "/source/natives/$LIB" "/app/$OUT"
+
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
-ARG VERBOSITY=information
-ARG VOLUME=/app
 COPY --from=build /app .
 
-RUN rm appsettings.json
-RUN apt-get update && apt-get install -y ffmpeg --fix-missing
-RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -O yt-dlp
+RUN apt update && apt install -y ffmpeg --fix-missing && apt install -y curl --fix-missing
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o yt-dlp
 RUN chmod +x yt-dlp
 RUN cp /usr/bin/ffmpeg /app/ffmpeg
 
-RUN echo "#!/bin/sh" > entrypoint.sh
-RUN echo "./dm run --verbosity $VERBOSITY" >> entrypoint.sh
-RUN chmod +x entrypoint.sh
-RUN mkdir -p ${VOLUME}/discord-music
+RUN adduser -u 1000 user
+USER user
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/app/dm"]

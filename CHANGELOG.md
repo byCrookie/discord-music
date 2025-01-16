@@ -1,9 +1,9 @@
-We are happy to announce the release of version `v1.4.0`.
+Announcing v2.0.0 – A Complete Rewrite!
 
-This release includes the following bug fixes and improvements:
+We're excited to release version 2.0.0! This update is a full rewrite, now powered by [NetCord](https://netcord.dev/)
+for Discord interactions
+and [Genius](https://genius.com) for lyrics. Expect better stability, faster performance, and more features.
 
-- Add commands for counter strike integration
-    - Toggle/Configure play during freeze time
-    - Toggle/Configure listening to events
-    - Switch play/pause state
-- Validate open connection before sending messages to discord
+⚠️ Counter-Strike integration will be moved to a separate repository.
+
+We hope you enjoy this release! 🚀

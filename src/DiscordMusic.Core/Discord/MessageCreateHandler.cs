@@ -1,0 +1,227 @@
+﻿using DiscordMusic.Core.Utils;
+using ErrorOr;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NetCord.Gateway;
+using NetCord.Hosting.Gateway;
+
+namespace DiscordMusic.Core.Discord;
+
+[GatewayEvent(nameof(GatewayClient.MessageCreate))]
+public class MessageCreateHandler(
+    ILogger<MessageCreateHandler> logger,
+    IEnumerable<IDiscordAction> actions,
+    IOptions<DiscordOptions> options,
+    IReplies replies,
+    Cancellation cancellation
+) : IGatewayEventHandler<Message>
+{
+    public async ValueTask HandleAsync(Message message)
+    {
+        var ct = cancellation.CancellationToken;
+
+        try
+        {
+            logger.LogTrace("Message {Message} created by {User}", message.Content, message.Author.Username);
+
+            if (!message.Content.StartsWith(options.Value.Prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogTrace(
+                    "Message {Message} does not start with command prefix {Prefix}",
+                    message.Content,
+                    options.Value.Prefix
+                );
+                return;
+            }
+
+            var allowed = IsChannelAllowed(message);
+
+            if (allowed.IsError)
+            {
+                await replies.SendErrorWithDeletionAsync(
+                    message,
+                    allowed.ToPrint(),
+                    IReplies.DefaultDeletionDelay,
+                    ct
+                );
+                return;
+            }
+
+            var roles = IsRoleAllowed(message);
+
+            if (roles.IsError)
+            {
+                await replies.SendErrorWithDeletionAsync(
+                    message,
+                    roles.ToPrint(),
+                    IReplies.DefaultDeletionDelay,
+                    ct
+                );
+                return;
+            }
+
+            var eval = EvaluateAction(message);
+
+            if (eval.IsError)
+            {
+                await replies.SendErrorWithDeletionAsync(
+                    message,
+                    eval.ToPrint(),
+                    IReplies.DefaultDeletionDelay,
+                    ct
+                );
+                return;
+            }
+
+            var (action, args) = eval.Value;
+            logger.LogDebug("Executing action {Action} for message {Message}", action.GetType().Name, message.Content);
+
+            var execution = await action.ExecuteAsync(message, args, ct);
+
+            if (execution.IsError)
+            {
+                logger.LogError(
+                    "Failed to execute action {Action} for message {Message}: {Error}",
+                    action.GetType().Name,
+                    message.Content,
+                    execution
+                );
+                await replies.SendErrorWithDeletionAsync(
+                    message,
+                    execution.ToPrint(),
+                    IReplies.DefaultDeletionDelay,
+                    ct
+                );
+                return;
+            }
+
+            logger.LogTrace("Executed action {Action} for message {Message}", action.GetType().Name, message.Content);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(
+                e,
+                "Failed to handle message {Message} from {User}",
+                message.Content,
+                message.Author.Username
+            );
+            await replies.SendErrorWithDeletionAsync(
+                message,
+                e.Message,
+                IReplies.DefaultDeletionDelay,
+                ct
+            );
+        }
+    }
+
+    private ErrorOr<Success> IsRoleAllowed(Message message)
+    {
+        if (options.Value.Roles.Count == 0)
+        {
+            return Result.Success;
+        }
+
+        var guildUser = message.Guild?.Users.SingleOrDefault(m => m.Key == message.Author.Id);
+
+        if (guildUser is null)
+        {
+            logger.LogError("Failed to get guild user for id {UserId}", message.Author.Id);
+            return Error.Forbidden(description: "You can't use this command. Not a guild user.");
+        }
+
+        var matchingRoles =
+            message.Guild?.Roles.Where(gr => options.Value.Roles.Any(r => r == gr.Value.Name)).ToList() ?? [];
+
+        if (matchingRoles.Count == 0)
+        {
+            logger.LogError(
+                "No rules configured ({RolesConfigured}) match any roles in the guild by name ({RolesInGuild})",
+                string.Join(",", options.Value.Roles),
+                string.Join(",", message.Guild?.Roles.Select(r => r.Value.Name).ToList() ?? [])
+            );
+            return Error.Forbidden(
+                description:
+                $"You can't use this command. You don't have any of these roles {string.Join("|", options.Value.Roles)}."
+            );
+        }
+
+        var matchingUserRoles = matchingRoles.Where(mr => guildUser.Value.Value.RoleIds.Contains(mr.Key)).ToList();
+
+        if (matchingUserRoles.Count != 0)
+        {
+            return Result.Success;
+        }
+
+        logger.LogError(
+            "User {User} does not have any of the roles {Roles}",
+            message.Author.Username,
+            string.Join("|", matchingRoles)
+        );
+        return Error.Forbidden(
+            description:
+            $"You can't use this command. You don't have any of these roles {string.Join("|", options.Value.Roles)}."
+        );
+    }
+
+    private ErrorOr<Success> IsChannelAllowed(Message message)
+    {
+        if (options.Value.Allow.Count == 0 && options.Value.Deny.Count == 0)
+        {
+            return Result.Success;
+        }
+
+        var channel = message.Guild?.Channels.SingleOrDefault(c => c.Key == message.ChannelId);
+
+        if (channel is null)
+        {
+            logger.LogError("Failed to get guild channel for id {ChannelId}", message.ChannelId);
+            return Error.Conflict(description: "You can't use this command in this channel. Not a guild channel.");
+        }
+
+        if (options.Value.Deny.Contains(channel.Value.Value.Name))
+        {
+            logger.LogTrace("Channel {Channel} is in deny list", channel.Value.Value.Name);
+            return Error.Forbidden(description: "You can't use this command in this channel. Channel is not allowed.");
+        }
+
+        if (options.Value.Allow.Count == 0 || options.Value.Allow.Contains(channel.Value.Value.Name))
+        {
+            return Result.Success;
+        }
+
+        logger.LogTrace("Channel {Channel} is not in allow list", channel.Value.Value.Name);
+        return Error.Forbidden(description: "You can't use this command in this channel. Channel is not allowed.");
+    }
+
+    private ErrorOr<(IDiscordAction Action, string[] Args)> EvaluateAction(Message message)
+    {
+        var parts = message.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var command = parts[0][options.Value.Prefix.Length..];
+        var args = parts.Skip(1).ToArray();
+
+        var matchingActions = actions.Where(a => a.Long == command || a.Short == command).ToList();
+
+        switch (matchingActions.Count)
+        {
+            case 0:
+                logger.LogError("No action found for message {Message}", message.Content);
+                return Error.Conflict(description: $"No action found for {message.Content}");
+            case > 1:
+                logger.LogError(
+                    "Multiple actions {Actions} found for message {Message}",
+                    string.Join(", ", matchingActions.Select(a => a.GetType().Name)),
+                    message.Content
+                );
+                return Error.Conflict(description: $"Multiple actions found for {message.Content}");
+        }
+
+        var action = matchingActions.Single();
+        logger.LogTrace(
+            "Action {Action} found for message {Message} with args {Args}",
+            action.GetType().Name,
+            message.Content,
+            string.Join(" ", args)
+        );
+        return (action, args);
+    }
+}
