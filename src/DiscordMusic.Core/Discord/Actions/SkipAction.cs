@@ -6,7 +6,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SkipAction(IVoiceHost voiceHost, IReplies replies, ILogger<SkipAction> logger) : IDiscordAction
+public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipAction> logger) : IDiscordAction
 {
     public string Long => "skip";
 
@@ -31,26 +31,26 @@ public class SkipAction(IVoiceHost voiceHost, IReplies replies, ILogger<SkipActi
 
         if (skip.Value.Track is null)
         {
-            await replies.SendWithDeletionAsync(
-                message,
-                "Skip",
-                "Queue is empty. Can not skip.",
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Skip")
+                .WithContent("Queue is empty. Can not skip.")
+                .WithDeletion()
+                .SendAsync(ct);
+            
             return Result.Success;
         }
 
         var skipMessage =
             $"**{skip.Value.Track!.Name}** by **{skip.Value.Track!.Artists}** ({skip.Value.Track!.Duration.HummanizeSecond()})";
-
-        await replies.SendWithDeletionAsync(
-            message,
-            "Now",
-            skipMessage,
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Now")
+            .WithContent(skipMessage)
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }

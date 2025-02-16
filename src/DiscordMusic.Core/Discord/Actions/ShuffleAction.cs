@@ -6,7 +6,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class ShuffleAction(IVoiceHost voiceHost, IReplies replies, ILogger<ShuffleAction> logger) : IDiscordAction
+public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<ShuffleAction> logger) : IDiscordAction
 {
     public string Long => "shuffle";
     public string Short => "sh";
@@ -29,23 +29,23 @@ public class ShuffleAction(IVoiceHost voiceHost, IReplies replies, ILogger<Shuff
 
         if (shuffle.Value.Track is null)
         {
-            await replies.SendWithDeletionAsync(
-                message,
-                "Shuffle",
-                "The queue is empty",
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Shuffle")
+                .WithContent("The queue is empty")
+                .WithDeletion()
+                .SendAsync(ct);
+
             return Result.Success;
         }
 
-        await replies.SendWithDeletionAsync(
-            message,
-            "Next",
-            $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})",
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Next")
+            .WithContent(
+                $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})")
+            .WithDeletion()
+            .SendAsync(ct);
 
         return Result.Success;
     }

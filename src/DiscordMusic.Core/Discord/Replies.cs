@@ -1,3 +1,4 @@
+using DiscordMusic.Core.Discord.Interactions;
 using Microsoft.Extensions.Options;
 using NetCord;
 using NetCord.Gateway;
@@ -5,166 +6,170 @@ using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 
-public class Replies(RestClient restClient, IOptions<DiscordOptions> options) : IReplies
+public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
 {
-    public async Task SendDmAsync(Message message, string title, string? description, CancellationToken ct)
+    private ulong? _channelId;
+    private Message? _message;
+    private string? _title;
+    private string? _content;
+    private Color _color = options.Value.DiscordColor;
+    private TimeSpan? _deletionDelay;
+    private readonly List<ComponentProperties> _components = [];
+    private readonly List<EmbedProperties> _embeds = [];
+    private bool _isDirectMessage;
+
+    public Replier ReplyTo(Message message)
     {
-        var dm = await message.Author.GetDMChannelAsync(cancellationToken: ct);
-        await dm.SendMessageAsync(
-            new MessageProperties
-            {
-                Embeds =
-                [
-                    new EmbedProperties
-                    {
-                        Color = options.Value.DiscordColor,
-                        Title = title,
-                        Description = description
-                    }
-                ]
-            },
-            cancellationToken: ct
-        );
+        _message = message ?? throw new ArgumentNullException(nameof(message));
+        return this;
     }
 
-    public Task SendAsync(Message message, string title, string? description, CancellationToken ct)
+    public Replier DirectMessage(Message message)
     {
-        return message.ReplyAsync(
-            new ReplyMessageProperties
-            {
-                Embeds =
-                [
-                    new EmbedProperties
-                    {
-                        Color = options.Value.DiscordColor,
-                        Title = title,
-                        Description = description
-                    }
-                ]
-            },
-            cancellationToken: ct
-        );
+        _isDirectMessage = true;
+        _message = message ?? throw new ArgumentNullException(nameof(message));
+        return this;
     }
 
-    public async Task SendWithDeletionAsync(
-        Message message,
-        string title,
-        string? description,
-        TimeSpan deletionDelay,
-        CancellationToken ct
-    )
+    public Replier ReplyTo(ulong channelId)
     {
-        var reply = await message.ReplyAsync(
-            new ReplyMessageProperties
-            {
-                Embeds =
-                [
-                    new EmbedProperties
-                    {
-                        Color = options.Value.DiscordColor,
-                        Title = title,
-                        Description = description
-                    }
-                ]
-            },
-            cancellationToken: ct
-        );
+        if (channelId == 0)
+        {
+            throw new ArgumentException("Channel ID cannot be zero.", nameof(channelId));
+        }
 
-        await DeleteNonBlockingAfterAsync(reply, deletionDelay, ct);
+        _channelId = channelId;
+        return this;
     }
 
-    public async Task SendWithDeletionAsync(
-        ulong channelId,
-        string title,
-        string? description,
-        TimeSpan deletionDelay,
-        CancellationToken ct
-    )
+    public Replier WithTitle(string title)
     {
-        var reply = await restClient.SendMessageAsync(
-            channelId,
-            new MessageProperties
-            {
-                Embeds =
-                [
-                    new EmbedProperties
-                    {
-                        Color = options.Value.DiscordColor,
-                        Title = title,
-                        Description = description
-                    }
-                ]
-            },
-            cancellationToken: ct
-        );
-
-        await DeleteNonBlockingAfterAsync(reply, deletionDelay, ct);
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        _title = title;
+        return this;
     }
 
-    public async Task SendErrorWithDeletionAsync(
-        Message message,
-        string? content,
-        TimeSpan deletionDelay,
-        CancellationToken ct
-    )
+    public Replier WithContent(string? content)
     {
-        var reply = await message.ReplyAsync(
-            new ReplyMessageProperties
-            {
-                Embeds =
-                [
-                    new EmbedProperties
-                    {
-                        Color = new Color(255, 0, 0),
-                        Title = "Error",
-                        Description = content
-                    }
-                ]
-            },
-            cancellationToken: ct
-        );
-
-        await DeleteNonBlockingAfterAsync(reply, deletionDelay, ct);
+        _content = content;
+        return this;
     }
 
-    public async Task SendErrorWithDeletionAsync(
-        ulong channelId,
-        string? content,
-        TimeSpan deletionDelay,
-        CancellationToken ct
-    )
+    public Replier WithColor(Color color)
     {
-        var reply = await restClient.SendMessageAsync(
-            channelId,
-            new MessageProperties
-            {
-                Embeds =
-                [
-                    new EmbedProperties
-                    {
-                        Color = new Color(255, 0, 0),
-                        Title = "Error",
-                        Description = content
-                    }
-                ]
-            },
-            cancellationToken: ct
-        );
+        _color = color;
+        return this;
+    }
 
-        await DeleteNonBlockingAfterAsync(reply, deletionDelay, ct);
+    public Replier WithDeletion(TimeSpan? delay = null)
+    {
+        if (delay is null)
+        {
+            _deletionDelay = TimeSpan.FromSeconds(30);
+            return this;
+        }
+
+        if (delay < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay), "Deletion delay must be non-negative.");
+        }
+
+        _deletionDelay = delay.Value;
+        return this;
+    }
+
+    public Replier WithAudioBar()
+    {
+        _components.Add(AudioBar.Create());
+        return this;
+    }
+
+    public async Task SendAsync(CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(_title))
+        {
+            var embed = new EmbedProperties { Color = _color, Title = _title, Description = _content };
+            _embeds.Add(embed);
+        }
+
+        if (_isDirectMessage)
+        {
+            if (_message is null)
+            {
+                throw new InvalidOperationException("Message must be provided for direct message.");
+            }
+
+            var dm = await _message.Author.GetDMChannelAsync(cancellationToken: ct);
+            var reply = await dm.SendMessageAsync(new MessageProperties
+            {
+                Embeds = _embeds,
+                Components = _components
+            }, cancellationToken: ct);
+
+            if (_deletionDelay.HasValue)
+            {
+                await DeleteNonBlockingAfterAsync(reply, _deletionDelay.Value, ct);
+            }
+
+            return;
+        }
+
+        if (_message == null && !_channelId.HasValue)
+        {
+            throw new InvalidOperationException("Either a message or a channel ID must be provided.");
+        }
+
+        if (_message is not null)
+        {
+            var reply = await _message.ReplyAsync(new ReplyMessageProperties
+            {
+                Embeds = _embeds,
+                Components = _components
+            }, cancellationToken: ct);
+
+            if (_deletionDelay.HasValue)
+            {
+                await DeleteNonBlockingAfterAsync(reply, _deletionDelay.Value, ct);
+            }
+
+            return;
+        }
+
+        if (_channelId.HasValue)
+        {
+            var reply = await restClient.SendMessageAsync(_channelId.Value, new MessageProperties
+            {
+                Embeds = _embeds,
+                Components = _components
+            }, cancellationToken: ct);
+
+            if (_deletionDelay.HasValue)
+            {
+                await DeleteNonBlockingAfterAsync(reply, _deletionDelay.Value, ct);
+            }
+        }
     }
 
     private static Task DeleteNonBlockingAfterAsync(RestMessage message, TimeSpan deletionDelay, CancellationToken ct)
     {
-        _ = Task.Factory.StartNew(
-            async () =>
-            {
-                await Task.Delay(deletionDelay, ct);
-                await message.DeleteAsync(cancellationToken: ct);
-            },
-            ct
-        );
-
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(deletionDelay, ct);
+            await message.DeleteAsync(cancellationToken: ct);
+        }, ct);
+        
         return Task.CompletedTask;
+    }
+}
+
+public static class RepliesBuilderExtensions
+{
+    public static Task SendErrorAsync(this Replier replier, string? content, CancellationToken ct)
+    {
+        replier.WithTitle("Error");
+        replier.WithContent(content);
+        replier.WithColor(new Color(255, 0, 0));
+        replier.WithDeletion();
+        return replier.SendAsync(ct);
     }
 }

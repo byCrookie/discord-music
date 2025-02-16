@@ -1,11 +1,9 @@
-using DiscordMusic.Core.Discord.Interactions;
 using ErrorOr;
 using NetCord.Gateway;
-using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class AudioBarAction(RestClient restClient) : IDiscordAction
+public class AudioBarAction(Replier replier) : IDiscordAction
 {
     public string Long => "audiobar";
 
@@ -13,19 +11,16 @@ public class AudioBarAction(RestClient restClient) : IDiscordAction
 
     public string Help =>
         """
-            Show the audio bar to control the audio
-            Usage: `audiobar`
-            """;
+        Show the audio bar to control the audio
+        Usage: `audiobar`
+        """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
-        var audioBar = AudioBar.Create();
-
-        await restClient.SendMessageAsync(
-            message.ChannelId,
-            new MessageProperties { Components = new List<ComponentProperties> { audioBar } },
-            cancellationToken: ct
-        );
+        await replier
+            .ReplyTo(message.ChannelId)
+            .WithAudioBar()
+            .SendAsync(ct);
 
         return Result.Success;
     }

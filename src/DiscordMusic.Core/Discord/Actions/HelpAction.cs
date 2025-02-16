@@ -8,7 +8,7 @@ using NetCord.Gateway;
 namespace DiscordMusic.Core.Discord.Actions;
 
 public class HelpAction(
-    IReplies replies,
+    Replier replier,
     ILogger<SeekAction> logger,
     IServiceProvider serviceProvider,
     IOptions<DiscordOptions> options
@@ -54,6 +54,7 @@ public class HelpAction(
         help.AppendLine(
             $"All actions must be prefixed with `{options.Value.Prefix}` (e.g. `{options.Value.Prefix}play` or `{options.Value.Prefix}p`)"
         );
+
         foreach (var action in actionInstances)
         {
             help.AppendLine();
@@ -62,7 +63,12 @@ public class HelpAction(
         }
 
         logger.LogTrace("Help");
-        await replies.SendDmAsync(message, "Help", help.ToString(), ct);
+        await replier
+            .DirectMessage(message)
+            .WithTitle("Help")
+            .WithContent(help.ToString())
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }

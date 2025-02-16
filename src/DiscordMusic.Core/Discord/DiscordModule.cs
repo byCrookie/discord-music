@@ -49,7 +49,7 @@ public static class DiscordModule
 
         builder.Services.AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
-        builder.Services.AddTransient<IReplies, Replies>();
+        builder.Services.AddTransient<Replier>();
 
         builder.Services.AddTransient<IDiscordAction, PingAction>();
         builder.Services.AddTransient<IDiscordAction, JoinAction>();

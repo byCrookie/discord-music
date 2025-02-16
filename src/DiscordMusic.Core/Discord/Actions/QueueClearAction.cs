@@ -5,7 +5,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class QueueClearAction(IVoiceHost voiceHost, IReplies replies, ILogger<QueueClearAction> logger) : IDiscordAction
+public class QueueClearAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueClearAction> logger) : IDiscordAction
 {
     public string Long => "clear";
 
@@ -26,14 +26,14 @@ public class QueueClearAction(IVoiceHost voiceHost, IReplies replies, ILogger<Qu
         {
             return clear.Errors;
         }
-
-        await replies.SendWithDeletionAsync(
-            message,
-            "Queue Clear",
-            "The queue has been cleared",
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Cleared")
+            .WithContent("The queue has been cleared")
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }

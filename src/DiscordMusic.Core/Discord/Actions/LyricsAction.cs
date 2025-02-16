@@ -8,7 +8,7 @@ namespace DiscordMusic.Core.Discord.Actions;
 
 public class LyricsAction(
     IVoiceHost voiceHost,
-    IReplies replies,
+    Replier replier,
     ILogger<LyricsAction> logger,
     ILyricsSearch lyricsSearch
 ) : IDiscordAction
@@ -34,13 +34,13 @@ public class LyricsAction(
 
         if (nowPlaying.Value.Track is null)
         {
-            await replies.SendWithDeletionAsync(
-                message,
-                "Lyrics",
-                "No track is currently playing",
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Lyrics")
+                .WithContent("No track is currently playing")
+                .WithDeletion()
+                .SendAsync(ct);
+            
             return Result.Success;
         }
 
@@ -50,13 +50,13 @@ public class LyricsAction(
 
         if (lyrics.IsError)
         {
-            await replies.SendWithDeletionAsync(
-                message,
-                "Lyrics",
-                $"Lyrics not found for {track.Name} by {track.Artists}",
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Lyrics")
+                .WithContent($"Lyrics not found for {track.Name} by {track.Artists}")
+                .WithDeletion()
+                .SendAsync(ct);
+            
             return Result.Success;
         }
 
@@ -65,8 +65,14 @@ public class LyricsAction(
 
             {lyrics.Value.Url}
             """;
-
-        await replies.SendAsync(message, $"**{track.Name}** by **{track.Artists}**", lyricsMessage, ct);
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle($"**{track.Name}** by **{track.Artists}**")
+            .WithContent(lyricsMessage)
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }
