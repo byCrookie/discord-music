@@ -46,7 +46,8 @@ public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<Se
                              """;
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed($"Seeked forward by {duration.HummanizeSecond()}", seekedMessage)
             .WithDeletion()
             .SendAsync(ct);

@@ -35,7 +35,8 @@ public class LyricsAction(
         if (nowPlaying.Value.Track is null)
         {
             await replier
-                .ReplyTo(message)
+                .Reply()
+                .To(message)
                 .WithEmbed("Lyrics", "No track is currently playing")
                 .WithDeletion()
                 .SendAsync(ct);
@@ -50,7 +51,8 @@ public class LyricsAction(
         if (lyrics.IsError)
         {
             await replier
-                .ReplyTo(message)
+                .Reply()
+                .To(message)
                 .WithEmbed("Lyrics", $"Lyrics not found for {track.Name} by {track.Artists}")
                 .WithDeletion()
                 .SendAsync(ct);
@@ -65,7 +67,8 @@ public class LyricsAction(
             """;
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed($"**{track.Name}** by **{track.Artists}**", lyricsMessage)
             .WithDeletion()
             .SendAsync(ct);

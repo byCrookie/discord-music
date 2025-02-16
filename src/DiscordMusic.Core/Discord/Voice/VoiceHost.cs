@@ -280,7 +280,8 @@ public class VoiceHost(
     )
     {
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed($"Searching for {query}", "This may take a moment...")
             .WithDeletion()
             .SendAsync(ct);
@@ -385,7 +386,8 @@ public class VoiceHost(
                 {
                     logger.LogError("Failed to play next track: {Error}", next.ToPrint());
                     await replier
-                        .ReplyTo(_connection!.ChannelId)
+                        .Reply()
+                        .To(_connection!.ChannelId)
                         .SendErrorAsync(next.ToPrint(), ct);
                     return;
                 }

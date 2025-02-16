@@ -39,7 +39,8 @@ public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayActio
         if (play.Value.Track is null)
         {
             await replier
-                .ReplyTo(message)
+                .Reply()
+                .To(message)
                 .WithEmbed(messageTitle, "No track found")
                 .WithDeletion()
                 .SendAsync(ct);
@@ -48,7 +49,8 @@ public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayActio
         }
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed(messageTitle, $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})")
             .WithDeletion()
             .SendAsync(ct);

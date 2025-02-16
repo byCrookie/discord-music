@@ -46,7 +46,8 @@ public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<S
                              """;
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed($"Seeked backward by {duration.HummanizeSecond()}", seekedMessage)
             .WithDeletion()
             .SendAsync(ct);

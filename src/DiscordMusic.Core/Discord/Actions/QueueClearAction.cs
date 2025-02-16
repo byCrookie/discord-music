@@ -28,7 +28,8 @@ public class QueueClearAction(IVoiceHost voiceHost, Replier replier, ILogger<Que
         }
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed("Cleared", "The queue has been cleared")
             .WithDeletion()
             .SendAsync(ct);

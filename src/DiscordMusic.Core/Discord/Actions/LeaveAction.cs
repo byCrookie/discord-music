@@ -27,7 +27,8 @@ public class LeaveAction(IVoiceHost voiceHost, Replier replier, ILogger<LeaveAct
         }
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed("Leave", "I will leave the voice channel soon. Just ignore me.")
             .WithDeletion()
             .SendAsync(ct);
