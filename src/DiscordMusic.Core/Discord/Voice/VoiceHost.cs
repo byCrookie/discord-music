@@ -164,7 +164,8 @@ public class VoiceHost(
         await using var _ = await _lock.AquireAsync(ct);
         await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         musicQueue.Shuffle();
-
+        DownloadNextTrackInBackgroud(ct);
+        
         return musicQueue.TryPeek(out var track)
             ? new VoiceUpdate(VoiceUpdateType.Next, track, await audioPlayer.StatusAsync(ct))
             : VoiceUpdate.None(VoiceUpdateType.Next);
