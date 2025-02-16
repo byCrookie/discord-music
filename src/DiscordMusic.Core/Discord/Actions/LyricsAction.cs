@@ -36,8 +36,7 @@ public class LyricsAction(
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle("Lyrics")
-                .WithContent("No track is currently playing")
+                .WithEmbed("Lyrics", "No track is currently playing")
                 .WithDeletion()
                 .SendAsync(ct);
             
@@ -52,8 +51,7 @@ public class LyricsAction(
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle("Lyrics")
-                .WithContent($"Lyrics not found for {track.Name} by {track.Artists}")
+                .WithEmbed("Lyrics", $"Lyrics not found for {track.Name} by {track.Artists}")
                 .WithDeletion()
                 .SendAsync(ct);
             
@@ -68,8 +66,7 @@ public class LyricsAction(
         
         await replier
             .ReplyTo(message)
-            .WithTitle($"**{track.Name}** by **{track.Artists}**")
-            .WithContent(lyricsMessage)
+            .WithEmbed($"**{track.Name}** by **{track.Artists}**", lyricsMessage)
             .WithDeletion()
             .SendAsync(ct);
         

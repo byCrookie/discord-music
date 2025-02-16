@@ -34,8 +34,7 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
         
         await replier
             .ReplyTo(message)
-            .WithTitle("Paused")
-            .WithContent(pausedMessage)
+            .WithEmbed("Paused", pausedMessage)
             .WithDeletion()
             .SendAsync(ct);
         

@@ -281,8 +281,7 @@ public class VoiceHost(
     {
         await replier
             .ReplyTo(message)
-            .WithTitle($"Searching for {query}")
-            .WithContent("This may take a moment...")
+            .WithEmbed($"Searching for {query}", "This may take a moment...")
             .WithDeletion()
             .SendAsync(ct);
 
