@@ -18,13 +18,61 @@ public class LyricsAction(
 
     public string Help =>
         """
-            Displays the lyrics of the current track
-            Usage: `lyrics`
+            Displays the lyrics of the current track. It also possible to search for lyrics of a specific track.
+            Usage: `lyrics | lyrics <title> - <artists>`
+            - `<title>`: The title of the track
+            - `<artists>`: The artists of the track
             """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Lyrics");
+
+        if (args.Length != 0)
+        {
+            var title = string.Join(" ", args);
+            var split = title.Split("-", StringSplitOptions.RemoveEmptyEntries);
+
+            if (split.Length != 2)
+            {
+                await replier
+                    .Reply()
+                    .To(message)
+                    .SendErrorAsync("Invalid format. Usage: `lyrics <title> - <artists>`", ct);
+                
+                return Result.Success;
+            }
+
+            var specificLyrics = await lyricsSearch.SearchAsync(split[0], split[1], ct);
+
+            if (specificLyrics.IsError)
+            {
+                await replier
+                    .Reply()
+                    .To(message)
+                    .WithEmbed("Lyrics", $"Lyrics not found for {split[0]} by {split[1]}")
+                    .WithDeletion()
+                    .SendAsync(ct);
+                
+                return Result.Success;
+            }
+
+            var specificLyricsMessage = $"""
+                                         {specificLyrics.Value.Text}
+
+                                         {specificLyrics.Value.Url}
+                                         """;
+            
+            await replier
+                .Reply()
+                .To(message)
+                .WithEmbed($"**{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**", specificLyricsMessage)
+                .WithDeletion()
+                .SendAsync(ct);
+            
+            return Result.Success;
+        }
+        
         var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
 
         if (nowPlaying.IsError)
@@ -69,7 +117,7 @@ public class LyricsAction(
         await replier
             .Reply()
             .To(message)
-            .WithEmbed($"**{track.Name}** by **{track.Artists}**", lyricsMessage)
+            .WithEmbed($"**{lyrics.Value.Title}** by **{lyrics.Value.Artist}**", lyricsMessage)
             .WithDeletion(track.Duration)
             .SendAsync(ct);
         
