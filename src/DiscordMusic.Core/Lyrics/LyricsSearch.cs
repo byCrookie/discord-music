@@ -28,7 +28,7 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
             .WithOAuthBearerToken(lyricOptions.Value.Token)
             .GetJsonAsync<SearchResponse>(cancellationToken: ct);
 
-        if (searchResponse.Response.Hits == null || searchResponse.Response.Hits.All(hit => hit.Type != "song"))
+        if (searchResponse.Response.Hits == null || searchResponse.Response.Hits.Count == 0 || searchResponse.Response.Hits.All(hit => hit.Type != "song"))
         {
             logger.LogWarning("No lyrics found for {Title} - {Artist}", title, artist);
             return Error.NotFound(description: $"No lyrics found for {title} - {artist}");
@@ -36,7 +36,7 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
 
         logger.LogDebug("Lyrics found for {Title} - {Artist}", title, artist);
 
-        var firstHit = searchResponse.Response.Hits.First(hit => hit.Type == "song");
+        var firstHit = BestMatchingHit(searchResponse.Response.Hits, title, artist);
         var lyricsPageUrl = new Url($"https://genius.com{firstHit.Result.Path}");
         var lyrics = await ScrapeLyricsAsync(logger, lyricsPageUrl, ct);
 
@@ -46,6 +46,62 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
         }
 
         return new Lyrics(firstHit.Result.Title, firstHit.Result.ArtistNames, lyrics.Value, lyricsPageUrl);
+    }
+    
+    private static Hit BestMatchingHit(List<Hit> hits, string title, string artist)
+    {
+        return hits
+            .Where(hit => hit.Type == "song")
+            .Select(hit => new {hit, score = Score(hit, title, artist)})
+            .OrderBy(x => x.score.Levenstein)
+            .ThenByDescending(x => x.score.CommonChars)
+            .First()
+            .hit;
+    }
+
+    private static (int Levenstein, int CommonChars) Score(Hit hit, string title, string artist)
+    {
+        var expected = $"{title} {artist}";
+        var got = $"{hit.Result.Title} {hit.Result.ArtistNames}";
+        
+        var levenstein = LevenshteinDistance(expected, got);
+        var commonChars = expected.Intersect(got).Count();
+        
+        return (
+            Levenstein: levenstein,
+            CommonChars: commonChars
+        );
+    }
+
+    private static int LevenshteinDistance(string expected, string got)
+    {
+        var m = expected.Length;
+        var n = got.Length;
+        var d = new int[m + 1, n + 1];
+
+        for (var i = 0; i <= m; i++)
+        {
+            d[i, 0] = i;
+        }
+
+        for (var j = 0; j <= n; j++)
+        {
+            d[0, j] = j;
+        }
+
+        for (var j = 1; j <= n; j++)
+        {
+            for (var i = 1; i <= m; i++)
+            {
+                var cost = expected[i - 1] == got[j - 1] ? 0 : 1;
+                d[i, j] = Math.Min(
+                    Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                    d[i - 1, j - 1] + cost
+                );
+            }
+        }
+
+        return d[m, n];
     }
 
     private static async Task<ErrorOr<string>> ScrapeLyricsAsync(
