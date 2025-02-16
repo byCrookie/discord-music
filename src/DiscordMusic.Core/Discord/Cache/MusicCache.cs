@@ -44,7 +44,7 @@ internal class MusicCache(
         return cache.IsError ? cache.Errors : cache.Value.File.ToErrorOr();
     }
 
-    public async Task<ErrorOr<IFileInfo>> UpdateTrackAsync(Track track, Track updatedTrack, CancellationToken ct)
+    public async Task<ErrorOr<IFileInfo>> AddOrUpdateTrackAsync(Track track, Track updatedTrack, CancellationToken ct)
     {
         var index = await IndexAsync(ct);
 
@@ -53,7 +53,7 @@ internal class MusicCache(
             return index.Errors;
         }
 
-        var cache = await _fileCache.UpdateAsync(track.Url, updatedTrack.Url, updatedTrack, ct);
+        var cache = await _fileCache.AddOrUpdateAsync(track.Url, updatedTrack.Url, updatedTrack, ct);
         return cache.IsError ? cache.Errors : cache.Value.File.ToErrorOr();
     }
 

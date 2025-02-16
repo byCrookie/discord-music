@@ -11,7 +11,7 @@
         },
         "Spotify Search": {
             "commandName": "Project",
-            "commandLineArgs": "spotify search https://open.spotify.com/artist/1Cs0zKBU1kc0i8ypK3B9ai",
+            "commandLineArgs": "spotify search https://open.spotify.com/playlist/60DEeLRtih1FikS2rb9eVF?si=fe6df37fc83744a6",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
