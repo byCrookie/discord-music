@@ -70,7 +70,7 @@ public class LyricsAction(
             .Reply()
             .To(message)
             .WithEmbed($"**{track.Name}** by **{track.Artists}**", lyricsMessage)
-            .WithDeletion()
+            .WithDeletion(track.Duration)
             .SendAsync(ct);
         
         return Result.Success;
