@@ -27,6 +27,13 @@ public class LyricsAction(
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Lyrics");
+        
+        var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
+
+        if (nowPlaying.IsError)
+        {
+            return nowPlaying.Errors;
+        }
 
         if (args.Length != 0)
         {
@@ -67,19 +74,12 @@ public class LyricsAction(
                 .Reply()
                 .To(message)
                 .WithEmbed($"**{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**", specificLyricsMessage)
-                .WithDeletion()
+                .WithDeletion(TimeSpan.FromMinutes(5))
                 .SendAsync(ct);
             
             return Result.Success;
         }
         
-        var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
-
-        if (nowPlaying.IsError)
-        {
-            return nowPlaying.Errors;
-        }
-
         if (nowPlaying.Value.Track is null)
         {
             await replier
@@ -118,9 +118,15 @@ public class LyricsAction(
             .Reply()
             .To(message)
             .WithEmbed($"**{lyrics.Value.Title}** by **{lyrics.Value.Artist}**", lyricsMessage)
-            .WithDeletion(track.Duration)
+            .WithDeletion(GetDeletionDelayFromNowPlaying(nowPlaying))
             .SendAsync(ct);
         
         return Result.Success;
+    }
+
+    private static TimeSpan GetDeletionDelayFromNowPlaying(ErrorOr<VoiceUpdate> nowPlaying)
+    {
+        var remaining = nowPlaying.Value.AudioStatus.Length - nowPlaying.Value.AudioStatus.Position;
+        return remaining < TimeSpan.Zero ? TimeSpan.FromMinutes(10) : remaining;
     }
 }
