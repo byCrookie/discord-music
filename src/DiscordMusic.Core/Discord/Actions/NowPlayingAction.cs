@@ -6,7 +6,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class NowPlayingAction(IVoiceHost voiceHost, IReplies replies, ILogger<NowPlayingAction> logger) : IDiscordAction
+public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<NowPlayingAction> logger) : IDiscordAction
 {
     public string Long => "nowplaying";
     public string Short => "np";
@@ -29,7 +29,13 @@ public class NowPlayingAction(IVoiceHost voiceHost, IReplies replies, ILogger<No
 
         if (nowPlaying.Value.Track is null)
         {
-            await replies.SendAsync(message, "Now playing", "No track is currently playing", ct);
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Now playing")
+                .WithContent("No track is currently playing")
+                .WithDeletion()
+                .SendAsync(ct);
+            
             return Result.Success;
         }
 
@@ -39,8 +45,14 @@ public class NowPlayingAction(IVoiceHost voiceHost, IReplies replies, ILogger<No
                                  **{track.Name}** by **{track.Artists}**
                                  {nowPlaying.Value.AudioStatus.Position.HummanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HummanizeSecond()}
                                  """;
-
-        await replies.SendWithDeletionAsync(message, "Now", nowPlayingMessage, IReplies.DefaultDeletionDelay, ct);
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Now")
+            .WithContent(nowPlayingMessage)
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }

@@ -6,7 +6,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PlayNextAction(IVoiceHost voiceHost, IReplies replies, ILogger<PlayNextAction> logger) : IDiscordAction
+public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayNextAction> logger) : IDiscordAction
 {
     public string Long => "playnext";
 
@@ -38,18 +38,23 @@ public class PlayNextAction(IVoiceHost voiceHost, IReplies replies, ILogger<Play
 
         if (play.Value.Track is null)
         {
-            await replies.SendWithDeletionAsync(message, messageTitle, "No track found", IReplies.DefaultDeletionDelay,
-                ct);
+            await replier
+                .ReplyTo(message)
+                .WithTitle(messageTitle)
+                .WithContent("No track found")
+                .WithDeletion()
+                .SendAsync(ct);
+
             return Result.Success;
         }
 
-        await replies.SendWithDeletionAsync(
-            message,
-            messageTitle,
-            $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})",
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        await replier
+            .ReplyTo(message)
+            .WithTitle(messageTitle)
+            .WithContent(
+                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})")
+            .WithDeletion()
+            .SendAsync(ct);
 
         return Result.Success;
     }

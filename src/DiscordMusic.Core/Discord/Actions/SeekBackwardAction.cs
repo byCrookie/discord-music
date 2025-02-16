@@ -7,7 +7,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SeekBackwardAction(IVoiceHost voiceHost, IReplies replies, ILogger<SeekBackwardAction> logger)
+public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekBackwardAction> logger)
     : IDiscordAction
 {
     public string Long => "seekbackward";
@@ -44,14 +44,14 @@ public class SeekBackwardAction(IVoiceHost voiceHost, IReplies replies, ILogger<
                              **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
                              {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
                              """;
-
-        await replies.SendWithDeletionAsync(
-            message,
-            $"Seeked backward by {duration.HummanizeSecond()}",
-            seekedMessage,
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle($"Seeked backward by {duration.HummanizeSecond()}")
+            .WithContent(seekedMessage)
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }

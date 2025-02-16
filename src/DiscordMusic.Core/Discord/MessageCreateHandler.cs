@@ -12,7 +12,7 @@ public class MessageCreateHandler(
     ILogger<MessageCreateHandler> logger,
     IEnumerable<IDiscordAction> actions,
     IOptions<DiscordOptions> options,
-    IReplies replies,
+    Replier replier,
     Cancellation cancellation
 ) : IGatewayEventHandler<Message>
 {
@@ -38,12 +38,10 @@ public class MessageCreateHandler(
 
             if (allowed.IsError)
             {
-                await replies.SendErrorWithDeletionAsync(
-                    message,
-                    allowed.ToPrint(),
-                    IReplies.DefaultDeletionDelay,
-                    ct
-                );
+                await replier
+                    .ReplyTo(message)
+                    .SendErrorAsync(allowed.ToPrint(), ct);
+
                 return;
             }
 
@@ -51,12 +49,10 @@ public class MessageCreateHandler(
 
             if (roles.IsError)
             {
-                await replies.SendErrorWithDeletionAsync(
-                    message,
-                    roles.ToPrint(),
-                    IReplies.DefaultDeletionDelay,
-                    ct
-                );
+                await replier
+                    .ReplyTo(message)
+                    .SendErrorAsync(roles.ToPrint(), ct);
+
                 return;
             }
 
@@ -64,12 +60,10 @@ public class MessageCreateHandler(
 
             if (eval.IsError)
             {
-                await replies.SendErrorWithDeletionAsync(
-                    message,
-                    eval.ToPrint(),
-                    IReplies.DefaultDeletionDelay,
-                    ct
-                );
+                await replier
+                    .ReplyTo(message)
+                    .SendErrorAsync(eval.ToPrint(), ct);
+
                 return;
             }
 
@@ -86,12 +80,9 @@ public class MessageCreateHandler(
                     message.Content,
                     execution
                 );
-                await replies.SendErrorWithDeletionAsync(
-                    message,
-                    execution.ToPrint(),
-                    IReplies.DefaultDeletionDelay,
-                    ct
-                );
+                await replier
+                    .ReplyTo(message)
+                    .SendErrorAsync(execution.ToPrint(), ct);
                 return;
             }
 
@@ -105,12 +96,9 @@ public class MessageCreateHandler(
                 message.Content,
                 message.Author.Username
             );
-            await replies.SendErrorWithDeletionAsync(
-                message,
-                e.Message,
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .SendErrorAsync(e.Message, ct);
         }
     }
 

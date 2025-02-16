@@ -13,7 +13,7 @@ using NetCord.Gateway.Voice;
 namespace DiscordMusic.Core.Discord.Voice;
 
 public class VoiceHost(
-    IReplies replies,
+    Replier replier,
     IAudioPlayer audioPlayer,
     GatewayClient gatewayClient,
     ILogger<VoiceHost> logger,
@@ -279,13 +279,12 @@ public class VoiceHost(
         CancellationToken ct
     )
     {
-        await replies.SendWithDeletionAsync(
-            message.ChannelId,
-            $"Searching for {query}",
-            "This may take a moment...",
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        await replier
+            .ReplyTo(message)
+            .WithTitle($"Searching for {query}")
+            .WithContent("This may take a moment...")
+            .WithDeletion()
+            .SendAsync(ct);
 
         if (spotifySeacher.IsSpotifyQuery(query))
         {
@@ -386,12 +385,9 @@ public class VoiceHost(
                 if (next.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", next.ToPrint());
-                    await replies.SendErrorWithDeletionAsync(
-                        _connection!.ChannelId,
-                        next.ToPrint(),
-                        IReplies.DefaultDeletionDelay,
-                        ct
-                    );
+                    await replier
+                        .ReplyTo(_connection!.ChannelId)
+                        .SendErrorAsync(next.ToPrint(), ct);
                     return;
                 }
 

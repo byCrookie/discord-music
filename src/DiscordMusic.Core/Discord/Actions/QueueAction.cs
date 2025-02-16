@@ -7,7 +7,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class QueueAction(IVoiceHost voiceHost, IReplies replies, ILogger<QueueAction> logger) : IDiscordAction
+public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAction> logger) : IDiscordAction
 {
     private const int PageSize = 20;
 
@@ -42,26 +42,26 @@ public class QueueAction(IVoiceHost voiceHost, IReplies replies, ILogger<QueueAc
 
         if (tracks.Value.Count == 0)
         {
-            await replies.SendWithDeletionAsync(
-                message,
-                "Queue",
-                "The queue is empty",
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Queue")
+                .WithContent("The queue is empty")
+                .WithDeletion()
+                .SendAsync(ct);
+            
             return Result.Success;
         }
 
         var pageCount = tracks.Value.Count / PageSize + 1;
         if (page.Value > pageCount)
         {
-            await replies.SendWithDeletionAsync(
-                message,
-                "Queue",
-                $"Queue has only {pageCount} pages",
-                IReplies.DefaultDeletionDelay,
-                ct
-            );
+            await replier
+                .ReplyTo(message)
+                .WithTitle("Queue")
+                .WithContent($"Queue has only {pageCount} pages")
+                .WithDeletion()
+                .SendAsync(ct);
+            
             return Result.Success;
         }
 
@@ -84,8 +84,14 @@ public class QueueAction(IVoiceHost voiceHost, IReplies replies, ILogger<QueueAc
                 );
             }
         }
-
-        await replies.SendWithDeletionAsync(message, "Queue", queue.ToString(), TimeSpan.FromMinutes(1), ct);
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Queue")
+            .WithContent(queue.ToString())
+            .WithDeletion(TimeSpan.FromMinutes(2))
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 

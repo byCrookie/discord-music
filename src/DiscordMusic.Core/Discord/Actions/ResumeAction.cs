@@ -6,7 +6,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class ResumeAction(IVoiceHost voiceHost, IReplies replies, ILogger<ResumeAction> logger) : IDiscordAction
+public class ResumeAction(IVoiceHost voiceHost, Replier replier, ILogger<ResumeAction> logger) : IDiscordAction
 {
     public string Long => "resume";
     public string Short => "r";
@@ -31,8 +31,14 @@ public class ResumeAction(IVoiceHost voiceHost, IReplies replies, ILogger<Resume
                               **{resume.Value.Track?.Name}** by **{resume.Value.Track?.Artists}**
                               {resume.Value.AudioStatus.Position.HummanizeSecond()} / {resume.Value.AudioStatus.Length.HummanizeSecond()}
                               """;
-
-        await replies.SendWithDeletionAsync(message, "Resumed", resumedMessage, IReplies.DefaultDeletionDelay, ct);
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Resumed")
+            .WithContent(resumedMessage)
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }

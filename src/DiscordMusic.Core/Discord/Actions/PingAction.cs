@@ -4,7 +4,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PingAction(IReplies replies, ILogger<SeekAction> logger) : IDiscordAction
+public class PingAction(Replier replier, ILogger<SeekAction> logger) : IDiscordAction
 {
     public string Long => "ping";
     public string Short => "pi";
@@ -18,7 +18,12 @@ public class PingAction(IReplies replies, ILogger<SeekAction> logger) : IDiscord
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Ping");
-        await replies.SendWithDeletionAsync(message, "Pong", "You pinged me!", IReplies.DefaultDeletionDelay, ct);
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Pong")
+            .WithContent("You pinged me!")
+            .WithDeletion()
+            .SendAsync(ct);
         return Result.Success;
     }
 }

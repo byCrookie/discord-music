@@ -7,7 +7,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SeekAction(IVoiceHost voiceHost, IReplies replies, ILogger<SeekAction> logger) : IDiscordAction
+public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekAction> logger) : IDiscordAction
 {
     public string Long => "seek";
     public string Short => "sk";
@@ -43,14 +43,13 @@ public class SeekAction(IVoiceHost voiceHost, IReplies replies, ILogger<SeekActi
                              **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
                              {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
                              """;
-
-        await replies.SendWithDeletionAsync(
-            message,
-            $"Seeked {position.HummanizeSecond()}",
-            seekedMessage,
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle($"Seeked to {position.HummanizeSecond()}")
+            .WithContent(seekedMessage)
+            .WithDeletion()
+            .SendAsync(ct);
 
         return Result.Success;
     }

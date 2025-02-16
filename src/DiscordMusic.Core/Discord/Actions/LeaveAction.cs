@@ -5,7 +5,7 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class LeaveAction(IVoiceHost voiceHost, IReplies replies, ILogger<LeaveAction> logger) : IDiscordAction
+public class LeaveAction(IVoiceHost voiceHost, Replier replier, ILogger<LeaveAction> logger) : IDiscordAction
 {
     public string Long => "leave";
     public string Short => "l";
@@ -25,14 +25,14 @@ public class LeaveAction(IVoiceHost voiceHost, IReplies replies, ILogger<LeaveAc
         {
             return stop.Errors;
         }
-
-        await replies.SendWithDeletionAsync(
-            message,
-            "Leave",
-            "I will leave the voice channel soon. Just ignore me.",
-            IReplies.DefaultDeletionDelay,
-            ct
-        );
+        
+        await replier
+            .ReplyTo(message)
+            .WithTitle("Leave")
+            .WithContent("I will leave the voice channel soon. Just ignore me.")
+            .WithDeletion()
+            .SendAsync(ct);
+        
         return Result.Success;
     }
 }
