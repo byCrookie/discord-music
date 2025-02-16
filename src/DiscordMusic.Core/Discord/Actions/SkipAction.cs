@@ -32,7 +32,8 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
         if (skip.Value.Track is null)
         {
             await replier
-                .ReplyTo(message)
+                .Reply()
+                .To(message)
                 .WithEmbed("Skip", "Queue is empty. Can not skip.")
                 .WithDeletion()
                 .SendAsync(ct);
@@ -44,7 +45,8 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
             $"**{skip.Value.Track!.Name}** by **{skip.Value.Track!.Artists}** ({skip.Value.Track!.Duration.HummanizeSecond()})";
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed("Now", skipMessage)
             .WithDeletion()
             .SendAsync(ct);

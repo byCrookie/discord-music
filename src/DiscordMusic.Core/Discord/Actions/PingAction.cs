@@ -19,7 +19,8 @@ public class PingAction(Replier replier, ILogger<SeekAction> logger) : IDiscordA
     {
         logger.LogTrace("Ping");
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed("Pong", "You pinged me!")
             .WithDeletion()
             .SendAsync(ct);

@@ -18,7 +18,8 @@ public class AudioBarAction(Replier replier) : IDiscordAction
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         await replier
-            .ReplyTo(message.ChannelId)
+            .Reply()
+            .To(message.ChannelId)
             .WithAudioBar()
             .SendAsync(ct);
 

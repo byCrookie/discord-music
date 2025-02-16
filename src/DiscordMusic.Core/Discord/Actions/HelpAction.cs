@@ -64,6 +64,7 @@ public class HelpAction(
 
         logger.LogTrace("Help");
         await replier
+            .Reply()
             .DirectMessage(message)
             .WithEmbed("Help", help.ToString())
             .SendAsync(ct);

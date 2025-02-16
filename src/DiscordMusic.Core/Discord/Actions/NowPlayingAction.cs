@@ -30,7 +30,8 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
         if (nowPlaying.Value.Track is null)
         {
             await replier
-                .ReplyTo(message)
+                .Reply()
+                .To(message)
                 .WithEmbed("Now playing", "No track is currently playing")
                 .WithDeletion()
                 .SendAsync(ct);
@@ -46,7 +47,8 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
                                  """;
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed("Now", nowPlayingMessage)
             .WithDeletion()
             .SendAsync(ct);

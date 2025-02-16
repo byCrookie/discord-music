@@ -39,7 +39,8 @@ public class MessageCreateHandler(
             if (allowed.IsError)
             {
                 await replier
-                    .ReplyTo(message)
+                    .Reply()
+                    .To(message)
                     .SendErrorAsync(allowed.ToPrint(), ct);
 
                 return;
@@ -50,7 +51,8 @@ public class MessageCreateHandler(
             if (roles.IsError)
             {
                 await replier
-                    .ReplyTo(message)
+                    .Reply()
+                    .To(message)
                     .SendErrorAsync(roles.ToPrint(), ct);
 
                 return;
@@ -61,7 +63,8 @@ public class MessageCreateHandler(
             if (eval.IsError)
             {
                 await replier
-                    .ReplyTo(message)
+                    .Reply()
+                    .To(message)
                     .SendErrorAsync(eval.ToPrint(), ct);
 
                 return;
@@ -81,7 +84,8 @@ public class MessageCreateHandler(
                     execution
                 );
                 await replier
-                    .ReplyTo(message)
+                    .Reply()
+                    .To(message)
                     .SendErrorAsync(execution.ToPrint(), ct);
                 return;
             }
@@ -97,7 +101,8 @@ public class MessageCreateHandler(
                 message.Author.Username
             );
             await replier
-                .ReplyTo(message)
+                .Reply()
+                .To(message)
                 .SendErrorAsync(e.Message, ct);
         }
     }

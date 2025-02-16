@@ -33,7 +33,8 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
                              """;
         
         await replier
-            .ReplyTo(message)
+            .Reply()
+            .To(message)
             .WithEmbed("Paused", pausedMessage)
             .WithDeletion()
             .SendAsync(ct);

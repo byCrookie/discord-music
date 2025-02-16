@@ -8,6 +8,11 @@ namespace DiscordMusic.Core.Discord;
 
 public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
 {
+    public Reply Reply() => new(restClient, options);
+}
+
+public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
+{
     private ulong? _channelId;
     private Message? _message;
     private string? _content;
@@ -17,20 +22,20 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
     private readonly List<EmbedProperties> _embeds = [];
     private bool _isDirectMessage;
 
-    public Replier ReplyTo(Message message)
+    public Reply To(Message message)
     {
         _message = message ?? throw new ArgumentNullException(nameof(message));
         return this;
     }
 
-    public Replier DirectMessage(Message message)
+    public Reply DirectMessage(Message message)
     {
         _isDirectMessage = true;
         _message = message ?? throw new ArgumentNullException(nameof(message));
         return this;
     }
 
-    public Replier ReplyTo(ulong channelId)
+    public Reply To(ulong channelId)
     {
         if (channelId == 0)
         {
@@ -41,26 +46,26 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
         return this;
     }
 
-    public Replier WithEmbed(string title, string? content, Color? color = null)
+    public Reply WithEmbed(string title, string? content, Color? color = null)
     {
         var embed = new EmbedProperties { Color = color ?? _color, Title = title, Description = content };
         _embeds.Add(embed);
         return this;
     }
 
-    public Replier WithContent(string? content)
+    public Reply WithContent(string? content)
     {
         _content = content;
         return this;
     }
 
-    public Replier WithColor(Color color)
+    public Reply WithColor(Color color)
     {
         _color = color;
         return this;
     }
 
-    public Replier WithDeletion(TimeSpan? delay = null)
+    public Reply WithDeletion(TimeSpan? delay = null)
     {
         if (delay is null)
         {
@@ -77,7 +82,7 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
         return this;
     }
 
-    public Replier WithAudioBar()
+    public Reply WithAudioBar()
     {
         _components.Add(AudioBar.Create());
         return this;
@@ -160,10 +165,11 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
 
 public static class RepliesBuilderExtensions
 {
-    public static Task SendErrorAsync(this Replier replier, string? content, CancellationToken ct)
+    public static Task SendErrorAsync(this Reply reply, string? content, CancellationToken ct)
     {
-        replier.WithEmbed("Error", content, new Color(255, 0, 0));
-        replier.WithDeletion();
-        return replier.SendAsync(ct);
+        return reply
+            .WithEmbed("Error", content, new Color(255, 0, 0))
+            .WithDeletion()
+            .SendAsync(ct);
     }
 }
