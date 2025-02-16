@@ -21,5 +21,5 @@ public interface IVoiceHost
         CancellationToken ct);
 
     Task<ErrorOr<VoiceUpdate>> ShuffleAsync(Message message, CancellationToken ct);
-    Task<ErrorOr<VoiceUpdate>> SkipAsync(Message message, CancellationToken ct);
+    Task<ErrorOr<VoiceUpdate>> SkipAsync(Message message, int toIndex, CancellationToken ct);
 }
