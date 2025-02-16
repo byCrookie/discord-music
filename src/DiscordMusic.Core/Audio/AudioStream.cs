@@ -73,7 +73,6 @@ public class AudioStream : IDisposable
 
     private readonly byte[] _buffer;
     private readonly Bytes _bufferSize;
-    private readonly Ticks _bufferTicks;
     private readonly TimeSpan _bufferTime;
     private readonly CancellationTokenSource _cts;
     private readonly byte[] _emptyBuffer;
@@ -83,7 +82,6 @@ public class AudioStream : IDisposable
 
     private readonly MemoryStream _memoryStream;
     private readonly Stream _outputStream;
-    private Ticks _nextWriteTicks;
 
     private AudioStream(
         MemoryStream memoryStream,
@@ -98,15 +96,12 @@ public class AudioStream : IDisposable
         _logger = logger;
         _bufferTime = options.Value.BufferTime;
         _bufferSize = Bytes.ToBytes(_bufferTime);
-        _bufferTicks = Ticks.From((long)_bufferTime.TotalSeconds * Stopwatch.Frequency);
         _buffer = new byte[_bufferSize];
         _emptyBuffer = new byte[_bufferSize];
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _lock = new Lock();
 
-        _nextWriteTicks = Ticks.From(Stopwatch.GetTimestamp());
-
-        _ = Task.Run(async () =>
+        _ = Task.Factory.StartNew(async () =>
         {
             while (!_cts.IsCancellationRequested)
             {
@@ -127,7 +122,7 @@ public class AudioStream : IDisposable
                         throw new ArgumentOutOfRangeException(nameof(State), State, $"Unknown state {State}");
                 }
             }
-        }, _cts.Token);
+        }, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     public AudioState State { get; private set; } = AudioState.Playing;
@@ -169,37 +164,19 @@ public class AudioStream : IDisposable
 
         _logger.LogStreaming(_id, "audio", _bufferSize.Value.Bytes().Humanize());
         await _outputStream.WriteAsync(_buffer, ct);
-        await MaintainTiming(ct);
     }
 
     private async Task HandleSilenceAsync(CancellationToken ct)
     {
         _logger.LogStreaming(_id, "silence", _bufferSize.Value.Bytes().Humanize());
         await _outputStream.WriteAsync(_emptyBuffer, ct);
-        await MaintainTiming(ct);
     }
 
     private async Task HandleStoppedAsync(CancellationToken ct)
     {
         await Task.Delay(_bufferTime, ct);
     }
-
-    private async Task MaintainTiming(CancellationToken ct)
-    {
-        var delayTicks = _nextWriteTicks - Ticks.From(Stopwatch.GetTimestamp());
-
-        if (delayTicks > 0)
-        {
-            var delayMs = (int)(0.95 * delayTicks * 1000 / Stopwatch.Frequency);
-            if (delayMs > 0)
-            {
-                await Task.Delay(delayMs, ct);
-            }
-        }
-
-        _nextWriteTicks = Ticks.From(Math.Max(Stopwatch.GetTimestamp(), _nextWriteTicks)) + _bufferTicks;
-    }
-
+    
     public event Func<object, EventArgs, Task>? StreamEnded;
 
     public void Pause()
@@ -308,34 +285,6 @@ public class AudioStream : IDisposable
             Bytes.From(memoryStream.Length).ToTimeSpan().HummanizeMillisecond());
 
         return new AudioStream(memoryStream, outputStream, logger, options, ct);
-    }
-
-    private class Ticks : ValueOf<long, Ticks>
-    {
-        public static Ticks operator +(Ticks a, Ticks b)
-        {
-            return From(a.Value + b.Value);
-        }
-
-        public static Ticks operator -(Ticks a, Ticks b)
-        {
-            return From(a.Value - b.Value);
-        }
-
-        public static bool operator >(Ticks a, long b)
-        {
-            return a.Value > b;
-        }
-
-        public static bool operator <(Ticks a, long b)
-        {
-            return a.Value < b;
-        }
-
-        public static implicit operator long(Ticks ticks)
-        {
-            return ticks.Value;
-        }
     }
 
     private class Bytes : ValueOf<long, Bytes>
