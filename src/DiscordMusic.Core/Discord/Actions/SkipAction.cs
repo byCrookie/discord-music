@@ -22,7 +22,27 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Skip");
-        var skip = await voiceHost.SkipAsync(message, ct);
+        
+        var skipCount = 0;
+        
+        if (args.Length != 0)
+        {
+            if (!int.TryParse(args[0], out skipCount) || skipCount < 1)
+            {
+                await replier
+                    .Reply()
+                    .To(message)
+                    .WithEmbed("Skip", "Invalid position")
+                    .WithDeletion()
+                    .SendAsync(ct);
+                
+                return Result.Success;
+            }
+
+            skipCount--;
+        }
+        
+        var skip = await voiceHost.SkipAsync(message, skipCount, ct);
 
         if (skip.IsError)
         {

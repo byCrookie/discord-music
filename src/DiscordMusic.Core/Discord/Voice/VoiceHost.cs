@@ -171,7 +171,7 @@ public class VoiceHost(
             : VoiceUpdate.None(VoiceUpdateType.Next);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> SkipAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> SkipAsync(Message message, int toIndex, CancellationToken ct)
     {
         logger.LogTrace("Skip");
         var connect = await ConnectAsync(message, ct);
@@ -183,6 +183,7 @@ public class VoiceHost(
 
         await using var _ = await _lock.AquireAsync(ct);
         await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
+        musicQueue.SkipTo(toIndex);
         return await PlayNextTrackFromQueueAsync(true, ct);
     }
 
