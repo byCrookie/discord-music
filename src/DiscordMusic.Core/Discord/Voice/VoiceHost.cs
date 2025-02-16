@@ -472,7 +472,7 @@ public class VoiceHost(
             return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, await audioPlayer.StatusAsync(ct));
         }
 
-        var download = await youTubeDownload.DownloadAsync(firstTrack.Url, cache.Value, ct);
+        var download = await youTubeDownload.DownloadAsync($"{firstTrack.Name} {firstTrack.Artists}", cache.Value, ct);
 
         if (download.IsError)
         {
@@ -508,7 +508,7 @@ public class VoiceHost(
 
                     if (!nextCache.Value.Exists())
                     {
-                        var download = await youTubeDownload.DownloadAsync(nextTrack.Url, nextCache.Value, ct);
+                        var download = await youTubeDownload.DownloadAsync($"{nextTrack.Name} {nextTrack.Artists}", nextCache.Value, ct);
 
                         if (download.IsError)
                         {
