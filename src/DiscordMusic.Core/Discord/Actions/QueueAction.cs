@@ -44,8 +44,7 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle("Queue")
-                .WithContent("The queue is empty")
+                .WithEmbed("Queue", "The queue is empty")
                 .WithDeletion()
                 .SendAsync(ct);
             
@@ -57,8 +56,7 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle("Queue")
-                .WithContent($"Queue has only {pageCount} pages")
+                .WithEmbed("Queue", $"Queue has only {pageCount} pages")
                 .WithDeletion()
                 .SendAsync(ct);
             
@@ -87,8 +85,7 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
         
         await replier
             .ReplyTo(message)
-            .WithTitle("Queue")
-            .WithContent(queue.ToString())
+            .WithEmbed("Queue", queue.ToString())
             .WithDeletion(TimeSpan.FromMinutes(2))
             .SendAsync(ct);
         

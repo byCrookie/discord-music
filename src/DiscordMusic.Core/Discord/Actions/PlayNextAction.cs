@@ -40,8 +40,7 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle(messageTitle)
-                .WithContent("No track found")
+                .WithEmbed(messageTitle, "No track found")
                 .WithDeletion()
                 .SendAsync(ct);
 
@@ -50,9 +49,7 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
 
         await replier
             .ReplyTo(message)
-            .WithTitle(messageTitle)
-            .WithContent(
-                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})")
+            .WithEmbed(messageTitle, $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})")
             .WithDeletion()
             .SendAsync(ct);
 

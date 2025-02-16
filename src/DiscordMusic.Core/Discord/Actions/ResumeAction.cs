@@ -34,8 +34,7 @@ public class ResumeAction(IVoiceHost voiceHost, Replier replier, ILogger<ResumeA
         
         await replier
             .ReplyTo(message)
-            .WithTitle("Resumed")
-            .WithContent(resumedMessage)
+            .WithEmbed("Resumed", resumedMessage)
             .WithDeletion()
             .SendAsync(ct);
         

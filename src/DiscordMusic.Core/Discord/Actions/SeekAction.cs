@@ -46,8 +46,7 @@ public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekActio
         
         await replier
             .ReplyTo(message)
-            .WithTitle($"Seeked to {position.HummanizeSecond()}")
-            .WithContent(seekedMessage)
+            .WithEmbed($"Seeked to {position.HummanizeSecond()}", seekedMessage)
             .WithDeletion()
             .SendAsync(ct);
 

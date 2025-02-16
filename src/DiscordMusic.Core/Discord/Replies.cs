@@ -10,7 +10,6 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
 {
     private ulong? _channelId;
     private Message? _message;
-    private string? _title;
     private string? _content;
     private Color _color = options.Value.DiscordColor;
     private TimeSpan? _deletionDelay;
@@ -42,10 +41,10 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
         return this;
     }
 
-    public Replier WithTitle(string title)
+    public Replier WithEmbed(string title, string? content, Color? color = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        _title = title;
+        var embed = new EmbedProperties { Color = color ?? _color, Title = title, Description = content };
+        _embeds.Add(embed);
         return this;
     }
 
@@ -86,12 +85,6 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
 
     public async Task SendAsync(CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(_title))
-        {
-            var embed = new EmbedProperties { Color = _color, Title = _title, Description = _content };
-            _embeds.Add(embed);
-        }
-
         if (_isDirectMessage)
         {
             if (_message is null)
@@ -102,6 +95,7 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
             var dm = await _message.Author.GetDMChannelAsync(cancellationToken: ct);
             var reply = await dm.SendMessageAsync(new MessageProperties
             {
+                Content = _content,
                 Embeds = _embeds,
                 Components = _components
             }, cancellationToken: ct);
@@ -123,6 +117,7 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
         {
             var reply = await _message.ReplyAsync(new ReplyMessageProperties
             {
+                Content = _content,
                 Embeds = _embeds,
                 Components = _components
             }, cancellationToken: ct);
@@ -139,6 +134,7 @@ public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
         {
             var reply = await restClient.SendMessageAsync(_channelId.Value, new MessageProperties
             {
+                Content = _content,
                 Embeds = _embeds,
                 Components = _components
             }, cancellationToken: ct);
@@ -166,9 +162,7 @@ public static class RepliesBuilderExtensions
 {
     public static Task SendErrorAsync(this Replier replier, string? content, CancellationToken ct)
     {
-        replier.WithTitle("Error");
-        replier.WithContent(content);
-        replier.WithColor(new Color(255, 0, 0));
+        replier.WithEmbed("Error", content, new Color(255, 0, 0));
         replier.WithDeletion();
         return replier.SendAsync(ct);
     }

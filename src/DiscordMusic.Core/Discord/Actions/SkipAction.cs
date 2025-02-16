@@ -33,8 +33,7 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle("Skip")
-                .WithContent("Queue is empty. Can not skip.")
+                .WithEmbed("Skip", "Queue is empty. Can not skip.")
                 .WithDeletion()
                 .SendAsync(ct);
             
@@ -46,8 +45,7 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
         
         await replier
             .ReplyTo(message)
-            .WithTitle("Now")
-            .WithContent(skipMessage)
+            .WithEmbed("Now", skipMessage)
             .WithDeletion()
             .SendAsync(ct);
         

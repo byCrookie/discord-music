@@ -31,8 +31,7 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
         {
             await replier
                 .ReplyTo(message)
-                .WithTitle("Shuffle")
-                .WithContent("The queue is empty")
+                .WithEmbed("Shuffle", "The queue is empty")
                 .WithDeletion()
                 .SendAsync(ct);
 
@@ -41,9 +40,7 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
 
         await replier
             .ReplyTo(message)
-            .WithTitle("Next")
-            .WithContent(
-                $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})")
+            .WithEmbed("Next", $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})")
             .WithDeletion()
             .SendAsync(ct);
 

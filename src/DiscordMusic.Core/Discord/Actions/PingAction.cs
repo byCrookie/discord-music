@@ -20,8 +20,7 @@ public class PingAction(Replier replier, ILogger<SeekAction> logger) : IDiscordA
         logger.LogTrace("Ping");
         await replier
             .ReplyTo(message)
-            .WithTitle("Pong")
-            .WithContent("You pinged me!")
+            .WithEmbed("Pong", "You pinged me!")
             .WithDeletion()
             .SendAsync(ct);
         return Result.Success;
