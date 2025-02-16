@@ -23,7 +23,7 @@ public class FileCache<TKey, TItem>(
     private bool _indexed;
     private IDirectoryInfo? _location;
 
-    public async Task<ErrorOr<CacheItem<TKey, TItem>>> UpdateAsync(TKey key, TKey updateKey, TItem item,
+    public async Task<ErrorOr<CacheItem<TKey, TItem>>> AddOrUpdateAsync(TKey key, TKey updateKey, TItem item,
         CancellationToken ct)
     {
         await using var _ = await _lock.AquireAsync(ct);
@@ -35,7 +35,7 @@ public class FileCache<TKey, TItem>(
 
         if (!_cache.Remove(key, out var fileCacheItem))
         {
-            return Error.NotFound(description: $"Key {key} not found in cache");
+            return await AddAsync(updateKey, item, ct);
         }
 
         var dataFile = GetDataFile(fileCacheItem.Id);
@@ -139,6 +139,11 @@ public class FileCache<TKey, TItem>(
             _cache.Remove(key);
         }
 
+        return await AddAsync(key, item, ct);
+    }
+
+    private async Task<ErrorOr<CacheItem<TKey, TItem>>> AddAsync(TKey key, TItem item, CancellationToken ct)
+    {
         var id = Guid.CreateVersion7();
         var dataFile = GetDataFile(id);
         var itemFile = GetItemFile(id);

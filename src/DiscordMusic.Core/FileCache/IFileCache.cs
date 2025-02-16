@@ -12,7 +12,7 @@ public interface IFileCache<TKey, TItem>
     public Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, CancellationToken ct);
 
     public Task<ErrorOr<CacheItem<TKey, TItem>>>
-        UpdateAsync(TKey key, TKey updateKey, TItem item, CancellationToken ct);
+        AddOrUpdateAsync(TKey key, TKey updateKey, TItem item, CancellationToken ct);
 
     public Task<ErrorOr<ByteSize>> GetSizeAsync(CancellationToken ct);
     public Task<ErrorOr<Success>> ClearAsync(CancellationToken ct);

@@ -438,7 +438,7 @@ public class VoiceHost(
             var track = new Track(search.Value.First().Channel, search.Value.First().Title, search.Value.First().Url,
                 TimeSpan.FromSeconds(search.Value.First().Duration ?? 0));
 
-            var update = await musicCache.UpdateTrackAsync(firstTrack, track, ct);
+            var update = await musicCache.AddOrUpdateTrackAsync(firstTrack, track, ct);
             
             if (update.IsError)
             {
@@ -495,6 +495,36 @@ public class VoiceHost(
             {
                 if (musicQueue.TryPeek(out var nextTrack))
                 {
+                    if (spotifySeacher.IsSpotifyQuery(nextTrack.Url))
+                    {
+                        var search = await youtubeSearch.SearchAsync($"{nextTrack.Name} {nextTrack.Artists}", ct);
+
+                        if (search.IsError)
+                        {
+                            logger.LogError("Failed to download next track: {Error}", search.ToPrint());
+                            return;
+                        }
+
+                        if (search.Value.Count == 0)
+                        {
+                            logger.LogError("Did not find next track");
+                            return;
+                        }
+
+                        var track = new Track(search.Value.First().Channel, search.Value.First().Title, search.Value.First().Url,
+                            TimeSpan.FromSeconds(search.Value.First().Duration ?? 0));
+
+                        var update = await musicCache.AddOrUpdateTrackAsync(nextTrack, track, ct);
+            
+                        if (update.IsError)
+                        {
+                            logger.LogError("Failed to update next track: {Error}", update.ToPrint());
+                            return;
+                        }
+            
+                        nextTrack = track;
+                    }
+                    
                     var nextCache = await musicCache.GetOrAddTrackAsync(nextTrack, ct);
 
                     if (nextCache.IsError)
