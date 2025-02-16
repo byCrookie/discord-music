@@ -53,7 +53,7 @@ internal partial class YouTubeDownload(
         {
             var errorMessage = string.Join(Environment.NewLine, errors);
             logger.LogError("YouTube download failed with exit code {ExitCode}", process.ExitCode);
-            return Error.Unexpected(description: $"Download from YouTube failed: {errorMessage}");
+            return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
         }
 
         fileSystem.File.Move($"{output.FullName}.opus", output.FullName);
