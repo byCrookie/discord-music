@@ -35,7 +35,7 @@
         },
         "Lyrics Search": {
             "commandName": "Project",
-            "commandLineArgs": "lyrics search --title \"The Weeknd\" --artist \"Blinding Lights\"",
+            "commandLineArgs": "lyrics search --title \"god is a girl\" --artist \"groove\"",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
