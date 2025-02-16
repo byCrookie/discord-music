@@ -54,7 +54,7 @@ internal partial class YoutubeSearch(
         {
             var errorMessage = string.Join(Environment.NewLine, errors);
             logger.LogError("YouTube search failed with exit code {ExitCode}", process.ExitCode);
-            return Error.Unexpected(description: $"Search on YouTube failed: {errorMessage}");
+            return Error.Unexpected(description: $"Search on YouTube for {query} failed: {errorMessage}");
         }
 
         var tracks = lines
