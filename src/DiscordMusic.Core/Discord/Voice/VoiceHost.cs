@@ -441,7 +441,13 @@ public class VoiceHost(
             var track = new Track(search.Value.First().Channel, search.Value.First().Title, search.Value.First().Url,
                 TimeSpan.FromSeconds(search.Value.First().Duration ?? 0));
 
-            await musicCache.UpdateTrackAsync(firstTrack, track, ct);
+            var update = await musicCache.UpdateTrackAsync(firstTrack, track, ct);
+            
+            if (update.IsError)
+            {
+                return update.Errors;
+            }
+            
             firstTrack = track;
         }
 
