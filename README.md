@@ -5,6 +5,32 @@ uses [NetCord](https://github.com/necordjs/necord), [FFmpeg](https://github.com/
 [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET)
 and [Genius](https://genius.com) for lyrics.
 
+## Features
+
+#### 🎵 **Core Music Functions**
+- **Join & Leave**: Connects to and disconnects from voice channels.
+- **Play Music**: Streams audio from various sources:
+    - **YouTube**: Play music via URLs or search queries.
+    - **Spotify**: Search on spotify, play from YouTube.
+- **Pause, Resume & Seek**: Control playback, skip to specific timestamps or seek.
+
+#### 📜 **Queue Management**
+- **Queue System**:
+    - Add, remove, clear tracks.
+    - Skip individual songs.
+
+#### 🎶 **Extra Features**
+- **Lyrics Fetching**: Retrieve lyrics for the currently playing song.
+- **Audio Controls**: Controls audio using interactive buttons.
+- **Audio Caching**: Tracks are cached to reduce loading times.
+- **Auto Disconnect**: Leaves the voice channel when empty.
+
+#### ⚙️ **Bot Management**
+- **Docker Support**: Run in a containerized environment.
+- **Permission System**:
+    - Simple allow/deny command system.
+    - Role-based access control for commands.
+
 ## Docker
 
 > Recommended: Use the docker image to run the bot.
@@ -57,6 +83,14 @@ file with the client secret of your new application.
 Environment variables can be used to set the client id and client secret.
 - `DISCORD_MUSIC_SPOTIFY__CLIENTID`
 - `DISCORD_MUSIC_SPOTIFY__CLIENTSECRET`
+
+### Genius (Optional)
+
+Go to https://genius.com/api-clients and create a new application.
+
+Replace the `Lyrics:Token` in the `appsettings.json` file with the token of your new application.
+Environment variables can be used to set the token.
+- `DISCORD_MUSIC_LYRICS__TOKEN`
 
 ### FFmpeg
 
