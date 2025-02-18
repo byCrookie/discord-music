@@ -7,8 +7,7 @@ namespace DiscordMusic.Core.Discord.Voice;
 public interface IVoiceHost
 {
     Task<ErrorOr<Success>> ConnectAsync(Message message, CancellationToken ct);
-    Task<ErrorOr<Success>> StopAsync(CancellationToken ct);
-
+    Task<ErrorOr<Success>> DisconnectAsync(CancellationToken ct);
     Task<ErrorOr<VoiceUpdate>> PlayAsync(Message message, string query, CancellationToken ct);
     Task<ErrorOr<VoiceUpdate>> PlayNextAsync(Message message, string query, CancellationToken ct);
     Task<ErrorOr<VoiceUpdate>> PauseAsync(Message message, CancellationToken ct);
