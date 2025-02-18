@@ -25,7 +25,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ env.GitBuildVersionSimple }}
           tag_name: ${{ env.GitBuildVersionSimple }}
@@ -76,7 +76,7 @@ jobs:
 
       - name: Upload Release Assets
         id: upload_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         working-directory: ./src
         with:
           name: Release ${{ needs.release.outputs.version }}
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Release Assets
         id: upload_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         working-directory: ./src
         with:
           name: Release ${{ needs.release.outputs.version }}
@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload Release Assets
         id: upload_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         working-directory: ./src
         with:
           name: Release ${{ needs.release.outputs.version }}
