@@ -94,9 +94,9 @@ jobs:
       - name: Publish
         run: |
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/win-x64 --runtime win-x64
-          cp ../natives/win-x86_x64/* publish/win-x64
+          cp ../natives/win-x86_64/* publish/win-x64
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/win-x86 --runtime win-x86
-          cp ../natives/win-x86_x64/* publish/win-x86
+          cp ../natives/win-x86_64/* publish/win-x86
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/win-arm64 --runtime win-arm64
         working-directory: ./src
 
@@ -148,9 +148,9 @@ jobs:
       - name: Publish
         run: |
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-x64 --runtime linux-x64
-          cp ../natives/linux-x86_x64/* publish/linux-x64
+          cp ../natives/linux-x86_64/* publish/linux-x64
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-musl-x64 --runtime linux-musl-x64
-          cp ../natives/linux-x86_x64/* publish/linux-musl-x64
+          cp ../natives/linux-x86_64/* publish/linux-musl-x64
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-musl-arm64 --runtime linux-musl-arm64
           cp ../natives/linux-aarch64/* publish/linux-musl-arm64
           dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-arm --runtime linux-arm
