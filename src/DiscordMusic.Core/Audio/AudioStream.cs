@@ -26,6 +26,13 @@ internal static partial class AudioStreamLogMessages
     internal static partial void LogStreamEnded(
         this ILogger logger,
         string id);
+    
+    [LoggerMessage(
+        Message = "[{Id}] Stream failed",
+        Level = LogLevel.Error)]
+    internal static partial void LogStreamFailed(
+        this ILogger logger,
+        string id);
 
     [LoggerMessage(
         Message = "[{Id}] Filled remaining buffer with silence",
@@ -46,6 +53,13 @@ internal static partial class AudioStreamLogMessages
         Message = "[{Id}] Still enough data in output stream",
         Level = LogLevel.Trace)]
     internal static partial void LogStillEnough(
+        this ILogger logger,
+        string id);
+    
+    [LoggerMessage(
+        Message = "[{Id}] Audio streaming was cancelled",
+        Level = LogLevel.Trace)]
+    internal static partial void LogStreamCancelled(
         this ILogger logger,
         string id);
 }
@@ -103,23 +117,40 @@ public class AudioStream : IDisposable
 
         _ = Task.Factory.StartNew(async () =>
         {
-            while (!_cts.IsCancellationRequested)
+            try
             {
-                _logger.LogPosition(Position.HummanizeMillisecond(), Length.HummanizeMillisecond());
-
-                switch (State)
+                while (!_cts.IsCancellationRequested)
                 {
-                    case AudioState.Playing:
-                        await HandlePlayingAsync(_cts.Token);
-                        break;
-                    case AudioState.Silence:
-                        await HandleSilenceAsync(_cts.Token);
-                        break;
-                    case AudioState.Stopped:
-                        await HandleStoppedAsync(_cts.Token);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(State), State, $"Unknown state {State}");
+                    _logger.LogPosition(Position.HummanizeMillisecond(), Length.HummanizeMillisecond());
+
+                    switch (State)
+                    {
+                        case AudioState.Playing:
+                            await HandlePlayingAsync(_cts.Token);
+                            break;
+                        case AudioState.Silence:
+                            await HandleSilenceAsync(_cts.Token);
+                            break;
+                        case AudioState.Stopped:
+                            await HandleStoppedAsync(_cts.Token);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(State), State, $"Unknown state {State}");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogStreamCancelled(_id);
+            }
+            catch (Exception e)
+            {
+                _logger.LogStreamFailed(_id);
+                State = AudioState.Stopped;
+                
+                if (StreamFailed is not null)
+                {
+                    await StreamFailed(e, this, EventArgs.Empty);
                 }
             }
         }, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -136,6 +167,7 @@ public class AudioStream : IDisposable
         State = AudioState.Stopped;
         _cts.Cancel();
         StreamEnded = null;
+        StreamFailed = null;
         _memoryStream.Dispose();
     }
 
@@ -177,6 +209,7 @@ public class AudioStream : IDisposable
         await Task.Delay(_bufferTime, ct);
     }
     
+    public event Func<Exception, object, EventArgs, Task>? StreamFailed;
     public event Func<object, EventArgs, Task>? StreamEnded;
 
     public void Pause()

@@ -132,8 +132,8 @@ public static class DiscordModule
                     return;
                 }
 
-                logger.LogInformation("Bot is alone in the voice channel. Stopping playback.");
-                await voiceHost.StopAsync(ct);
+                logger.LogInformation("Bot is alone in the voice channel. Disconnecting.");
+                await voiceHost.DisconnectAsync(ct);
                 return;
             }
 

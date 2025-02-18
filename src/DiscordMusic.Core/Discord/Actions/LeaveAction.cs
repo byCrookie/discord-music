@@ -5,33 +5,26 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class LeaveAction(IVoiceHost voiceHost, Replier replier, ILogger<LeaveAction> logger) : IDiscordAction
+public class LeaveAction(IVoiceHost voiceHost, ILogger<LeaveAction> logger) : IDiscordAction
 {
     public string Long => "leave";
     public string Short => "l";
 
     public string Help =>
         """
-        The bot will not participate anymore. It will leave the voice channel after some time.
+        The bot will not participate anymore. It will leave as soon as possible.
         Usage: `leave`
         """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Leave");
-        var stop = await voiceHost.StopAsync(ct);
+        var stop = await voiceHost.DisconnectAsync(ct);
 
         if (stop.IsError)
         {
             return stop.Errors;
         }
-        
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Leave", "I will leave the voice channel soon. Just ignore me.")
-            .WithDeletion()
-            .SendAsync(ct);
         
         return Result.Success;
     }
