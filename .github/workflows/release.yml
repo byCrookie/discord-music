@@ -20,6 +20,7 @@ jobs:
 
       - name: Nerdbank.GitVersioning
         uses: dotnet/nbgv@master
+        working-directory: ./src
         with:
           setCommonVars: true
 
