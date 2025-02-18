@@ -106,15 +106,14 @@ jobs:
       - name: Upload Release Assets
         id: upload_release
         uses: softprops/action-gh-release@v2
-        working-directory: ./src
         with:
           name: Release ${{ needs.release.outputs.version }}
           tag_name: ${{ needs.release.outputs.version }}
           fail_on_unmatched_files: true
           files: |
-            ./publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
-            ./publish/dm_win_x86_${{ needs.release.outputs.version }}.zip
-            ./publish/dm_win_arm64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/dm_win_x64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/dm_win_x86_${{ needs.release.outputs.version }}.zip
+            ./src/publish/dm_win_arm64_${{ needs.release.outputs.version }}.zip
   
   
   linux:
@@ -163,17 +162,16 @@ jobs:
       - name: Upload Release Assets
         id: upload_release
         uses: softprops/action-gh-release@v2
-        working-directory: ./src
         with:
           name: Release ${{ needs.release.outputs.version }}
           tag_name: ${{ needs.release.outputs.version }}
           fail_on_unmatched_files: true
           files: |
-            ./publish/linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip
-            ./publish/linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
-            ./publish/linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
-            ./publish/linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip
-            ./publish/linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/linux-x64/dm_linux_x64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/linux-musl-x64/dm_linux_musl_x64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/linux-musl-arm64/dm_linux_musl_arm64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/linux-arm/dm_linux_arm_${{ needs.release.outputs.version }}.zip
+            ./src/publish/linux-arm64/dm_linux_arm64_${{ needs.release.outputs.version }}.zip
   
   
   macos:
@@ -216,11 +214,10 @@ jobs:
       - name: Upload Release Assets
         id: upload_release
         uses: softprops/action-gh-release@v2
-        working-directory: ./src
         with:
           name: Release ${{ needs.release.outputs.version }}
           tag_name: ${{ needs.release.outputs.version }}
           fail_on_unmatched_files: true
           files: |
-            ./publish/osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip
-            ./publish/osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/osx-x64/dm_osx_x64_${{ needs.release.outputs.version }}.zip
+            ./src/publish/osx-arm64/dm_osx_arm64_${{ needs.release.outputs.version }}.zip
