@@ -20,9 +20,9 @@ jobs:
 
       - name: Nerdbank.GitVersioning
         uses: dotnet/nbgv@master
-        path: ./src
         with:
           setCommonVars: true
+          path: ./src
 
       - name: Create Release
         id: create_release
