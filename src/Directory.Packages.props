@@ -16,7 +16,7 @@
         <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1"/>
         <PackageVersion Include="System.Interactive.Async.Providers" Version="6.0.1"/>
         <PackageVersion Include="Testably.Abstractions" Version="9.0.0"/>
-        <PackageVersion Include="TUnit" Version="0.12.25"/>
+        <PackageVersion Include="TUnit" Version="0.13.18"/>
         <PackageVersion Include="ValueOf" Version="2.0.31"/>
     </ItemGroup>
 </Project>
