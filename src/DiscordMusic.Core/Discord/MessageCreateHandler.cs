@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
+using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 
@@ -13,7 +14,8 @@ public class MessageCreateHandler(
     IEnumerable<IDiscordAction> actions,
     IOptions<DiscordOptions> options,
     Replier replier,
-    Cancellation cancellation
+    Cancellation cancellation,
+    RestClient restClient
 ) : IGatewayEventHandler<Message>
 {
     public async ValueTask HandleAsync(Message message)
@@ -46,7 +48,7 @@ public class MessageCreateHandler(
                 return;
             }
 
-            var roles = IsRoleAllowed(message);
+            var roles = await IsRoleAllowed(message, ct);
 
             if (roles.IsError)
             {
@@ -107,23 +109,22 @@ public class MessageCreateHandler(
         }
     }
 
-    private ErrorOr<Success> IsRoleAllowed(Message message)
+    private async Task<ErrorOr<Success>> IsRoleAllowed(Message message, CancellationToken ct)
     {
         if (options.Value.Roles.Count == 0)
         {
             return Result.Success;
         }
-
-        var guildUser = message.Guild?.Users.SingleOrDefault(m => m.Key == message.Author.Id);
-
-        if (guildUser is null)
+        
+        if (message.GuildId is null)
         {
-            logger.LogError("Failed to get guild user for id {UserId}", message.Author.Id);
-            return Error.Forbidden(description: "You can't use this command. Not a guild user.");
+            logger.LogError("Failed to get guild id for message {Message}", message.Content);
+            return Error.Forbidden(description: "You can't use this command. Not a guild message.");
         }
 
-        var matchingRoles =
-            message.Guild?.Roles.Where(gr => options.Value.Roles.Any(r => r == gr.Value.Name)).ToList() ?? [];
+        var guild = await restClient.GetGuildAsync(message.GuildId.Value, cancellationToken: ct);
+
+        var matchingRoles = guild.Roles.Where(gr => options.Value.Roles.Any(r => r == gr.Value.Name)).ToList();
 
         if (matchingRoles.Count == 0)
         {
@@ -134,11 +135,13 @@ public class MessageCreateHandler(
             );
             return Error.Forbidden(
                 description:
-                $"You can't use this command. You don't have any of these roles {string.Join("|", options.Value.Roles)}."
+                $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
             );
         }
-
-        var matchingUserRoles = matchingRoles.Where(mr => guildUser.Value.Value.RoleIds.Contains(mr.Key)).ToList();
+        
+        var author = await guild.GetUserAsync(message.Author.Id, cancellationToken: ct);
+        
+        var matchingUserRoles = matchingRoles.Where(mr => author.RoleIds.Contains(mr.Key)).ToList();
 
         if (matchingUserRoles.Count != 0)
         {
@@ -152,7 +155,7 @@ public class MessageCreateHandler(
         );
         return Error.Forbidden(
             description:
-            $"You can't use this command. You don't have any of these roles {string.Join("|", options.Value.Roles)}."
+            $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
         );
     }
 
