@@ -94,18 +94,18 @@ public class AudioStream : IDisposable
     private readonly Lock _lock;
     private readonly ILogger _logger;
 
-    private readonly MemoryStream _memoryStream;
+    private readonly Stream _inputStream;
     private readonly Stream _outputStream;
 
     private AudioStream(
-        MemoryStream memoryStream,
+        Stream inputStream,
         Stream outputStream,
         ILogger logger,
         IOptions<AudioOptions> options,
         CancellationToken ct)
     {
         _id = Guid.NewGuid().ToString("N");
-        _memoryStream = memoryStream;
+        _inputStream = inputStream;
         _outputStream = outputStream;
         _logger = logger;
         _bufferTime = options.Value.BufferTime;
@@ -157,8 +157,8 @@ public class AudioStream : IDisposable
     }
 
     public AudioState State { get; private set; } = AudioState.Playing;
-    public TimeSpan Length => Bytes.From(_memoryStream.Length).ToTimeSpan();
-    public TimeSpan Position => Bytes.From(_memoryStream.Position).ToTimeSpan();
+    public TimeSpan Length => Bytes.From(_inputStream.Length).ToTimeSpan();
+    public TimeSpan Position => Bytes.From(_inputStream.Position).ToTimeSpan();
 
     public void Dispose()
     {
@@ -168,12 +168,12 @@ public class AudioStream : IDisposable
         _cts.Cancel();
         StreamEnded = null;
         StreamFailed = null;
-        _memoryStream.Dispose();
+        _inputStream.Dispose();
     }
 
     private async Task HandlePlayingAsync(CancellationToken ct)
     {
-        var bytesRead = await _memoryStream.ReadAsync(_buffer, ct);
+        var bytesRead = await _inputStream.ReadAsync(_buffer, ct);
 
         if (bytesRead == 0)
         {
@@ -245,14 +245,14 @@ public class AudioStream : IDisposable
             var seekPosition = seekMode switch
             {
                 SeekMode.Position => seekBytes,
-                SeekMode.Forward => Bytes.From(_memoryStream.Position) + seekBytes,
-                SeekMode.Backward => Bytes.From(_memoryStream.Position) - seekBytes,
+                SeekMode.Forward => Bytes.From(_inputStream.Position) + seekBytes,
+                SeekMode.Backward => Bytes.From(_inputStream.Position) - seekBytes,
                 _ => throw new ArgumentOutOfRangeException(nameof(seekMode), seekMode, null)
             };
 
-            if (seekPosition > _memoryStream.Length)
+            if (seekPosition > _inputStream.Length)
             {
-                seekPosition = Bytes.From(_memoryStream.Length);
+                seekPosition = Bytes.From(_inputStream.Length);
             }
 
             if (seekPosition < 0)
@@ -262,22 +262,9 @@ public class AudioStream : IDisposable
 
             State = AudioState.Playing;
 
-            _memoryStream.Position = seekPosition;
+            _inputStream.Position = seekPosition;
             return seekPosition.ToTimeSpan();
         }
-    }
-
-    public static async Task<AudioStream> LoadAsync(Stream audioStream, Stream outputStream,
-        ILogger logger, IOptions<AudioOptions> options, CancellationToken ct)
-    {
-        var memoryStream = new MemoryStream();
-        await audioStream.CopyToAsync(memoryStream, ct);
-        memoryStream.Position = 0;
-
-        logger.LogTrace("Audio stream loaded from stream with {Length} bytes and duration {Duration}",
-            memoryStream.Length.Bytes(), Bytes.From(memoryStream.Length).ToTimeSpan());
-
-        return new AudioStream(memoryStream, outputStream, logger, options, ct);
     }
 
     public static async Task<ErrorOr<AudioStream>> LoadAsync(IFileInfo audioFile, Stream outputStream,
@@ -288,16 +275,15 @@ public class AudioStream : IDisposable
         {
             return Error.NotFound(description: $"Audio file '{audioFile.FullName}' does not exist");
         }
-
-        var memoryStream = new MemoryStream();
-        var ffmpegArgs = $"-i \"{audioFile.FullName}\" -f s{BitsPerSample}le -ar {SampleRate} -ac {Channels} pipe:1";
+        
+        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".pcm");
+        var ffmpegArgs = $"-i \"{audioFile.FullName}\" -f s{BitsPerSample}le -ar {SampleRate} -ac {Channels} {tempFile}";
         logger.LogTrace("Calling {Ffmpeg} with arguments {FfmpegArgs}", options.Value.Ffmpeg, ffmpegArgs);
         using var ffmpeg = Process.Start(
             new ProcessStartInfo
             {
                 FileName = options.Value.Ffmpeg,
                 Arguments = ffmpegArgs,
-                RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
@@ -308,16 +294,16 @@ public class AudioStream : IDisposable
             return Error.Unexpected(
                 description: $"Process {options.Value.Ffmpeg} with arguments {ffmpegArgs} failed to start");
         }
-
-        await using var ffmpegStream = ffmpeg.StandardOutput.BaseStream;
-        await ffmpegStream.CopyToAsync(memoryStream, ct);
-        memoryStream.Position = 0;
+        
+        await ffmpeg.WaitForExitAsync(ct);
+        
+        var stream = new FileStream(tempFile, FileMode.Open, FileAccess.Read);
 
         logger.LogTrace("Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
-            audioFile.FullName, memoryStream.Length.Bytes(),
-            Bytes.From(memoryStream.Length).ToTimeSpan().HummanizeMillisecond());
+            audioFile.FullName, stream.Length.Bytes(),
+            Bytes.From(stream.Length).ToTimeSpan().HummanizeMillisecond());
 
-        return new AudioStream(memoryStream, outputStream, logger, options, ct);
+        return new AudioStream(stream, outputStream, logger, options, ct);
     }
 
     private class Bytes : ValueOf<long, Bytes>
