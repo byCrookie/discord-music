@@ -13,14 +13,12 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     public const string FastForwardButton = "fastForward";
 
     [ComponentInteraction(FastBackwardButton)]
-    public string FastBackward()
+    public async Task<string> FastBackward()
     {
         var duration = TimeSpan.FromSeconds(30);
 
-        var action = audioPlayer
-            .SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+        var action = await audioPlayer
+            .SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
 
         return action.IsError
             ? action.ToPrint()
@@ -28,14 +26,12 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     }
 
     [ComponentInteraction(BackwardButton)]
-    public string Backward()
+    public async Task<string> Backward()
     {
         var duration = TimeSpan.FromSeconds(10);
 
-        var action = audioPlayer
-            .SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+        var action = await audioPlayer
+            .SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
 
         return action.IsError
             ? action.ToPrint()
@@ -43,27 +39,26 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     }
 
     [ComponentInteraction(PlayPauseButton)]
-    public string PlayPause()
+    public async Task<string> PlayPause()
     {
-        var isPlaying = audioPlayer.IsPlayingAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var isPlaying = await audioPlayer.IsPlayingAsync(CancellationToken.None);
 
         if (isPlaying)
         {
-            var pause = audioPlayer.PauseAsync(CancellationToken.None).GetAwaiter().GetResult();
+            var pause = await audioPlayer.PauseAsync(CancellationToken.None);
             return pause.IsError ? pause.ToPrint() : $"Paused. Now at {StatusHumanReadable(pause.Value)}";
         }
 
-        var resume = audioPlayer.ResumeAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var resume = await audioPlayer.ResumeAsync(CancellationToken.None);
         return resume.IsError ? resume.ToPrint() : $"Resumed. Now at {StatusHumanReadable(resume.Value)}";
     }
 
     [ComponentInteraction(FowardButton)]
-    public string Foward()
+    public async Task<string> Foward()
     {
         var duration = TimeSpan.FromSeconds(10);
 
-        var action = audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Forward, CancellationToken.None).GetAwaiter()
-            .GetResult();
+        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Forward, CancellationToken.None);
 
         return action.IsError
             ? action.ToPrint()
@@ -71,12 +66,11 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     }
 
     [ComponentInteraction(FastForwardButton)]
-    public string FastForward()
+    public async Task<string> FastForward()
     {
         var duration = TimeSpan.FromSeconds(30);
 
-        var action = audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Forward, CancellationToken.None).GetAwaiter()
-            .GetResult();
+        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Forward, CancellationToken.None);
 
         return action.IsError
             ? action.ToPrint()

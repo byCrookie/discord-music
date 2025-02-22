@@ -403,7 +403,7 @@ public class VoiceHost(
                 {
                     logger.LogTrace("No more tracks in queue");
                     await audioPlayer.StopAsync(ct);
-                    
+
                     await replier
                         .Reply()
                         .To(_connection!.ChannelId)
@@ -432,7 +432,7 @@ public class VoiceHost(
                 {
                     logger.LogTrace("No more tracks in queue");
                     await audioPlayer.StopAsync(ct);
-                    
+
                     await replier
                         .Reply()
                         .To(_connection!.ChannelId)
@@ -533,7 +533,7 @@ public class VoiceHost(
 
     private void DownloadNextTrackInBackgroud(CancellationToken ct)
     {
-        _ = Task.Factory.StartNew(
+        _ = Task.Run(
             async () =>
             {
                 if (musicQueue.TryPeek(out var nextTrack))
@@ -589,9 +589,7 @@ public class VoiceHost(
                     }
                 }
             },
-            ct,
-            TaskCreationOptions.LongRunning,
-            TaskScheduler.Default
+            ct
         );
     }
 }
