@@ -1,7 +1,7 @@
 # discord-music
 
 Another music bot for discord. This bot is written in C# and
-uses [NetCord](https://github.com/necordjs/necord), [FFmpeg](https://github.com/FFmpeg/FFmpeg), [yt-dlp](https://github.com/yt-dlp/yt-dlp),
+uses [NetCord](https://github.com/NetCordDev/NetCord), [FFmpeg](https://github.com/FFmpeg/FFmpeg), [yt-dlp](https://github.com/yt-dlp/yt-dlp),
 [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET)
 and [Genius](https://genius.com) for lyrics.
 
