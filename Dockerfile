@@ -14,20 +14,16 @@ RUN echo "Building for $TARGETARCH" && \
     dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r "$RID" --self-contained true -o /app -v minimal && \
     cp "/source/natives/$LIB" "/app/$(basename $LIB)"
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS final
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app .
 
-RUN apk add --no-cache ffmpeg curl libc6-compat icu-libs && \
+RUN apt update && apt install -y --fix-missing ffmpeg curl && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o yt-dlp && \
     chmod +x yt-dlp && \
     cp /usr/bin/ffmpeg /app/ffmpeg 
 
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
-ENV LC_ALL=en_US.UTF-8
-ENV LANG=en_US.UTF-8
-
-RUN adduser -D -u 1000 user
+RUN adduser -u 1000 user
 USER user
 
 ENTRYPOINT ["/app/dm"]
