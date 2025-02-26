@@ -39,7 +39,8 @@ and [Genius](https://genius.com) for lyrics.
 the target runtime of the image. The default value is `linux-x64`. All config values have to be provided as environment
 variables.
 This can be achieved by using the `--env-file` option of the `docker run` command or other methods to pass environment
-variables to the container.
+variables to the container. The cache location should be mounted as a volume to persist the cache between container
+restarts.
 
 ## Runtimes
 
