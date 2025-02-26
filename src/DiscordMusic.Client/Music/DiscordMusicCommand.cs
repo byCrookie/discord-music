@@ -23,7 +23,7 @@ public static class DiscordMusicCommand
             var builder = Host.CreateApplicationBuilder(args);
             builder.AddCore(ctx.GetCancellationToken());
             var host = builder.Build();
-            host.UseCore(ctx.GetCancellationToken());
+            host.UseCore();
             await host.RunAsync(ctx.GetCancellationToken());
         });
 

@@ -36,9 +36,9 @@ public static class CoreModule
         return builder;
     }
 
-    public static IHost UseCore(this IHost host, CancellationToken ct)
+    public static IHost UseCore(this IHost host)
     {
-        host.UseDiscord(ct);
+        host.UseDiscord();
         return host;
     }
 }

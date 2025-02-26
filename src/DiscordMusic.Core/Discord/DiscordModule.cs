@@ -46,6 +46,7 @@ public static class DiscordModule
         });
 
         builder.Services.AddGatewayEventHandler<MessageCreateHandler>();
+        builder.Services.AddGatewayEventHandler<VoiceStateUpdateHandler>();
 
         builder.Services.AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
@@ -75,70 +76,11 @@ public static class DiscordModule
         return builder;
     }
 
-    public static IHost UseDiscord(this IHost host, CancellationToken ct)
+    public static IHost UseDiscord(this IHost host)
     {
         host.AddComponentInteractionModule<AudioBarModule>();
 
         host.UseGatewayEventHandlers();
-
-        var gatewayClient = host.Services.GetRequiredService<GatewayClient>();
-        var restClient = host.Services.GetRequiredService<RestClient>();
-        var logger = host.Services.GetRequiredService<ILogger<GatewayClient>>();
-        var voiceHost = host.Services.GetRequiredService<IVoiceHost>();
-
-        gatewayClient.VoiceStateUpdate += async uvs =>
-        {
-            var bot = await restClient.GetCurrentUserAsync(cancellationToken: ct);
-
-            if (uvs.UserId == bot.Id && uvs.ChannelId is not null)
-            {
-                logger.LogInformation("Bot joined voice channel {ChannelId}", uvs.ChannelId);
-                return;
-            }
-
-            if (uvs.UserId == bot.Id && uvs.ChannelId is not null)
-            {
-                logger.LogInformation("Bot left voice channel");
-                return;
-            }
-
-            if (uvs.ChannelId is not null)
-            {
-                logger.LogInformation("User {UserId} joined voice channel {ChannelId}", uvs.UserId, uvs.ChannelId);
-            }
-            else
-            {
-                logger.LogInformation("User {UserId} left voice channel", uvs.UserId);
-            }
-
-            if (gatewayClient.Cache.Guilds.TryGetValue(uvs.GuildId, out var guild))
-            {
-                if (!guild.VoiceStates.TryGetValue(bot.Id, out var voiceStateBot))
-                {
-                    logger.LogInformation("Bot is not in a voice channel.");
-                    return;
-                }
-
-                var voiceStatesInChannel = guild.VoiceStates.Where(vs =>
-                        vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id)
-                    .ToList();
-
-                if (voiceStatesInChannel.Count != 0)
-                {
-                    logger.LogInformation(
-                        "Channel {ChannelId} is still active. {Count} members are still in the channel. Active: {Members}",
-                        voiceStateBot.ChannelId, voiceStatesInChannel.Count,
-                        string.Join(", ", voiceStatesInChannel.Select(vs => vs.Value.UserId)));
-                    return;
-                }
-
-                logger.LogInformation("Bot is alone in the voice channel. Disconnecting.");
-                await voiceHost.DisconnectAsync(ct);
-                return;
-            }
-
-            logger.LogInformation("Bot is not in a guild.");
-        };
 
         return host;
     }

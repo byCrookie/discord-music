@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
