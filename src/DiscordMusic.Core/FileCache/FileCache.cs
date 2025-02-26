@@ -91,7 +91,7 @@ public class FileCache<TKey, TItem>(
             fileSystem.File.Delete(file);
         }
 
-        return new Success();
+        return Result.Success;
     }
 
     public async Task<ErrorOr<Success>> IndexAsync(IDirectoryInfo location, CancellationToken ct)
@@ -121,7 +121,7 @@ public class FileCache<TKey, TItem>(
 
         _location = location;
         _indexed = true;
-        return new Success();
+        return Result.Success;
     }
 
     public async Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, CancellationToken ct)

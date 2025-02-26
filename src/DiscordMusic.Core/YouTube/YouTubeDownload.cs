@@ -100,7 +100,7 @@ internal partial class YouTubeDownload(
         }
 
         logger.LogDebug("YouTube download completed. Audio file saved at {Output}.", output.FullName);
-        return new Success();
+        return Result.Success;
     }
 
     private void ProcessOutput(DataReceivedEventArgs e, List<string> lines)
