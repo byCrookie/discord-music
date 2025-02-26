@@ -23,7 +23,7 @@ RUN apt update && apt install -y --fix-missing ffmpeg curl && \
     chmod +x yt-dlp && \
     cp /usr/bin/ffmpeg /app/ffmpeg 
 
-RUN adduser -u 1000 user
+RUN adduser --disabled-password -u 1000 user
 USER user
 
 ENTRYPOINT ["/app/dm"]

@@ -22,7 +22,7 @@ internal partial class YoutubeSearch(
 
         logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp, command);
 
-        var process = Process.Start(
+        using var process = Process.Start(
             new ProcessStartInfo
             {
                 FileName = ytdlp,
