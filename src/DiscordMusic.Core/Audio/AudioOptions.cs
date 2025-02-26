@@ -12,10 +12,6 @@ public class AudioOptions
     [ConfigurationKeyName("buffer")]
     public string Buffer { get; init; } = "00:00:00.300";
 
-    [Required]
-    [ConfigurationKeyName("ffmpeg")]
-    public string Ffmpeg { get; init; } = "ffmpeg";
-
     [JsonIgnore]
     public TimeSpan BufferTime => TimeSpan.Parse(Buffer);
 }

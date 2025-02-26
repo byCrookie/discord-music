@@ -103,7 +103,7 @@ public class AudioPlayer(
             return Error.Unexpected(description: "Audio not started");
         }
 
-        var audioStream = await AudioStream.LoadAsync(file, _output, fileSystem, audioStreamlogger, options, ct);
+        var audioStream = AudioStream.Load(file, _output, fileSystem, audioStreamlogger, options, ct);
 
         if (audioStream.IsError)
         {

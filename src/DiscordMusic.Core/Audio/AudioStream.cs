@@ -80,9 +80,9 @@ public class AudioStream : IDisposable
         Backward
     }
 
-    private const int SampleRate = 48000;
-    private const int Channels = 2;
-    private const int BitsPerSample = 16;
+    public const int SampleRate = 48000;
+    public const int Channels = 2;
+    public const int BitsPerSample = 16;
     private const int BytesPerSample = BitsPerSample / 8;
 
     private readonly byte[] _buffer;
@@ -267,37 +267,15 @@ public class AudioStream : IDisposable
         }
     }
 
-    public static async Task<ErrorOr<AudioStream>> LoadAsync(IFileInfo audioFile, Stream outputStream,
-        IFileSystem fileSystem,
-        ILogger logger, IOptions<AudioOptions> options, CancellationToken ct)
+    public static ErrorOr<AudioStream> Load(IFileInfo audioFile, Stream outputStream,
+        IFileSystem fileSystem, ILogger logger, IOptions<AudioOptions> options, CancellationToken ct)
     {
         if (!fileSystem.File.Exists(audioFile.FullName))
         {
             return Error.NotFound(description: $"Audio file '{audioFile.FullName}' does not exist");
         }
         
-        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".pcm");
-        var ffmpegArgs = $"-i \"{audioFile.FullName}\" -f s{BitsPerSample}le -ar {SampleRate} -ac {Channels} {tempFile}";
-        logger.LogTrace("Calling {Ffmpeg} with arguments {FfmpegArgs}", options.Value.Ffmpeg, ffmpegArgs);
-        using var ffmpeg = Process.Start(
-            new ProcessStartInfo
-            {
-                FileName = options.Value.Ffmpeg,
-                Arguments = ffmpegArgs,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        );
-
-        if (ffmpeg is null)
-        {
-            return Error.Unexpected(
-                description: $"Process {options.Value.Ffmpeg} with arguments {ffmpegArgs} failed to start");
-        }
-        
-        await ffmpeg.WaitForExitAsync(ct);
-        
-        var stream = new FileStream(tempFile, FileMode.Open, FileAccess.Read);
+        var stream = new FileStream(audioFile.FullName, FileMode.Open, FileAccess.Read);
 
         logger.LogTrace("Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
             audioFile.FullName, stream.Length.Bytes(),
