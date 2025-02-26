@@ -13,5 +13,5 @@ public record VoiceUpdate(VoiceUpdateType Type, Track? Track, AudioStatus AudioS
 public enum VoiceUpdateType
 {
     Now,
-    Next
+    Next,
 }

@@ -40,10 +40,7 @@ public class MessageCreateHandler(
 
             if (allowed.IsError)
             {
-                await replier
-                    .Reply()
-                    .To(message)
-                    .SendErrorAsync(allowed.ToPrint(), ct);
+                await replier.Reply().To(message).SendErrorAsync(allowed.ToPrint(), ct);
 
                 return;
             }
@@ -52,10 +49,7 @@ public class MessageCreateHandler(
 
             if (roles.IsError)
             {
-                await replier
-                    .Reply()
-                    .To(message)
-                    .SendErrorAsync(roles.ToPrint(), ct);
+                await replier.Reply().To(message).SendErrorAsync(roles.ToPrint(), ct);
 
                 return;
             }
@@ -64,10 +58,7 @@ public class MessageCreateHandler(
 
             if (eval.IsError)
             {
-                await replier
-                    .Reply()
-                    .To(message)
-                    .SendErrorAsync(eval.ToPrint(), ct);
+                await replier.Reply().To(message).SendErrorAsync(eval.ToPrint(), ct);
 
                 return;
             }
@@ -85,10 +76,7 @@ public class MessageCreateHandler(
                     message.Content,
                     execution
                 );
-                await replier
-                    .Reply()
-                    .To(message)
-                    .SendErrorAsync(execution.ToPrint(), ct);
+                await replier.Reply().To(message).SendErrorAsync(execution.ToPrint(), ct);
                 return;
             }
 
@@ -102,10 +90,7 @@ public class MessageCreateHandler(
                 message.Content,
                 message.Author.Username
             );
-            await replier
-                .Reply()
-                .To(message)
-                .SendErrorAsync(e.Message, ct);
+            await replier.Reply().To(message).SendErrorAsync(e.Message, ct);
         }
     }
 
@@ -115,7 +100,7 @@ public class MessageCreateHandler(
         {
             return Result.Success;
         }
-        
+
         if (message.GuildId is null)
         {
             logger.LogError("Failed to get guild id for message {Message}", message.Content);
@@ -134,13 +119,12 @@ public class MessageCreateHandler(
                 string.Join(",", message.Guild?.Roles.Select(r => r.Value.Name).ToList() ?? [])
             );
             return Error.Forbidden(
-                description:
-                $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
+                description: $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
             );
         }
-        
+
         var author = await guild.GetUserAsync(message.Author.Id, cancellationToken: ct);
-        
+
         var matchingUserRoles = matchingRoles.Where(mr => author.RoleIds.Contains(mr.Key)).ToList();
 
         if (matchingUserRoles.Count != 0)
@@ -154,8 +138,7 @@ public class MessageCreateHandler(
             string.Join("|", matchingRoles)
         );
         return Error.Forbidden(
-            description:
-            $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
+            description: $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
         );
     }
 

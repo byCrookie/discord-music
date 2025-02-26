@@ -27,7 +27,7 @@ public class LyricsAction(
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Lyrics");
-        
+
         var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
 
         if (nowPlaying.IsError)
@@ -46,7 +46,7 @@ public class LyricsAction(
                     .Reply()
                     .To(message)
                     .SendErrorAsync("Invalid format. Usage: `lyrics <title> - <artists>`", ct);
-                
+
                 return Result.Success;
             }
 
@@ -60,26 +60,29 @@ public class LyricsAction(
                     .WithEmbed("Lyrics", $"Lyrics not found for {split[0]} by {split[1]}")
                     .WithDeletion()
                     .SendAsync(ct);
-                
+
                 return Result.Success;
             }
 
             var specificLyricsMessage = $"""
-                                         {specificLyrics.Value.Text}
+                {specificLyrics.Value.Text}
 
-                                         {specificLyrics.Value.Url}
-                                         """;
-            
+                {specificLyrics.Value.Url}
+                """;
+
             await replier
                 .Reply()
                 .To(message)
-                .WithEmbed($"**{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**", specificLyricsMessage)
+                .WithEmbed(
+                    $"**{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**",
+                    specificLyricsMessage
+                )
                 .WithDeletion(TimeSpan.FromMinutes(5))
                 .SendAsync(ct);
-            
+
             return Result.Success;
         }
-        
+
         if (nowPlaying.Value.Track is null)
         {
             await replier
@@ -88,7 +91,7 @@ public class LyricsAction(
                 .WithEmbed("Lyrics", "No track is currently playing")
                 .WithDeletion()
                 .SendAsync(ct);
-            
+
             return Result.Success;
         }
 
@@ -104,7 +107,7 @@ public class LyricsAction(
                 .WithEmbed("Lyrics", $"Lyrics not found for {track.Name} by {track.Artists}")
                 .WithDeletion()
                 .SendAsync(ct);
-            
+
             return Result.Success;
         }
 
@@ -113,14 +116,14 @@ public class LyricsAction(
 
             {lyrics.Value.Url}
             """;
-        
+
         await replier
             .Reply()
             .To(message)
             .WithEmbed($"**{lyrics.Value.Title}** by **{lyrics.Value.Artist}**", lyricsMessage)
             .WithDeletion(GetDeletionDelayFromNowPlaying(nowPlaying))
             .SendAsync(ct);
-        
+
         return Result.Success;
     }
 

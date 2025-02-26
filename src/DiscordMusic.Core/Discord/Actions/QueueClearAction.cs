@@ -26,14 +26,14 @@ public class QueueClearAction(IVoiceHost voiceHost, Replier replier, ILogger<Que
         {
             return clear.Errors;
         }
-        
+
         await replier
             .Reply()
             .To(message)
             .WithEmbed("Cleared", "The queue has been cleared")
             .WithDeletion()
             .SendAsync(ct);
-        
+
         return Result.Success;
     }
 }

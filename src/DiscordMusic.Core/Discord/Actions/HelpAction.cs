@@ -19,9 +19,9 @@ public class HelpAction(
 
     public string Help =>
         """
-        Show the help menu for the bot
-        Usage: `help`
-        """;
+            Show the help menu for the bot
+            Usage: `help`
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -46,7 +46,7 @@ public class HelpAction(
             typeof(LyricsAction),
             typeof(PingAction),
             typeof(AudioBarAction),
-            typeof(HelpAction)
+            typeof(HelpAction),
         };
 
         var actionInstances = serviceProvider.GetServices<IDiscordAction>().OrderBy(x => actions.IndexOf(x.GetType()));
@@ -63,12 +63,8 @@ public class HelpAction(
         }
 
         logger.LogTrace("Help");
-        await replier
-            .Reply()
-            .DirectMessage(message)
-            .WithEmbed("Help", help.ToString())
-            .SendAsync(ct);
-        
+        await replier.Reply().DirectMessage(message).WithEmbed("Help", help.ToString()).SendAsync(ct);
+
         return Result.Success;
     }
 }

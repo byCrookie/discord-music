@@ -10,7 +10,8 @@ public class AudioPlayer(
     ILogger<AudioPlayer> logger,
     ILogger<AudioStream> audioStreamlogger,
     IOptions<AudioOptions> options,
-    IFileSystem fileSystem) : IAudioPlayer
+    IFileSystem fileSystem
+) : IAudioPlayer
 {
     private readonly AsyncLock _lock = new();
     private AudioStream? _audioStream;
@@ -118,7 +119,7 @@ public class AudioPlayer(
             await _output.FlushAsync(ct);
             _updateAsync(AudioEvent.Ended, null, ct).FireAndForget(logger, ct);
         };
-        
+
         _audioStream.StreamFailed += async (e, _, _) =>
         {
             await _output.FlushAsync(ct);
@@ -145,7 +146,7 @@ public class AudioPlayer(
             AudioStream.AudioState.Playing => AudioState.Playing,
             AudioStream.AudioState.Silence => AudioState.Paused,
             AudioStream.AudioState.Stopped => AudioState.Stopped,
-            _ => AudioState.Stopped
+            _ => AudioState.Stopped,
         };
     }
 }

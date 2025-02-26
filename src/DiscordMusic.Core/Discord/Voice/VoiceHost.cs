@@ -150,8 +150,12 @@ public class VoiceHost(
         return Result.Success;
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> SeekAsync(Message message, TimeSpan time, AudioStream.SeekMode mode,
-        CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> SeekAsync(
+        Message message,
+        TimeSpan time,
+        AudioStream.SeekMode mode,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Seek {Mode}", mode);
         var connect = await ConnectAsync(message, ct);
@@ -315,12 +319,7 @@ public class VoiceHost(
             }
 
             var spotifyTracks = searchSpotify
-                .Value.Select(track => new Track(
-                    track.Name,
-                    track.Artists,
-                    track.Url,
-                    TimeSpan.Zero
-                ))
+                .Value.Select(track => new Track(track.Name, track.Artists, track.Url, TimeSpan.Zero))
                 .ToList();
 
             foreach (var track in spotifyTracks)
@@ -392,10 +391,7 @@ public class VoiceHost(
                 if (nextFromError.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", nextFromError.ToPrint());
-                    await replier
-                        .Reply()
-                        .To(_connection!.ChannelId)
-                        .SendErrorAsync(nextFromError.ToPrint(), ct);
+                    await replier.Reply().To(_connection!.ChannelId).SendErrorAsync(nextFromError.ToPrint(), ct);
                     return;
                 }
 
@@ -421,10 +417,7 @@ public class VoiceHost(
                 if (next.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", next.ToPrint());
-                    await replier
-                        .Reply()
-                        .To(_connection!.ChannelId)
-                        .SendErrorAsync(next.ToPrint(), ct);
+                    await replier.Reply().To(_connection!.ChannelId).SendErrorAsync(next.ToPrint(), ct);
                     return;
                 }
 
@@ -478,8 +471,12 @@ public class VoiceHost(
                 return Error.NotFound(description: "Did not find next track");
             }
 
-            var track = new Track(search.Value.First().Channel, search.Value.First().Title, search.Value.First().Url,
-                TimeSpan.FromSeconds(search.Value.First().Duration ?? 0));
+            var track = new Track(
+                search.Value.First().Channel,
+                search.Value.First().Title,
+                search.Value.First().Url,
+                TimeSpan.FromSeconds(search.Value.First().Duration ?? 0)
+            );
 
             var update = await musicCache.AddOrUpdateTrackAsync(firstTrack, track, ct);
 
@@ -554,9 +551,12 @@ public class VoiceHost(
                             return;
                         }
 
-                        var track = new Track(search.Value.First().Channel, search.Value.First().Title,
+                        var track = new Track(
+                            search.Value.First().Channel,
+                            search.Value.First().Title,
                             search.Value.First().Url,
-                            TimeSpan.FromSeconds(search.Value.First().Duration ?? 0));
+                            TimeSpan.FromSeconds(search.Value.First().Duration ?? 0)
+                        );
 
                         var update = await musicCache.AddOrUpdateTrackAsync(nextTrack, track, ct);
 
@@ -579,8 +579,11 @@ public class VoiceHost(
 
                     if (!nextCache.Value.Exists())
                     {
-                        var download = await youTubeDownload.DownloadAsync($"{nextTrack.Name} {nextTrack.Artists}",
-                            nextCache.Value, ct);
+                        var download = await youTubeDownload.DownloadAsync(
+                            $"{nextTrack.Name} {nextTrack.Artists}",
+                            nextCache.Value,
+                            ct
+                        );
 
                         if (download.IsError)
                         {

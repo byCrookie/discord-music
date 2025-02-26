@@ -4,5 +4,5 @@ public enum AudioState
 {
     Playing,
     Paused,
-    Stopped
+    Stopped,
 }

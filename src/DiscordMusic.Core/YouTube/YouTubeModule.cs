@@ -7,7 +7,8 @@ public static class YouTubeModule
 {
     public static IHostApplicationBuilder AddYouTube(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddOptions<YouTubeOptions>()
+        builder
+            .Services.AddOptions<YouTubeOptions>()
             .Bind(builder.Configuration.GetSection(YouTubeOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();

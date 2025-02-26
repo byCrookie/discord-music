@@ -15,10 +15,10 @@ public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<S
 
     public string Help =>
         """
-        Seek backward by a duration in the current track
-        Usage: `seekbackward <duration>`
-        `<duration>` - The duration to seek backward
-        """;
+            Seek backward by a duration in the current track
+            Usage: `seekbackward <duration>`
+            `<duration>` - The duration to seek backward
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -41,17 +41,17 @@ public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<S
         }
 
         var seekedMessage = $"""
-                             **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-                             {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
-                             """;
-        
+            **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
+            {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
+            """;
+
         await replier
             .Reply()
             .To(message)
             .WithEmbed($"Seeked backward by {duration.HummanizeSecond()}", seekedMessage)
             .WithDeletion()
             .SendAsync(ct);
-        
+
         return Result.Success;
     }
 }

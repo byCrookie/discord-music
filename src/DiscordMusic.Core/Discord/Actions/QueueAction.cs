@@ -17,10 +17,10 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
 
     public string Help =>
         $"""
-         Display the queue. {PageSize} tracks are displayed per page.
-         Usage: `queue | queue <page>`
-         <page> - The page number to display. Default is 1.
-         """;
+            Display the queue. {PageSize} tracks are displayed per page.
+            Usage: `queue | queue <page>`
+            <page> - The page number to display. Default is 1.
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -42,13 +42,8 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
 
         if (tracks.Value.Count == 0)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Queue", "The queue is empty")
-                .WithDeletion()
-                .SendAsync(ct);
-            
+            await replier.Reply().To(message).WithEmbed("Queue", "The queue is empty").WithDeletion().SendAsync(ct);
+
             return Result.Success;
         }
 
@@ -61,7 +56,7 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
                 .WithEmbed("Queue", $"Queue has only {pageCount} pages")
                 .WithDeletion()
                 .SendAsync(ct);
-            
+
             return Result.Success;
         }
 
@@ -79,19 +74,17 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
             }
             else
             {
-                queue.AppendLine(
-                    $"{counter} {track.Name} - {track.Artists} [{track.Duration.HummanizeSecond()}]"
-                );
+                queue.AppendLine($"{counter} {track.Name} - {track.Artists} [{track.Duration.HummanizeSecond()}]");
             }
         }
-        
+
         await replier
             .Reply()
             .To(message)
             .WithEmbed("Queue", queue.ToString())
             .WithDeletion(TimeSpan.FromMinutes(2))
             .SendAsync(ct);
-        
+
         return Result.Success;
     }
 

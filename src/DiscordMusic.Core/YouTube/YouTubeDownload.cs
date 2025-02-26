@@ -31,7 +31,7 @@ internal partial class YouTubeDownload(
                 Arguments = command,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
             }
         );
 
@@ -68,16 +68,20 @@ internal partial class YouTubeDownload(
                 FileName = youTubeOptions.Value.Ffmpeg,
                 Arguments = ffmpegArgs,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
             }
         );
 
         if (ffmpeg is null)
         {
-            logger.LogError("Failed to start process {Ffmpeg} with arguments {FfmpegArgs}.",
-                youTubeOptions.Value.Ffmpeg, ffmpegArgs);
+            logger.LogError(
+                "Failed to start process {Ffmpeg} with arguments {FfmpegArgs}.",
+                youTubeOptions.Value.Ffmpeg,
+                ffmpegArgs
+            );
             return Error.Unexpected(
-                description: $"Failed to start process {youTubeOptions.Value.Ffmpeg} with arguments {ffmpegArgs}");
+                description: $"Failed to start process {youTubeOptions.Value.Ffmpeg} with arguments {ffmpegArgs}"
+            );
         }
 
         await ffmpeg.WaitForExitAsync(ct);

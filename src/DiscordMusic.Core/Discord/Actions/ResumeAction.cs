@@ -13,9 +13,9 @@ public class ResumeAction(IVoiceHost voiceHost, Replier replier, ILogger<ResumeA
 
     public string Help =>
         """
-        Resume the current track
-        Usage: `resume`
-        """;
+            Resume the current track
+            Usage: `resume`
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -28,17 +28,12 @@ public class ResumeAction(IVoiceHost voiceHost, Replier replier, ILogger<ResumeA
         }
 
         var resumedMessage = $"""
-                              **{resume.Value.Track?.Name}** by **{resume.Value.Track?.Artists}**
-                              {resume.Value.AudioStatus.Position.HummanizeSecond()} / {resume.Value.AudioStatus.Length.HummanizeSecond()}
-                              """;
-        
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Resumed", resumedMessage)
-            .WithDeletion()
-            .SendAsync(ct);
-        
+            **{resume.Value.Track?.Name}** by **{resume.Value.Track?.Artists}**
+            {resume.Value.AudioStatus.Position.HummanizeSecond()} / {resume.Value.AudioStatus.Length.HummanizeSecond()}
+            """;
+
+        await replier.Reply().To(message).WithEmbed("Resumed", resumedMessage).WithDeletion().SendAsync(ct);
+
         return Result.Success;
     }
 }

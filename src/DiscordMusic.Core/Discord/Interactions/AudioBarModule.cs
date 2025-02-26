@@ -17,8 +17,7 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     {
         var duration = TimeSpan.FromSeconds(30);
 
-        var action = await audioPlayer
-            .SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
+        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
 
         return action.IsError
             ? action.ToPrint()
@@ -30,8 +29,7 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     {
         var duration = TimeSpan.FromSeconds(10);
 
-        var action = await audioPlayer
-            .SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
+        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
 
         return action.IsError
             ? action.ToPrint()

@@ -6,8 +6,10 @@ internal class JsonSerializer : IJsonSerializer
 {
     private static readonly JsonSerializerOptions Options = new()
     {
-        PropertyNameCaseInsensitive = false, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true,
-        Converters = { new FlurlUrlJsonConverter() }
+        PropertyNameCaseInsensitive = false,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Converters = { new FlurlUrlJsonConverter() },
     };
 
     public string Serialize<T>(T obj)

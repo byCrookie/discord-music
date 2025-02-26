@@ -38,13 +38,13 @@ internal partial class YoutubeSearch(
             logger.LogError("Failed to start process {Ytdlp} with command {Command}.", ytdlp, command);
             return Error.Unexpected(description: $"Failed to start process {ytdlp} with command {command}");
         }
-        
+
         var lines = new List<string>();
         var errors = new List<string>();
 
         process.OutputDataReceived += (_, args) => ProcessOutput(args, lines);
         process.ErrorDataReceived += (_, args) => ProcessError(args, errors);
-        
+
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
@@ -76,13 +76,13 @@ internal partial class YoutubeSearch(
 
         logger.LogWarning("{Message}", e.Data);
         var match = ErrorRegex().Match(e.Data);
-        
+
         if (match.Success)
         {
             errors.Add(match.Groups["Error"].Value);
         }
     }
-    
+
     private void ProcessOutput(DataReceivedEventArgs e, List<string> lines)
     {
         if (e.Data is null)

@@ -93,7 +93,7 @@ internal class SpotifySeacher(
                         episode.Show.Publisher,
                         new Url(episode.Href)
                     ),
-                    _ => throw new NotSupportedException($"Unknown item type {item.GetType()}")
+                    _ => throw new NotSupportedException($"Unknown item type {item.GetType()}"),
                 };
             }
 

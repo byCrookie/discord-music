@@ -14,10 +14,10 @@ public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayActio
 
     public string Help =>
         """
-        Play a track. It is appended to the queue.
-        Usage: `play <query>`
-        `<query>` - Can be a URL or a search term. Default search is YouTube. If URL is Spotify, it will search Spotify. Download is always from YouTube.
-        """;
+            Play a track. It is appended to the queue.
+            Usage: `play <query>`
+            `<query>` - Can be a URL or a search term. Default search is YouTube. If URL is Spotify, it will search Spotify. Download is always from YouTube.
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -38,20 +38,18 @@ public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayActio
 
         if (play.Value.Track is null)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed(messageTitle, "No track found")
-                .WithDeletion()
-                .SendAsync(ct);
-            
+            await replier.Reply().To(message).WithEmbed(messageTitle, "No track found").WithDeletion().SendAsync(ct);
+
             return Result.Success;
         }
-        
+
         await replier
             .Reply()
             .To(message)
-            .WithEmbed(messageTitle, $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})")
+            .WithEmbed(
+                messageTitle,
+                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})"
+            )
             .WithDeletion()
             .SendAsync(ct);
 

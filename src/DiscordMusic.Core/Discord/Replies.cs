@@ -48,7 +48,12 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 
     public Reply WithEmbed(string title, string? content, Color? color = null)
     {
-        var embed = new EmbedProperties { Color = color ?? _color, Title = title, Description = content };
+        var embed = new EmbedProperties
+        {
+            Color = color ?? _color,
+            Title = title,
+            Description = content,
+        };
         _embeds.Add(embed);
         return this;
     }
@@ -98,12 +103,15 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
             }
 
             var dm = await _message.Author.GetDMChannelAsync(cancellationToken: ct);
-            var reply = await dm.SendMessageAsync(new MessageProperties
-            {
-                Content = _content,
-                Embeds = _embeds,
-                Components = _components
-            }, cancellationToken: ct);
+            var reply = await dm.SendMessageAsync(
+                new MessageProperties
+                {
+                    Content = _content,
+                    Embeds = _embeds,
+                    Components = _components,
+                },
+                cancellationToken: ct
+            );
 
             if (_deletionDelay.HasValue)
             {
@@ -120,12 +128,15 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 
         if (_message is not null)
         {
-            var reply = await _message.ReplyAsync(new ReplyMessageProperties
-            {
-                Content = _content,
-                Embeds = _embeds,
-                Components = _components
-            }, cancellationToken: ct);
+            var reply = await _message.ReplyAsync(
+                new ReplyMessageProperties
+                {
+                    Content = _content,
+                    Embeds = _embeds,
+                    Components = _components,
+                },
+                cancellationToken: ct
+            );
 
             if (_deletionDelay.HasValue)
             {
@@ -137,12 +148,16 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 
         if (_channelId.HasValue)
         {
-            var reply = await restClient.SendMessageAsync(_channelId.Value, new MessageProperties
-            {
-                Content = _content,
-                Embeds = _embeds,
-                Components = _components
-            }, cancellationToken: ct);
+            var reply = await restClient.SendMessageAsync(
+                _channelId.Value,
+                new MessageProperties
+                {
+                    Content = _content,
+                    Embeds = _embeds,
+                    Components = _components,
+                },
+                cancellationToken: ct
+            );
 
             if (_deletionDelay.HasValue)
             {
@@ -153,12 +168,15 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 
     private static Task DeleteNonBlockingAfterAsync(RestMessage message, TimeSpan deletionDelay, CancellationToken ct)
     {
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(deletionDelay, ct);
-            await message.DeleteAsync(cancellationToken: ct);
-        }, ct);
-        
+        _ = Task.Run(
+            async () =>
+            {
+                await Task.Delay(deletionDelay, ct);
+                await message.DeleteAsync(cancellationToken: ct);
+            },
+            ct
+        );
+
         return Task.CompletedTask;
     }
 }
@@ -167,9 +185,6 @@ public static class RepliesBuilderExtensions
 {
     public static Task SendErrorAsync(this Reply reply, string? content, CancellationToken ct)
     {
-        return reply
-            .WithEmbed("Error", content, new Color(255, 0, 0))
-            .WithDeletion()
-            .SendAsync(ct);
+        return reply.WithEmbed("Error", content, new Color(255, 0, 0)).WithDeletion().SendAsync(ct);
     }
 }

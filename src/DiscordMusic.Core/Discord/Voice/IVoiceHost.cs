@@ -16,8 +16,12 @@ public interface IVoiceHost
     Task<ErrorOr<ICollection<Track>>> QueueAsync(Message message, CancellationToken ct);
     Task<ErrorOr<Success>> QueueClearAsync(Message message, CancellationToken ct);
 
-    Task<ErrorOr<VoiceUpdate>> SeekAsync(Message message, TimeSpan time, AudioStream.SeekMode mode,
-        CancellationToken ct);
+    Task<ErrorOr<VoiceUpdate>> SeekAsync(
+        Message message,
+        TimeSpan time,
+        AudioStream.SeekMode mode,
+        CancellationToken ct
+    );
 
     Task<ErrorOr<VoiceUpdate>> ShuffleAsync(Message message, CancellationToken ct);
     Task<ErrorOr<VoiceUpdate>> SkipAsync(Message message, int toIndex, CancellationToken ct);

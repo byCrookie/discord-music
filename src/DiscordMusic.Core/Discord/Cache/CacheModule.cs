@@ -7,7 +7,8 @@ public static class CacheModule
 {
     public static IHostApplicationBuilder AddCache(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddOptions<CacheOptions>()
+        builder
+            .Services.AddOptions<CacheOptions>()
             .Bind(builder.Configuration.GetSection(CacheOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();

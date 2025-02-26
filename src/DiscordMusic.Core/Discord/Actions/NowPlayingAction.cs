@@ -13,9 +13,9 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
 
     public string Help =>
         """
-        Shows the currently playing track
-        Usage: `nowplaying`
-        """;
+            Shows the currently playing track
+            Usage: `nowplaying`
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -35,24 +35,19 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
                 .WithEmbed("Now playing", "No track is currently playing")
                 .WithDeletion()
                 .SendAsync(ct);
-            
+
             return Result.Success;
         }
 
         var track = nowPlaying.Value.Track;
 
         var nowPlayingMessage = $"""
-                                 **{track.Name}** by **{track.Artists}**
-                                 {nowPlaying.Value.AudioStatus.Position.HummanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HummanizeSecond()}
-                                 """;
-        
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Now", nowPlayingMessage)
-            .WithDeletion()
-            .SendAsync(ct);
-        
+            **{track.Name}** by **{track.Artists}**
+            {nowPlaying.Value.AudioStatus.Position.HummanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HummanizeSecond()}
+            """;
+
+        await replier.Reply().To(message).WithEmbed("Now", nowPlayingMessage).WithDeletion().SendAsync(ct);
+
         return Result.Success;
     }
 }

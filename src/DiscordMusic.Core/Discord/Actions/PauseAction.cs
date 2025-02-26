@@ -13,9 +13,9 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
 
     public string Help =>
         """
-        Pause the current track
-        Usage: `pause`
-        """;
+            Pause the current track
+            Usage: `pause`
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -28,17 +28,12 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
         }
 
         var pausedMessage = $"""
-                             **{pause.Value.Track?.Name}** by **{pause.Value.Track?.Artists}**
-                             {pause.Value.AudioStatus.Position.HummanizeSecond()} / {pause.Value.AudioStatus.Length.HummanizeSecond()}
-                             """;
-        
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Paused", pausedMessage)
-            .WithDeletion()
-            .SendAsync(ct);
-        
+            **{pause.Value.Track?.Name}** by **{pause.Value.Track?.Artists}**
+            {pause.Value.AudioStatus.Position.HummanizeSecond()} / {pause.Value.AudioStatus.Length.HummanizeSecond()}
+            """;
+
+        await replier.Reply().To(message).WithEmbed("Paused", pausedMessage).WithDeletion().SendAsync(ct);
+
         return Result.Success;
     }
 }

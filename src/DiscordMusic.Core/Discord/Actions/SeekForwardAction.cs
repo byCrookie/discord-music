@@ -15,10 +15,10 @@ public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<Se
 
     public string Help =>
         """
-        Seek forward by a duration in the current track
-        Usage: `seekforward <duration>`
-        `<duration>` - The duration to seek forward
-        """;
+            Seek forward by a duration in the current track
+            Usage: `seekforward <duration>`
+            `<duration>` - The duration to seek forward
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -41,10 +41,10 @@ public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<Se
         }
 
         var seekedMessage = $"""
-                             **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-                             {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
-                             """;
-        
+            **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
+            {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
+            """;
+
         await replier
             .Reply()
             .To(message)

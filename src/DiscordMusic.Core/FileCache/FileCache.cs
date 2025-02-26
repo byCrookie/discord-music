@@ -23,8 +23,12 @@ public class FileCache<TKey, TItem>(
     private bool _indexed;
     private IDirectoryInfo? _location;
 
-    public async Task<ErrorOr<CacheItem<TKey, TItem>>> AddOrUpdateAsync(TKey key, TKey updateKey, TItem item,
-        CancellationToken ct)
+    public async Task<ErrorOr<CacheItem<TKey, TItem>>> AddOrUpdateAsync(
+        TKey key,
+        TKey updateKey,
+        TItem item,
+        CancellationToken ct
+    )
     {
         await using var _ = await _lock.AquireAsync(ct);
 

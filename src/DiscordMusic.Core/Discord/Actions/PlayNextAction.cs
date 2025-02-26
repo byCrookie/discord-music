@@ -14,10 +14,10 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
 
     public string Help =>
         """
-        Play a track. It is prepended to the queue.
-        Usage: `play <query>`
-        `<query>` - Can be a URL or a search term
-        """;
+            Play a track. It is prepended to the queue.
+            Usage: `play <query>`
+            `<query>` - Can be a URL or a search term
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -38,12 +38,7 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
 
         if (play.Value.Track is null)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed(messageTitle, "No track found")
-                .WithDeletion()
-                .SendAsync(ct);
+            await replier.Reply().To(message).WithEmbed(messageTitle, "No track found").WithDeletion().SendAsync(ct);
 
             return Result.Success;
         }
@@ -51,7 +46,10 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
         await replier
             .Reply()
             .To(message)
-            .WithEmbed(messageTitle, $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})")
+            .WithEmbed(
+                messageTitle,
+                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})"
+            )
             .WithDeletion()
             .SendAsync(ct);
 

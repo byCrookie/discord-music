@@ -35,8 +35,11 @@ public class VoiceStateUpdateHandler(
 
         if (voiceState.ChannelId is not null)
         {
-            logger.LogInformation("User {UserId} joined voice channel {ChannelId}", voiceState.UserId,
-                voiceState.ChannelId);
+            logger.LogInformation(
+                "User {UserId} joined voice channel {ChannelId}",
+                voiceState.UserId,
+                voiceState.ChannelId
+            );
         }
         else
         {
@@ -51,16 +54,18 @@ public class VoiceStateUpdateHandler(
                 return;
             }
 
-            var voiceStatesInChannel = guild.VoiceStates.Where(vs =>
-                    vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id)
+            var voiceStatesInChannel = guild
+                .VoiceStates.Where(vs => vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id)
                 .ToList();
 
             if (voiceStatesInChannel.Count != 0)
             {
                 logger.LogInformation(
                     "Channel {ChannelId} is still active. {Count} members are still in the channel. Active: {Members}",
-                    voiceStateBot.ChannelId, voiceStatesInChannel.Count,
-                    string.Join(", ", voiceStatesInChannel.Select(vs => vs.Value.UserId)));
+                    voiceStateBot.ChannelId,
+                    voiceStatesInChannel.Count,
+                    string.Join(", ", voiceStatesInChannel.Select(vs => vs.Value.UserId))
+                );
                 return;
             }
 

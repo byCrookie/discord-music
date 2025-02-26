@@ -6,10 +6,7 @@ public static class CacheCommand
 {
     public static Command Create(string[] args)
     {
-        var command = new Command("cache", "Cache commands")
-        {
-            IsHidden = true
-        };
+        var command = new Command("cache", "Cache commands") { IsHidden = true };
 
         command.AddCommand(CacheGetOrAddCommand.Create(args));
         command.AddCommand(CacheSizeCommand.Create(args));

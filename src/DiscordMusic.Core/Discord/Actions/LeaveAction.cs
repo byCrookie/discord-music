@@ -12,9 +12,9 @@ public class LeaveAction(IVoiceHost voiceHost, ILogger<LeaveAction> logger) : ID
 
     public string Help =>
         """
-        The bot will not participate anymore. It will leave as soon as possible.
-        Usage: `leave`
-        """;
+            The bot will not participate anymore. It will leave as soon as possible.
+            Usage: `leave`
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -25,7 +25,7 @@ public class LeaveAction(IVoiceHost voiceHost, ILogger<LeaveAction> logger) : ID
         {
             return stop.Errors;
         }
-        
+
         return Result.Success;
     }
 }

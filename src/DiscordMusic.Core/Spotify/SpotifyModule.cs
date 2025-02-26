@@ -8,7 +8,8 @@ public static class SpotifyModule
 {
     public static IHostApplicationBuilder AddSpotify(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddOptions<SpotifyOptions>()
+        builder
+            .Services.AddOptions<SpotifyOptions>()
             .Bind(builder.Configuration.GetSection(SpotifyOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();

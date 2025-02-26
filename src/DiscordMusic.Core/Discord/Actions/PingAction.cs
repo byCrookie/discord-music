@@ -18,12 +18,7 @@ public class PingAction(Replier replier, ILogger<SeekAction> logger) : IDiscordA
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
         logger.LogTrace("Ping");
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Pong", "You pinged me!")
-            .WithDeletion()
-            .SendAsync(ct);
+        await replier.Reply().To(message).WithEmbed("Pong", "You pinged me!").WithDeletion().SendAsync(ct);
         return Result.Success;
     }
 }

@@ -6,31 +6,37 @@ public static class TaskExtensions
 {
     public static void FireAndForget(this Task task, ILogger logger, CancellationToken ct)
     {
-        Task.Run(async () =>
-        {
-            try
+        Task.Run(
+            async () =>
             {
-                await task;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error in fire and forget task");
-            }
-        }, ct);
+                try
+                {
+                    await task;
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Error in fire and forget task");
+                }
+            },
+            ct
+        );
     }
 
     public static void FireAndForget(this ValueTask task, ILogger logger, CancellationToken ct)
     {
-        Task.Run(async () =>
-        {
-            try
+        Task.Run(
+            async () =>
             {
-                await task;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error in fire and forget task");
-            }
-        }, ct);
+                try
+                {
+                    await task;
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Error in fire and forget task");
+                }
+            },
+            ct
+        );
     }
 }

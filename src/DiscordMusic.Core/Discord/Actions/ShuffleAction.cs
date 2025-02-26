@@ -13,9 +13,9 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
 
     public string Help =>
         """
-        Shuffle the queue
-        Usage: `shuffle`
-        """;
+            Shuffle the queue
+            Usage: `shuffle`
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -29,12 +29,7 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
 
         if (shuffle.Value.Track is null)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Shuffle", "The queue is empty")
-                .WithDeletion()
-                .SendAsync(ct);
+            await replier.Reply().To(message).WithEmbed("Shuffle", "The queue is empty").WithDeletion().SendAsync(ct);
 
             return Result.Success;
         }
@@ -42,7 +37,10 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
         await replier
             .Reply()
             .To(message)
-            .WithEmbed("Next", $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})")
+            .WithEmbed(
+                "Next",
+                $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})"
+            )
             .WithDeletion()
             .SendAsync(ct);
 

@@ -10,57 +10,26 @@ namespace DiscordMusic.Core.Audio;
 
 internal static partial class AudioStreamLogMessages
 {
-    [LoggerMessage(
-        Message = "[{Id}] Streaming {Type} ({Bytes})",
-        Level = LogLevel.Trace)]
-    internal static partial void LogStreaming(
-        this ILogger logger,
-        string id,
-        string type,
-        string bytes);
+    [LoggerMessage(Message = "[{Id}] Streaming {Type} ({Bytes})", Level = LogLevel.Trace)]
+    internal static partial void LogStreaming(this ILogger logger, string id, string type, string bytes);
 
-    [LoggerMessage(
-        Message = "[{Id}] Stream ended",
-        Level = LogLevel.Trace)]
-    internal static partial void LogStreamEnded(
-        this ILogger logger,
-        string id);
-    
-    [LoggerMessage(
-        Message = "[{Id}] Stream failed",
-        Level = LogLevel.Error)]
-    internal static partial void LogStreamFailed(
-        this ILogger logger,
-        string id);
+    [LoggerMessage(Message = "[{Id}] Stream ended", Level = LogLevel.Trace)]
+    internal static partial void LogStreamEnded(this ILogger logger, string id);
 
-    [LoggerMessage(
-        Message = "[{Id}] Filled remaining buffer with silence",
-        Level = LogLevel.Trace)]
-    internal static partial void LogFilled(
-        this ILogger logger,
-        string id);
+    [LoggerMessage(Message = "[{Id}] Stream failed", Level = LogLevel.Error)]
+    internal static partial void LogStreamFailed(this ILogger logger, string id);
 
-    [LoggerMessage(
-        Message = "Audio {Position} / {Length}",
-        Level = LogLevel.Trace)]
-    internal static partial void LogPosition(
-        this ILogger logger,
-        string position,
-        string length);
+    [LoggerMessage(Message = "[{Id}] Filled remaining buffer with silence", Level = LogLevel.Trace)]
+    internal static partial void LogFilled(this ILogger logger, string id);
 
-    [LoggerMessage(
-        Message = "[{Id}] Still enough data in output stream",
-        Level = LogLevel.Trace)]
-    internal static partial void LogStillEnough(
-        this ILogger logger,
-        string id);
-    
-    [LoggerMessage(
-        Message = "[{Id}] Audio streaming was cancelled",
-        Level = LogLevel.Trace)]
-    internal static partial void LogStreamCancelled(
-        this ILogger logger,
-        string id);
+    [LoggerMessage(Message = "Audio {Position} / {Length}", Level = LogLevel.Trace)]
+    internal static partial void LogPosition(this ILogger logger, string position, string length);
+
+    [LoggerMessage(Message = "[{Id}] Still enough data in output stream", Level = LogLevel.Trace)]
+    internal static partial void LogStillEnough(this ILogger logger, string id);
+
+    [LoggerMessage(Message = "[{Id}] Audio streaming was cancelled", Level = LogLevel.Trace)]
+    internal static partial void LogStreamCancelled(this ILogger logger, string id);
 }
 
 public class AudioStream : IDisposable
@@ -69,14 +38,14 @@ public class AudioStream : IDisposable
     {
         Playing,
         Silence,
-        Stopped
+        Stopped,
     }
 
     public enum SeekMode
     {
         Position,
         Forward,
-        Backward
+        Backward,
     }
 
     public const int SampleRate = 48000;
@@ -101,7 +70,8 @@ public class AudioStream : IDisposable
         Stream outputStream,
         ILogger logger,
         IOptions<AudioOptions> options,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         _id = Guid.NewGuid().ToString("N");
         _inputStream = inputStream;
@@ -114,45 +84,50 @@ public class AudioStream : IDisposable
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _lock = new Lock();
 
-        _ = Task.Factory.StartNew(async () =>
-        {
-            try
+        _ = Task.Factory.StartNew(
+            async () =>
             {
-                while (!_cts.IsCancellationRequested)
+                try
                 {
-                    _logger.LogPosition(Position.HummanizeMillisecond(), Length.HummanizeMillisecond());
-
-                    switch (State)
+                    while (!_cts.IsCancellationRequested)
                     {
-                        case AudioState.Playing:
-                            await HandlePlayingAsync(_cts.Token);
-                            break;
-                        case AudioState.Silence:
-                            await HandleSilenceAsync(_cts.Token);
-                            break;
-                        case AudioState.Stopped:
-                            await HandleStoppedAsync(_cts.Token);
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(State), State, $"Unknown state {State}");
+                        _logger.LogPosition(Position.HummanizeMillisecond(), Length.HummanizeMillisecond());
+
+                        switch (State)
+                        {
+                            case AudioState.Playing:
+                                await HandlePlayingAsync(_cts.Token);
+                                break;
+                            case AudioState.Silence:
+                                await HandleSilenceAsync(_cts.Token);
+                                break;
+                            case AudioState.Stopped:
+                                await HandleStoppedAsync(_cts.Token);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException(nameof(State), State, $"Unknown state {State}");
+                        }
                     }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogStreamCancelled(_id);
-            }
-            catch (Exception e)
-            {
-                _logger.LogStreamFailed(_id);
-                State = AudioState.Stopped;
-                
-                if (StreamFailed is not null)
+                catch (OperationCanceledException)
                 {
-                    await StreamFailed(e, this, EventArgs.Empty);
+                    _logger.LogStreamCancelled(_id);
                 }
-            }
-        }, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                catch (Exception e)
+                {
+                    _logger.LogStreamFailed(_id);
+                    State = AudioState.Stopped;
+
+                    if (StreamFailed is not null)
+                    {
+                        await StreamFailed(e, this, EventArgs.Empty);
+                    }
+                }
+            },
+            _cts.Token,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default
+        );
     }
 
     public AudioState State { get; private set; } = AudioState.Playing;
@@ -207,7 +182,7 @@ public class AudioStream : IDisposable
     {
         await Task.Delay(_bufferTime, ct);
     }
-    
+
     public event Func<Exception, object, EventArgs, Task>? StreamFailed;
     public event Func<object, EventArgs, Task>? StreamEnded;
 
@@ -246,7 +221,7 @@ public class AudioStream : IDisposable
                 SeekMode.Position => seekBytes,
                 SeekMode.Forward => Bytes.From(_inputStream.Position) + seekBytes,
                 SeekMode.Backward => Bytes.From(_inputStream.Position) - seekBytes,
-                _ => throw new ArgumentOutOfRangeException(nameof(seekMode), seekMode, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(seekMode), seekMode, null),
             };
 
             if (seekPosition > _inputStream.Length)
@@ -266,19 +241,28 @@ public class AudioStream : IDisposable
         }
     }
 
-    public static ErrorOr<AudioStream> Load(IFileInfo audioFile, Stream outputStream,
-        IFileSystem fileSystem, ILogger logger, IOptions<AudioOptions> options, CancellationToken ct)
+    public static ErrorOr<AudioStream> Load(
+        IFileInfo audioFile,
+        Stream outputStream,
+        IFileSystem fileSystem,
+        ILogger logger,
+        IOptions<AudioOptions> options,
+        CancellationToken ct
+    )
     {
         if (!fileSystem.File.Exists(audioFile.FullName))
         {
             return Error.NotFound(description: $"Audio file '{audioFile.FullName}' does not exist");
         }
-        
+
         var stream = new FileStream(audioFile.FullName, FileMode.Open, FileAccess.Read);
 
-        logger.LogTrace("Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
-            audioFile.FullName, stream.Length.Bytes(),
-            Bytes.From(stream.Length).ToTimeSpan().HummanizeMillisecond());
+        logger.LogTrace(
+            "Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
+            audioFile.FullName,
+            stream.Length.Bytes(),
+            Bytes.From(stream.Length).ToTimeSpan().HummanizeMillisecond()
+        );
 
         return new AudioStream(stream, outputStream, logger, options, ct);
     }

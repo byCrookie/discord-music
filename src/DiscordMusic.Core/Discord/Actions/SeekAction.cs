@@ -14,10 +14,10 @@ public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekActio
 
     public string Help =>
         """
-        Seek to a specific time in the current track
-        Usage: `seek <position>`
-        `<position>` - The position to seek to (e.g. hh:mm:ss). Precision is in seconds.
-        """;
+            Seek to a specific time in the current track
+            Usage: `seek <position>`
+            `<position>` - The position to seek to (e.g. hh:mm:ss). Precision is in seconds.
+            """;
 
     public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
     {
@@ -40,10 +40,10 @@ public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekActio
         }
 
         var seekedMessage = $"""
-                             **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-                             {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
-                             """;
-        
+            **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
+            {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
+            """;
+
         await replier
             .Reply()
             .To(message)
