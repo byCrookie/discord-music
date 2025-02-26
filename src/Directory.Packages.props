@@ -10,7 +10,7 @@
         <PackageVersion Include="Nerdbank.GitVersioning" Version="3.7.115"/>
         <PackageVersion Include="NetCord" Version="1.0.0-alpha.349"/>
         <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.349"/>
-        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.341"/>
+        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.349"/>
         <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.349"/>
         <PackageVersion Include="SpotifyAPI.Web" Version="7.2.1"/>
         <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1"/>
