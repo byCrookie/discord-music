@@ -6,7 +6,11 @@ public static class YouTubeCommand
 {
     public static Command Create(string[] args)
     {
-        var command = new Command("youtube", "YouTube commands");
+        var command = new Command("youtube", "YouTube commands")
+        {
+            IsHidden = true
+        };
+
         command.AddCommand(YouTubeSearchCommand.Create(args));
         command.AddCommand(YouTubeDownloadCommand.Create(args));
         return command;
