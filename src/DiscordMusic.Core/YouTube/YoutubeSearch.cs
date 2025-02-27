@@ -1,28 +1,39 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.YouTube;
 
 internal partial class YoutubeSearch(
     ILogger<YoutubeSearch> logger,
-    IJsonSerializer jsonSerializer
+    IOptions<YouTubeOptions> youTubeOptions,
+    IJsonSerializer jsonSerializer,
+    BinaryLocator binaryLocator
 ) : IYoutubeSearch
 {
     public async Task<ErrorOr<List<YouTubeTrack>>> SearchAsync(string query, CancellationToken ct)
     {
         logger.LogDebug("Searching YouTube for {Query}.", query);
 
-        var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
+        var ytdlp = binaryLocator.LocateAndValidate(youTubeOptions.Value.Ytdlp, "yt-dlp");
 
-        logger.LogDebug("Start process yt-dlp with command {Command}.", command);
+        if (ytdlp.IsError)
+        {
+            logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToPrint());
+            return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
+        }
+
+        var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
+        logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp, command);
 
         using var process = Process.Start(
             new ProcessStartInfo
             {
-                FileName = "yt-dlp",
+                FileName = ytdlp.Value.PathToFile,
                 Arguments = command,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -32,8 +43,8 @@ internal partial class YoutubeSearch(
 
         if (process is null)
         {
-            logger.LogError("Failed to start process yt-dlp with command {Command}.", command);
-            return Error.Unexpected(description: $"Failed to start process yt-dlp with command {command}");
+            logger.LogError("Failed to start process {Ytdlp} with command {Command}.", ytdlp, command);
+            return Error.Unexpected(description: $"Failed to start process {ytdlp} with command {command}");
         }
 
         var lines = new List<string>();

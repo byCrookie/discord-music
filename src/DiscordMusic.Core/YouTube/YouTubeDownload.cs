@@ -1,15 +1,20 @@
 using System.Diagnostics;
 using System.IO.Abstractions;
+using System.Text;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Audio;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.YouTube;
 
 internal partial class YouTubeDownload(
     ILogger<YouTubeDownload> logger,
-    IFileSystem fileSystem
+    IOptions<YouTubeOptions> options,
+    IFileSystem fileSystem,
+    BinaryLocator binaryLocator
 ) : IYouTubeDownload
 {
     public async Task<ErrorOr<Success>> DownloadAsync(string query, IFileInfo output, CancellationToken ct)
@@ -19,23 +24,51 @@ internal partial class YouTubeDownload(
 
         try
         {
-            var command =
-                $"--default-search auto \"{query}\" -f \"bestaudio\" --extract-audio --audio-format opus --audio-quality 0 --output \"{tempFile}\" --no-playlist";
+            var ytdlp = binaryLocator.LocateAndValidate(options.Value.Ytdlp, "yt-dlp");
+            
+            if (ytdlp.IsError)
+            {
+                logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToPrint());
+                return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
+            }
+            
+            var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
+            
+            if (ffmpeg.IsError)
+            {
+                logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToPrint());
+                return Error.Unexpected(description: $"Failed to locate ffmpeg: {ffmpeg.ToPrint()}");
+            }
 
+            var command = new StringBuilder();
+            command.Append($"--default-search auto \"{query}\"");
+            command.Append(" -f \"bestaudio\"");
+            command.Append(" --extract-audio");
+            
+            if (ffmpeg.Value.Type == BinaryLocator.LocationType.Resolved)
+            {
+                command.Append($" --ffmpeg-location \"{ffmpeg.Value.PathToFolder}\"");
+            }
+            
+            command.Append(" --audio-format opus");
+            command.Append(" --audio-quality 0");
+            command.Append($" --output \"{tempFile}\"");
+            command.Append(" --no-playlist");
+            
             logger.LogDebug("Start process yt-dlp with command {Command}.", command);
 
-            using var process = Process.Start(
+            using var ytdlpProcess = Process.Start(
                 new ProcessStartInfo
                 {
-                    FileName = "yt-dlp",
-                    Arguments = command,
+                    FileName = ytdlp.Value.PathToFile,
+                    Arguments = command.ToString(),
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                 }
             );
 
-            if (process is null)
+            if (ytdlpProcess is null)
             {
                 logger.LogError("Failed to start process yt-dlp with command {Command}.", command);
                 return Error.Unexpected(description: $"Failed to start process yt-dlp with command {command}");
@@ -44,35 +77,35 @@ internal partial class YouTubeDownload(
             var lines = new List<string>();
             var errors = new List<string>();
 
-            process.OutputDataReceived += (_, args) => ProcessOutput(args, lines);
-            process.ErrorDataReceived += (_, args) => ProcessError(args, errors);
+            ytdlpProcess.OutputDataReceived += (_, args) => ProcessOutput(args, lines);
+            ytdlpProcess.ErrorDataReceived += (_, args) => ProcessError(args, errors);
 
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            ytdlpProcess.BeginOutputReadLine();
+            ytdlpProcess.BeginErrorReadLine();
 
-            await process.WaitForExitAsync(ct);
+            await ytdlpProcess.WaitForExitAsync(ct);
 
-            if (process.ExitCode != 0)
+            if (ytdlpProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, errors);
-                logger.LogError("YouTube download failed with exit code {ExitCode}", process.ExitCode);
+                logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
                 return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
             }
 
             var ffmpegArgs =
                 $"-i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} {output.FullName}";
             logger.LogTrace("Calling ffmpeg with arguments {FfmpegArgs}", ffmpegArgs);
-            using var ffmpeg = Process.Start(
+            using var ffmpegProcess = Process.Start(
                 new ProcessStartInfo
                 {
-                    FileName = "ffmpeg",
+                    FileName = ffmpeg.Value.PathToFile,
                     Arguments = ffmpegArgs,
                     UseShellExecute = false,
                     CreateNoWindow = true,
                 }
             );
 
-            if (ffmpeg is null)
+            if (ffmpegProcess is null)
             {
                 logger.LogError(
                     "Failed to start process ffmpeg with arguments {FfmpegArgs}.",
@@ -83,12 +116,12 @@ internal partial class YouTubeDownload(
                 );
             }
 
-            await ffmpeg.WaitForExitAsync(ct);
+            await ffmpegProcess.WaitForExitAsync(ct);
 
-            if (ffmpeg.ExitCode != 0)
+            if (ffmpegProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, errors);
-                logger.LogError("YouTube download failed with exit code {ExitCode}", process.ExitCode);
+                logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
                 return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
             }
 
