@@ -33,7 +33,6 @@
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <PublishSingleFile>true</PublishSingleFile>
-        <SelfContained>true</SelfContained>
         <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     </PropertyGroup>

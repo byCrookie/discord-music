@@ -5,4 +5,4 @@ services:
         env_file:
             - .env
         volumes:
-            - D:\Temp\cache:/app/cache
+            - /home/bycrookie/private/temp/cache:/app/cache

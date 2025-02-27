@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /source
 
 RUN mkdir -p /app
@@ -20,19 +20,10 @@ RUN dotnet restore src/DiscordMusic.sln
 
 COPY . .
 
-ARG TARGETARCH
-RUN echo "Building for $TARGETARCH" && \
-    case "$TARGETARCH" in \
-        amd64)  RID="linux-x64";   LIB="linux-x86_64/libopus.so" ;; \
-        arm)    RID="linux-arm";   LIB="linux-aarch64/libopus.so" ;; \
-        arm64)  RID="win-x64"; LIB="win-x86_64/opus.dll" ;; \
-        *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
-    esac && \
-    echo "RID: $RID" && \
-    dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r "$RID" -o /app -v minimal --no-restore && \
-    cp "/source/natives/$LIB" "/app/$(basename $LIB)"
+RUN dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r linux-x64 -o /app -v minimal --no-restore
+RUN cp "/source/natives/linux-x86_64/libopus.so" "/app/libopus.so"
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra-amd64 AS final
 WORKDIR /app
 COPY --from=build /app .
 
