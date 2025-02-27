@@ -21,7 +21,7 @@ RUN dotnet restore src/DiscordMusic.sln
 COPY . .
 
 RUN dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r linux-x64 -o /app -v minimal --no-restore
-RUN cp "/source/natives/linux-x86_64/libopus.so" "/app/libopus.so"
+RUN cp "natives/linux-x86_64/libopus.so" "/app/libopus.so"
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra-amd64 AS final
 WORKDIR /app
