@@ -3,8 +3,9 @@ WORKDIR /source
 
 RUN mkdir -p /app
 
-RUN apt update && apt install -y --fix-missing ffmpeg curl
-RUN cp /usr/bin/ffmpeg /app/ffmpeg
+RUN apt update && apt install -y --fix-missing curl xz-utils
+RUN curl -L https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -o /app/ffmpeg.tar.xz
+RUN tar -xf /app/ffmpeg.tar.xz -C /app --strip-components=1
 RUN chmod +x /app/ffmpeg
 
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /app/yt-dlp
