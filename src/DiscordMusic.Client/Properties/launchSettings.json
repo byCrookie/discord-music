@@ -27,7 +27,7 @@
         },
         "YouTube Download": {
             "commandName": "Project",
-            "commandLineArgs": "youtube download https://music.youtube.com/watch?v=t-hi0yCeOJ0&list=RDAMVMt-hi0yCeOJ0 song.opus",
+            "commandLineArgs": "youtube download https://music.youtube.com/watch?v=t-hi0yCeOJ0&list=RDAMVMt-hi0yCeOJ0 song",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"

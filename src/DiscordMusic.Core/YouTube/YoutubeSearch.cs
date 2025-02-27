@@ -3,13 +3,11 @@ using System.Text.RegularExpressions;
 using DiscordMusic.Core.Utils.Json;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.YouTube;
 
 internal partial class YoutubeSearch(
     ILogger<YoutubeSearch> logger,
-    IOptions<YouTubeOptions> youTubeOptions,
     IJsonSerializer jsonSerializer
 ) : IYoutubeSearch
 {
@@ -18,14 +16,13 @@ internal partial class YoutubeSearch(
         logger.LogDebug("Searching YouTube for {Query}.", query);
 
         var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
-        var ytdlp = youTubeOptions.Value.Ytdlp;
 
-        logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp, command);
+        logger.LogDebug("Start process yt-dlp with command {Command}.", command);
 
         using var process = Process.Start(
             new ProcessStartInfo
             {
-                FileName = ytdlp,
+                FileName = "yt-dlp",
                 Arguments = command,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -35,8 +32,8 @@ internal partial class YoutubeSearch(
 
         if (process is null)
         {
-            logger.LogError("Failed to start process {Ytdlp} with command {Command}.", ytdlp, command);
-            return Error.Unexpected(description: $"Failed to start process {ytdlp} with command {command}");
+            logger.LogError("Failed to start process yt-dlp with command {Command}.", command);
+            return Error.Unexpected(description: $"Failed to start process yt-dlp with command {command}");
         }
 
         var lines = new List<string>();
