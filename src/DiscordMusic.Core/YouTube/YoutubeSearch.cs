@@ -28,7 +28,7 @@ internal partial class YoutubeSearch(
         }
 
         var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
-        logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
+        logger.LogTrace("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
         using var process = Process.Start(
             new ProcessStartInfo

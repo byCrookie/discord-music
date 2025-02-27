@@ -24,6 +24,8 @@ internal class SpotifySeacher(
 
     public async Task<ErrorOr<List<SpotifyTrack>>> SearchAsync(string query, CancellationToken ct)
     {
+        logger.LogDebug("Searching Spotify for {Query}.", query);
+
         if (
             string.IsNullOrWhiteSpace(spotifyOptions.Value.ClientId)
             || string.IsNullOrWhiteSpace(spotifyOptions.Value.ClientSecret)

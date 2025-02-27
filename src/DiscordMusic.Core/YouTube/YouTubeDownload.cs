@@ -19,11 +19,14 @@ internal partial class YouTubeDownload(
 {
     public async Task<ErrorOr<Success>> DownloadAsync(string query, IFileInfo output, CancellationToken ct)
     {
-        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var tempFile = $"{output}.tmp";
         var opusTempFile = $"{tempFile}.opus";
 
         try
         {
+            logger.LogDebug("Downloading audio from YouTube for {Query} to {Output} with temporary file {TempFile}.",
+                query, output.FullName, tempFile);
+
             var ytdlp = binaryLocator.LocateAndValidate(options.Value.Ytdlp, "yt-dlp");
 
             if (ytdlp.IsError)
@@ -91,6 +94,9 @@ internal partial class YouTubeDownload(
                 logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
                 return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
             }
+
+            logger.LogDebug("YouTube download completed. Converting opus in {TempFile} to raw pcm in {Output}.",
+                tempFile, output.FullName);
 
             var ffmpegArgs =
                 $"-i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} {output.FullName}";

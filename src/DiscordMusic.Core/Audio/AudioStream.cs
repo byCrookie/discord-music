@@ -257,7 +257,7 @@ public class AudioStream : IDisposable
 
         var stream = new FileStream(audioFile.FullName, FileMode.Open, FileAccess.Read);
 
-        logger.LogTrace(
+        logger.LogDebug(
             "Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
             audioFile.FullName,
             stream.Length.Bytes(),
