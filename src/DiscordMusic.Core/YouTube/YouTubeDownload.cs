@@ -25,15 +25,15 @@ internal partial class YouTubeDownload(
         try
         {
             var ytdlp = binaryLocator.LocateAndValidate(options.Value.Ytdlp, "yt-dlp");
-            
+
             if (ytdlp.IsError)
             {
                 logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToPrint());
                 return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
             }
-            
+
             var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
-            
+
             if (ffmpeg.IsError)
             {
                 logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToPrint());
@@ -44,18 +44,18 @@ internal partial class YouTubeDownload(
             command.Append($"--default-search auto \"{query}\"");
             command.Append(" -f \"bestaudio\"");
             command.Append(" --extract-audio");
-            
+
             if (ffmpeg.Value.Type == BinaryLocator.LocationType.Resolved)
             {
                 command.Append($" --ffmpeg-location \"{ffmpeg.Value.PathToFolder}\"");
             }
-            
+
             command.Append(" --audio-format opus");
             command.Append(" --audio-quality 0");
             command.Append($" --output \"{tempFile}\"");
             command.Append(" --no-playlist");
-            
-            logger.LogDebug("Start process yt-dlp with command {Command}.", command);
+
+            logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
             using var ytdlpProcess = Process.Start(
                 new ProcessStartInfo
@@ -94,7 +94,7 @@ internal partial class YouTubeDownload(
 
             var ffmpegArgs =
                 $"-i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} {output.FullName}";
-            logger.LogTrace("Calling ffmpeg with arguments {FfmpegArgs}", ffmpegArgs);
+            logger.LogTrace("Calling {Ffmpeg} with arguments {FfmpegArgs}", ffmpeg.Value.PathToFile, ffmpegArgs);
             using var ffmpegProcess = Process.Start(
                 new ProcessStartInfo
                 {
