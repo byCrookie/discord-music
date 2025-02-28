@@ -41,7 +41,6 @@ public class MessageCreateHandler(
             if (allowed.IsError)
             {
                 await replier.Reply().To(message).SendErrorAsync(allowed.ToPrint(), ct);
-
                 return;
             }
 
@@ -50,7 +49,6 @@ public class MessageCreateHandler(
             if (roles.IsError)
             {
                 await replier.Reply().To(message).SendErrorAsync(roles.ToPrint(), ct);
-
                 return;
             }
 
@@ -59,7 +57,6 @@ public class MessageCreateHandler(
             if (eval.IsError)
             {
                 await replier.Reply().To(message).SendErrorAsync(eval.ToPrint(), ct);
-
                 return;
             }
 
@@ -74,7 +71,7 @@ public class MessageCreateHandler(
                     "Failed to execute action {Action} for message {Message}: {Error}",
                     action.GetType().Name,
                     message.Content,
-                    execution
+                    execution.ToPrint()
                 );
                 await replier.Reply().To(message).SendErrorAsync(execution.ToPrint(), ct);
                 return;
@@ -119,7 +116,8 @@ public class MessageCreateHandler(
                 string.Join(",", message.Guild?.Roles.Select(r => r.Value.Name).ToList() ?? [])
             );
             return Error.Forbidden(
-                description: $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
+                description:
+                $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
             );
         }
 
@@ -138,7 +136,8 @@ public class MessageCreateHandler(
             string.Join("|", matchingRoles)
         );
         return Error.Forbidden(
-            description: $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
+            description:
+            $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
         );
     }
 

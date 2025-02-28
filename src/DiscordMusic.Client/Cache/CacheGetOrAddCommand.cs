@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.IO.Abstractions;
+using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Utils;
@@ -56,7 +57,8 @@ public static class CacheGetOrAddCommand
         builder.AddCache();
         var host = builder.Build();
         var musicCache = host.Services.GetRequiredService<IMusicCache>();
-        var file = await musicCache.GetOrAddTrackAsync(new Track(title, artist, url, duration), ct);
+        var file = await musicCache.GetOrAddTrackAsync(new Track(title, artist, url, duration),
+            AudioStream.ApproxSize(duration), ct);
 
         if (file.IsError)
         {

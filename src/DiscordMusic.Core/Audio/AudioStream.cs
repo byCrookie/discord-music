@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Humanizer;
+using Humanizer.Bytes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ValueOf;
@@ -265,6 +266,11 @@ public class AudioStream : IDisposable
         );
 
         return new AudioStream(stream, outputStream, logger, options, ct);
+    }
+
+    public static ByteSize ApproxSize(TimeSpan time)
+    {
+        return ByteSize.FromBytes(Bytes.ToBytes(time));
     }
 
     private class Bytes : ValueOf<long, Bytes>

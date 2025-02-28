@@ -9,12 +9,15 @@ public interface IFileCache<TKey, TItem>
     where TKey : notnull
 {
     public Task<ErrorOr<Success>> IndexAsync(IDirectoryInfo location, CancellationToken ct);
-    public Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, CancellationToken ct);
+
+    public Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, ByteSize approxSize,
+        CancellationToken ct);
 
     public Task<ErrorOr<CacheItem<TKey, TItem>>> AddOrUpdateAsync(
         TKey key,
         TKey updateKey,
         TItem item,
+        ByteSize approxSize,
         CancellationToken ct
     );
 

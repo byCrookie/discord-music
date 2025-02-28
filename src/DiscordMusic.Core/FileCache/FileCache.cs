@@ -11,7 +11,8 @@ namespace DiscordMusic.Core.FileCache;
 public class FileCache<TKey, TItem>(
     IFileSystem fileSystem,
     IJsonSerializer jsonSerializer,
-    ILogger<FileCache<TKey, TItem>> logger
+    ILogger<FileCache<TKey, TItem>> logger,
+    ByteSize capacity
 ) : IFileCache<TKey, TItem>
     where TKey : notnull
     where TItem : notnull
@@ -27,6 +28,7 @@ public class FileCache<TKey, TItem>(
         TKey key,
         TKey updateKey,
         TItem item,
+        ByteSize approxSize,
         CancellationToken ct
     )
     {
@@ -39,7 +41,7 @@ public class FileCache<TKey, TItem>(
 
         if (!_cache.Remove(key, out var fileCacheItem))
         {
-            return await AddAsync(updateKey, item, ct);
+            return await AddAsync(updateKey, item, approxSize, ct);
         }
 
         var dataFile = GetDataFile(fileCacheItem.Id);
@@ -51,6 +53,19 @@ public class FileCache<TKey, TItem>(
         await fileSystem.File.WriteAllTextAsync(dataFile.FullName, json, ct);
 
         var itemFile = GetItemFile(fileCacheItem.Id);
+
+        if (dataFile.Length.Bytes() + itemFile.Length.Bytes() > approxSize)
+        {
+            return new CacheItem<TKey, TItem>(updateKey, item, itemFile);
+        }
+
+        var clear = await ClearOldestToMakeSpaceAsync(approxSize, ct);
+
+        if (clear.IsError)
+        {
+            return clear.Errors;
+        }
+
         return new CacheItem<TKey, TItem>(updateKey, item, itemFile);
     }
 
@@ -124,7 +139,8 @@ public class FileCache<TKey, TItem>(
         return Result.Success;
     }
 
-    public async Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, CancellationToken ct)
+    public async Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, ByteSize approxSize,
+        CancellationToken ct)
     {
         await using var _ = await _lock.AquireAsync(ct);
 
@@ -143,11 +159,96 @@ public class FileCache<TKey, TItem>(
             _cache.Remove(key);
         }
 
-        return await AddAsync(key, item, ct);
+        return await AddAsync(key, item, approxSize, ct);
     }
 
-    private async Task<ErrorOr<CacheItem<TKey, TItem>>> AddAsync(TKey key, TItem item, CancellationToken ct)
+    private async Task<ErrorOr<Success>> ClearOldestToMakeSpaceAsync(ByteSize approxSize, CancellationToken ct)
     {
+        var size = _location!
+            .EnumerateFiles()
+            .Where(file => file.Name.EndsWith(DataFile) || file.Name.EndsWith(ItemFile))
+            .Sum(file => file.Length)
+            .Bytes();
+
+        if (size + approxSize <= capacity)
+        {
+            logger.LogDebug("Cache size {Size} is less than capacity {Capacity}, no need to clear", size, capacity);
+            return Result.Success;
+        }
+
+        logger.LogDebug("{Size} + {ApproxSize} > {Capacity}, clearing oldest files", size, approxSize, capacity);
+
+        var files = _location!
+            .EnumerateFiles()
+            .Where(file => file.Name.EndsWith(DataFile) || file.Name.EndsWith(ItemFile))
+            .OrderBy(file => file.CreationTimeUtc)
+            .Select(file => new { File = file, file.Length, Bytes = file.Length.Bytes() })
+            .ToList();
+
+        var maxToFree = files.Sum(file => file.Length).Bytes();
+
+        if (maxToFree <= approxSize)
+        {
+            return Error.Unexpected(
+                description:
+                $"Cannot free enough space for {approxSize}. Not enough files to delete. Only {maxToFree} can be freed.");
+        }
+
+        var freed = 0.Bytes();
+        foreach (var file in files)
+        {
+            try
+            {
+                if (file.File.Name.EndsWith(DataFile))
+                {
+                    logger.LogTrace("Deleting data file {File} to free {FileSize}", file.File.FullName, file.Bytes);
+                    var content = await fileSystem.File.ReadAllTextAsync(file.File.FullName, ct);
+                    var data = jsonSerializer.Deserialize<FileCacheItem<TKey, TItem>>(content);
+                    _cache.Remove(data.Key);
+                    fileSystem.File.Delete(file.File.FullName);
+                    freed += file.Bytes;
+                }
+
+                if (file.File.Name.EndsWith(ItemFile))
+                {
+                    logger.LogTrace("Deleting item file {File} to free {FileSize}", file.File.FullName, file.Bytes);
+                    fileSystem.File.Delete(file.File.FullName);
+                    freed += file.Bytes;
+                }
+
+                if (size - freed + approxSize <= capacity)
+                {
+                    break;
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Failed to delete file {File} to free {FileSize}", file.File.FullName, file.Bytes);
+            }
+        }
+
+        if (size - freed + approxSize > capacity)
+        {
+            return Error.Unexpected(
+                description:
+                $"Only freed {freed} bytes, still not enough space for {approxSize} below capacity {capacity}");
+        }
+
+        logger.LogDebug("Cleared {Freed} bytes to make space for {ApproxSize} below capacity {Capacity}", freed,
+            approxSize, capacity);
+        return Result.Success;
+    }
+
+    private async Task<ErrorOr<CacheItem<TKey, TItem>>> AddAsync(TKey key, TItem item, ByteSize approxSize,
+        CancellationToken ct)
+    {
+        var clear = await ClearOldestToMakeSpaceAsync(approxSize, ct);
+
+        if (clear.IsError)
+        {
+            return clear.Errors;
+        }
+
         var id = Guid.CreateVersion7();
         var dataFile = GetDataFile(id);
         var itemFile = GetItemFile(id);

@@ -447,6 +447,7 @@ public class VoiceHost(
     {
         if (_currentTrack is not null && !now)
         {
+            DownloadNextTrackInBackgroud(ct);
             return musicQueue.TryPeek(out var nextTrack)
                 ? new VoiceUpdate(VoiceUpdateType.Next, nextTrack, await audioPlayer.StatusAsync(ct))
                 : VoiceUpdate.None(VoiceUpdateType.Next);
@@ -478,7 +479,10 @@ public class VoiceHost(
                 TimeSpan.FromSeconds(search.Value.First().Duration ?? 0)
             );
 
-            var update = await musicCache.AddOrUpdateTrackAsync(firstTrack, track, ct);
+            var update =
+                await musicCache.AddOrUpdateTrackAsync(firstTrack, track,
+                    AudioStream.ApproxSize(track.Duration * (5d / 4d)),
+                    ct);
 
             if (update.IsError)
             {
@@ -488,7 +492,9 @@ public class VoiceHost(
             firstTrack = track;
         }
 
-        var cache = await musicCache.GetOrAddTrackAsync(firstTrack, ct);
+        var cache = await musicCache.GetOrAddTrackAsync(firstTrack,
+            AudioStream.ApproxSize(firstTrack.Duration * (5d / 4d)),
+            ct);
 
         if (cache.IsError)
         {
@@ -558,7 +564,8 @@ public class VoiceHost(
                             TimeSpan.FromSeconds(search.Value.First().Duration ?? 0)
                         );
 
-                        var update = await musicCache.AddOrUpdateTrackAsync(nextTrack, track, ct);
+                        var update = await musicCache.AddOrUpdateTrackAsync(nextTrack, track,
+                            AudioStream.ApproxSize(track.Duration * (5d / 4d)), ct);
 
                         if (update.IsError)
                         {
@@ -569,7 +576,10 @@ public class VoiceHost(
                         nextTrack = track;
                     }
 
-                    var nextCache = await musicCache.GetOrAddTrackAsync(nextTrack, ct);
+                    var nextCache =
+                        await musicCache.GetOrAddTrackAsync(nextTrack,
+                            AudioStream.ApproxSize(nextTrack.Duration * (5d / 4d)),
+                            ct);
 
                     if (nextCache.IsError)
                     {
