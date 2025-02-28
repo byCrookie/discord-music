@@ -82,12 +82,16 @@ internal partial class YoutubeSearch(
             return;
         }
 
-        logger.LogWarning("{Message}", e.Data);
         var match = ErrorRegex().Match(e.Data);
 
         if (match.Success)
         {
+            logger.LogError("{Message}", e.Data);
             errors.Add(match.Groups["Error"].Value);
+        }
+        else
+        {
+            logger.LogTrace("{Message}", e.Data);
         }
     }
 

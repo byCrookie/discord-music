@@ -495,19 +495,19 @@ public class VoiceHost(
             return cache.Errors;
         }
 
-        if (cache.Value.Exists())
-        {
-            var playExisting = await audioPlayer.PlayAsync(cache.Value, ct);
-
-            if (playExisting.IsError)
-            {
-                return playExisting.Errors;
-            }
-
-            _currentTrack = firstTrack;
-            DownloadNextTrackInBackgroud(ct);
-            return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, await audioPlayer.StatusAsync(ct));
-        }
+        // if (cache.Value.Exists())
+        // {
+        //     var playExisting = await audioPlayer.PlayAsync(cache.Value, ct);
+        //
+        //     if (playExisting.IsError)
+        //     {
+        //         return playExisting.Errors;
+        //     }
+        //
+        //     _currentTrack = firstTrack;
+        //     DownloadNextTrackInBackgroud(ct);
+        //     return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, await audioPlayer.StatusAsync(ct));
+        // }
 
         var stream = youTubeDownload.Stream($"{firstTrack.Name} {firstTrack.Artists}", ct);
 

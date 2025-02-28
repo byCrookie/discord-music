@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Abstractions;
+using System.IO.Pipelines;
 using System.Text;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Audio;
@@ -162,12 +163,16 @@ internal partial class YouTubeDownload(
             return;
         }
 
-        logger.LogWarning("{Message}", e.Data);
         var match = ErrorRegex().Match(e.Data);
 
         if (match.Success)
         {
+            logger.LogError("{Message}", e.Data);
             errors.Add(match.Groups["Error"].Value);
+        }
+        else
+        {
+            logger.LogTrace("{Message}", e.Data);
         }
     }
 
@@ -254,70 +259,217 @@ internal partial class YouTubeDownload(
         ffmpegProcess.ErrorDataReceived += (_, args) => ProcessError(args, ffmpegErrors);
         ffmpegProcess.BeginErrorReadLine();
 
-        return new PipelineStream(ytdlpProcess, ffmpegProcess, ct);
+        return new PipelineStream(ytdlpProcess, ffmpegProcess, ct, logger);
     }
 
     private class PipelineStream : Stream
     {
-        private readonly Process _output;
-        private readonly Process _input;
+        private readonly Process _ytDlpProcess;
+        private readonly Process _ffmpegProcess;
+        private readonly Stream _outputStream; // Exposes ffmpeg's processed output.
+        private readonly Task _pumpingTask;
+        private readonly CancellationTokenSource _cts;
+        private bool _disposed;
 
-        public PipelineStream(Process output, Process input, CancellationToken ct)
+        public PipelineStream(Process ytDlpProcess, Process ffmpegProcess, CancellationToken externalToken,
+            ILogger logger)
         {
-            _output = output;
-            _input = input;
+            _ytDlpProcess = ytDlpProcess;
+            _ffmpegProcess = ffmpegProcess;
+            // Link an internal CTS with the external token.
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
 
-            _ = output.StandardOutput.BaseStream.CopyToAsync(input.StandardInput.BaseStream, ct);
+            // Create a pipe to shuttle data from yt-dlp's output to ffmpeg's input.
+            var inputPipe = new Pipe();
+            // Create a pipe to capture ffmpeg's output.
+            var outputPipe = new Pipe();
+
+            // Task 1: Read from yt-dlp's stdout and write into the input pipe.
+            var pumpInput = Task.Run(async () =>
+            {
+                try
+                {
+                    while (true)
+                    {
+                        var memory = inputPipe.Writer.GetMemory(4096);
+                        var bytesRead = await _ytDlpProcess.StandardOutput.BaseStream.ReadAsync(memory, _cts.Token);
+                        if (bytesRead == 0)
+                        {
+                            break;
+                        }
+
+                        inputPipe.Writer.Advance(bytesRead);
+                        var result = await inputPipe.Writer.FlushAsync(_cts.Token);
+                        if (result.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                finally
+                {
+                    logger.LogTrace("yt-dlp output completed.");
+                    await inputPipe.Writer.CompleteAsync();
+                }
+            }, _cts.Token);
+
+            // Task 2: Read from the input pipe and write into ffmpeg's stdin.
+            var pipeToFfmpeg = Task.Run(async () =>
+            {
+                try
+                {
+                    while (true)
+                    {
+                        var result = await inputPipe.Reader.ReadAsync(_cts.Token);
+                        var buffer = result.Buffer;
+                        if (buffer.Length > 0)
+                        {
+                            foreach (var segment in buffer)
+                            {
+                                await _ffmpegProcess.StandardInput.BaseStream.WriteAsync(segment, _cts.Token);
+                            }
+                        }
+
+                        inputPipe.Reader.AdvanceTo(buffer.End);
+                        if (result.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                finally
+                {
+                    logger.LogTrace("yt-dlp output completed.");
+                    await inputPipe.Reader.CompleteAsync();
+                    _ffmpegProcess.StandardInput.Close();
+                }
+            }, _cts.Token);
+
+            // Task 3: Read from ffmpeg's stdout and write into the output pipe.
+            var pumpOutput = Task.Run(async () =>
+            {
+                try
+                {
+                    while (true)
+                    {
+                        var memory = outputPipe.Writer.GetMemory(4096);
+                        var bytesRead = await _ffmpegProcess.StandardOutput.BaseStream.ReadAsync(memory, _cts.Token);
+                        if (bytesRead == 0)
+                        {
+                            break;
+                        }
+
+                        outputPipe.Writer.Advance(bytesRead);
+                        var result = await outputPipe.Writer.FlushAsync(_cts.Token);
+                        if (result.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                finally
+                {
+                    logger.LogTrace("ffmpeg output completed.");
+                    await outputPipe.Writer.CompleteAsync();
+                }
+            }, _cts.Token);
+
+            // Combine the three pumping tasks.
+            _pumpingTask = Task.WhenAll(pumpInput, pipeToFfmpeg, pumpOutput);
+            // Expose the output pipe's reader as the Stream.
+            _outputStream = outputPipe.Reader.AsStream();
         }
 
-        public override void Flush()
-        {
-            _output.StandardOutput.BaseStream.Flush();
-            _input.StandardInput.BaseStream.Flush();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return _input.HasExited ? 0 : _input.StandardOutput.BaseStream.Read(buffer, offset, count);
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return _input.StandardOutput.BaseStream.Seek(offset, origin);
-        }
-
-        public override void SetLength(long value)
-        {
-            _input.StandardOutput.BaseStream.SetLength(value);
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            _output.StandardInput.BaseStream.Write(buffer, offset, count);
-        }
-
-        public override bool CanRead => _input.StandardOutput.BaseStream.CanRead;
-
+        public override bool CanRead => _outputStream.CanRead;
         public override bool CanSeek => false;
-
         public override bool CanWrite => false;
-
         public override long Length => -1;
 
         public override long Position
         {
             get => -1;
-            set { }
+            set => throw new NotSupportedException();
         }
 
-        public override void Close()
-        {
-            _output.Kill(true);
-            _output.Dispose();
-            _input.Kill(true);
-            _input.Dispose();
+        public override void Flush() => _outputStream.Flush();
 
-            base.Close();
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return _outputStream.Read(buffer, offset, count);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
+        public override void SetLength(long value) =>
+            throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                // Cancel all background work.
+                _cts.Cancel();
+                try
+                {
+                    // Wait for all pumping tasks to finish.
+                    _pumpingTask.Wait();
+                }
+                catch
+                {
+                    /* Suppress exceptions on dispose. */
+                }
+
+                _outputStream.Dispose();
+                // Ensure both processes are terminated.
+                if (!_ytDlpProcess.HasExited)
+                {
+                    try
+                    {
+                        _ytDlpProcess.Kill(true);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+
+                _ytDlpProcess.Dispose();
+                if (!_ffmpegProcess.HasExited)
+                {
+                    try
+                    {
+                        _ffmpegProcess.Kill(true);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+
+                _ffmpegProcess.Dispose();
+                _cts.Dispose();
+            }
+
+            _disposed = true;
+            base.Dispose(disposing);
         }
     }
 
