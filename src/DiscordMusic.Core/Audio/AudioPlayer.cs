@@ -94,6 +94,41 @@ public class AudioPlayer(
         _updateAsync = updateAsync;
     }
 
+    public async Task<ErrorOr<AudioStatus>> PlayAsync(Stream stream, CancellationToken ct)
+    {
+        logger.LogTrace("Play audio from stream");
+        await using var _ = await _lock.AquireAsync(ct);
+
+        if (_output is null || _updateAsync is null)
+        {
+            return Error.Unexpected(description: "Audio not started");
+        }
+
+        var audioStream = AudioStream.Load(stream, _output, audioStreamlogger, options, ct);
+
+        if (audioStream.IsError)
+        {
+            return audioStream.Errors;
+        }
+
+        _audioStream?.Dispose();
+        _audioStream = audioStream.Value;
+
+        _audioStream.StreamEnded += async (_, _) =>
+        {
+            await _output.FlushAsync(ct);
+            _updateAsync(AudioEvent.Ended, null, ct).FireAndForget(logger, ct);
+        };
+
+        _audioStream.StreamFailed += async (e, _, _) =>
+        {
+            await _output.FlushAsync(ct);
+            _updateAsync(AudioEvent.Error, e, ct).FireAndForget(logger, ct);
+        };
+
+        return new AudioStatus(ToAudioState(_audioStream.State), _audioStream.Position, _audioStream.Length);
+    }
+
     public async Task<ErrorOr<AudioStatus>> PlayAsync(IFileInfo file, CancellationToken ct)
     {
         logger.LogTrace("Play audio from file");

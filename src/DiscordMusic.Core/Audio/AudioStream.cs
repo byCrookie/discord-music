@@ -214,6 +214,11 @@ public class AudioStream : IDisposable
     {
         lock (_lock)
         {
+            if (!_inputStream.CanSeek)
+            {
+                return Error.Unexpected(description: "Audio stream does not support seeking");
+            }
+
             var seekBytes = Bytes.ToBytes(time);
 
             var seekPosition = seekMode switch
@@ -239,6 +244,23 @@ public class AudioStream : IDisposable
             _inputStream.Position = seekPosition;
             return seekPosition.ToTimeSpan();
         }
+    }
+
+    public static ErrorOr<AudioStream> Load(
+        Stream inputStream,
+        Stream outputStream,
+        ILogger logger,
+        IOptions<AudioOptions> options,
+        CancellationToken ct
+    )
+    {
+        logger.LogDebug(
+            "Audio stream loaded from stream with {Length} bytes and duration {Duration}",
+            inputStream.Length.Bytes(),
+            Bytes.From(inputStream.Length).ToTimeSpan().HummanizeMillisecond()
+        );
+
+        return new AudioStream(inputStream, outputStream, logger, options, ct);
     }
 
     public static ErrorOr<AudioStream> Load(

@@ -10,7 +10,9 @@ public interface IAudioPlayer
         Func<AudioEvent, Exception?, CancellationToken, Task> updateAsync,
         CancellationToken ct
     );
+
     Task StopAsync(CancellationToken ct);
+    Task<ErrorOr<AudioStatus>> PlayAsync(Stream stream, CancellationToken ct);
     Task<ErrorOr<AudioStatus>> PlayAsync(IFileInfo file, CancellationToken ct);
     Task<ErrorOr<AudioStatus>> PauseAsync(CancellationToken ct);
     Task<ErrorOr<AudioStatus>> ResumeAsync(CancellationToken ct);

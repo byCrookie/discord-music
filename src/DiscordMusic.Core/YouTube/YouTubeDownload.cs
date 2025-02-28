@@ -171,6 +171,156 @@ internal partial class YouTubeDownload(
         }
     }
 
+    public ErrorOr<Stream> Stream(string query, CancellationToken ct)
+    {
+        logger.LogDebug("Streaming audio from YouTube for {Query}.", query);
+
+        var ytdlp = binaryLocator.LocateAndValidate(options.Value.Ytdlp, "yt-dlp");
+        if (ytdlp.IsError)
+        {
+            logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToPrint());
+            return Error.Unexpected($"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
+        }
+
+        var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
+        if (ffmpeg.IsError)
+        {
+            logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToPrint());
+            return Error.Unexpected($"Failed to locate ffmpeg: {ffmpeg.ToPrint()}");
+        }
+
+        var ytdlpArgs = new StringBuilder()
+            .Append($"--default-search auto \"{query}\" ")
+            .Append("-f bestaudio ")
+            .Append("--extract-audio ");
+
+        if (ffmpeg.Value.Type == BinaryLocator.LocationType.Resolved)
+        {
+            ytdlpArgs.Append($" --ffmpeg-location \"{ffmpeg.Value.PathToFolder}\"");
+        }
+
+        ytdlpArgs.Append("--audio-format opus ")
+            .Append("--audio-quality 0 ")
+            .Append("--no-playlist ")
+            .Append("-o -");
+
+        var ffmpegArgs = new StringBuilder()
+            .Append("-i pipe:0 ")
+            .Append($"-f s{AudioStream.BitsPerSample}le ")
+            .Append($"-ar {AudioStream.SampleRate} ")
+            .Append($"-ac {AudioStream.Channels} ")
+            .Append("pipe:1");
+
+        logger.LogDebug("Starting yt-dlp and ffmpeg pipeline.");
+
+        var ytdlpProcess = Process.Start(new ProcessStartInfo
+        {
+            FileName = ytdlp.Value.PathToFile,
+            Arguments = ytdlpArgs.ToString(),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+
+        if (ytdlpProcess is null)
+        {
+            logger.LogError("Failed to start process yt-dlp with command {Command}.", ytdlpArgs);
+            return Error.Unexpected(description: $"Failed to start process yt-dlp with command {ytdlpArgs}");
+        }
+
+        var ytdlpErrors = new List<string>();
+        ytdlpProcess.ErrorDataReceived += (_, args) => ProcessError(args, ytdlpErrors);
+        ytdlpProcess.BeginErrorReadLine();
+
+        var ffmpegProcess = Process.Start(new ProcessStartInfo
+        {
+            FileName = ffmpeg.Value.PathToFile,
+            Arguments = ffmpegArgs.ToString(),
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+
+        if (ffmpegProcess is null)
+        {
+            logger.LogError("Failed to start process ffmpeg with command {Command}.", ffmpegArgs);
+            return Error.Unexpected(description: $"Failed to start process ffmpeg with command {ffmpegArgs}");
+        }
+
+        var ffmpegErrors = new List<string>();
+        ffmpegProcess.ErrorDataReceived += (_, args) => ProcessError(args, ffmpegErrors);
+        ffmpegProcess.BeginErrorReadLine();
+
+        return new PipelineStream(ytdlpProcess, ffmpegProcess, ct);
+    }
+
+    private class PipelineStream : Stream
+    {
+        private readonly Process _output;
+        private readonly Process _input;
+
+        public PipelineStream(Process output, Process input, CancellationToken ct)
+        {
+            _output = output;
+            _input = input;
+
+            _ = output.StandardOutput.BaseStream.CopyToAsync(input.StandardInput.BaseStream, ct);
+        }
+
+        public override void Flush()
+        {
+            _output.StandardOutput.BaseStream.Flush();
+            _input.StandardInput.BaseStream.Flush();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return _input.HasExited ? 0 : _input.StandardOutput.BaseStream.Read(buffer, offset, count);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return _input.StandardOutput.BaseStream.Seek(offset, origin);
+        }
+
+        public override void SetLength(long value)
+        {
+            _input.StandardOutput.BaseStream.SetLength(value);
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            _output.StandardInput.BaseStream.Write(buffer, offset, count);
+        }
+
+        public override bool CanRead => _input.StandardOutput.BaseStream.CanRead;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => -1;
+
+        public override long Position
+        {
+            get => -1;
+            set { }
+        }
+
+        public override void Close()
+        {
+            _output.Kill(true);
+            _output.Dispose();
+            _input.Kill(true);
+            _input.Dispose();
+
+            base.Close();
+        }
+    }
+
     [GeneratedRegex("ERROR.*: (?<Error>.*)")]
     private static partial Regex ErrorRegex();
 }
