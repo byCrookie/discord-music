@@ -57,6 +57,7 @@ internal partial class YouTubeDownload(
             command.Append(" --audio-quality 0");
             command.Append($" --output \"{tempFile}\"");
             command.Append(" --no-playlist");
+            command.Append(" --user-agent \"Firefox 134.0, Linux\"");
 
             logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
