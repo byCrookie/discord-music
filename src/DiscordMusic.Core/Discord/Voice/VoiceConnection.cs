@@ -6,7 +6,6 @@ public record VoiceConnection(VoiceClient VoiceClient, ulong GuildId, ulong Chan
 {
     public async ValueTask DisposeAsync()
     {
-        GC.SuppressFinalize(this);
         await CloseAsync(CancellationToken.None);
     }
 

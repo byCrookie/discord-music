@@ -14,7 +14,6 @@ public class AsyncLock
     {
         public ValueTask DisposeAsync()
         {
-            GC.SuppressFinalize(this);
             semaphoreSlim.Release();
             return ValueTask.CompletedTask;
         }

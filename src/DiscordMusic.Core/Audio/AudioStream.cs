@@ -142,8 +142,6 @@ public class AudioStream : IDisposable
 
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
-
         State = AudioState.Stopped;
         _cts.Cancel();
         StreamEnded = null;
