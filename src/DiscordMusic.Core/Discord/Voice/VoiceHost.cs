@@ -80,6 +80,7 @@ public class VoiceHost(
         );
 
         _connection = new VoiceConnection(voiceClient, guildId, channelId, opusStream);
+        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         return Result.Success;
     }
 
@@ -114,8 +115,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         return await PlayFromQueryAsync(message, query, true, ct);
     }
 
@@ -129,8 +128,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         return await PlayFromQueryAsync(message, query, false, ct);
     }
 
@@ -144,8 +141,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         musicQueue.Clear();
         return Result.Success;
     }
@@ -165,8 +160,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         var seek = await audioPlayer.SeekAsync(time, mode, ct);
 
         if (seek.IsError)
@@ -187,8 +180,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         musicQueue.Shuffle();
         DownloadNextTrackInBackgroud(ct);
 
@@ -207,8 +198,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         musicQueue.SkipTo(toIndex);
         return await PlayNextTrackFromQueueAsync(true, ct);
     }
@@ -223,8 +212,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         return ErrorOrFactory.From(musicQueue.Items());
     }
 
@@ -238,8 +225,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         var pause = await audioPlayer.PauseAsync(ct);
 
         if (pause.IsError)
@@ -260,8 +245,6 @@ public class VoiceHost(
             return connect.Errors;
         }
 
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
         var resume = await audioPlayer.ResumeAsync(ct);
 
         if (resume.IsError)
@@ -281,9 +264,6 @@ public class VoiceHost(
         {
             return connect.Errors;
         }
-
-        await using var _ = await _lock.AquireAsync(ct);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
 
         return _currentTrack is null
             ? VoiceUpdate.None(VoiceUpdateType.Now)
