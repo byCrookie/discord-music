@@ -1,5 +1,7 @@
-﻿using DiscordMusic.Core.Utils;
+﻿using System.Diagnostics;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
+using Humanizer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetCord.Gateway;
@@ -78,6 +80,9 @@ public class MessageCreateHandler(
             }
 
             logger.LogTrace("Executed action {Action} for message {Message}", action.GetType().Name, message.Content);
+
+            using var proc = Process.GetCurrentProcess();
+            logger.LogInformation("Memory usage: {MemoryUsage}", proc.PrivateMemorySize64.Bytes());
         }
         catch (Exception e)
         {
