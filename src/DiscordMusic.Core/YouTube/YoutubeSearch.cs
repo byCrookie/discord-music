@@ -61,9 +61,6 @@ internal partial class YoutubeSearch(
         process.CancelOutputRead();
         process.CancelErrorRead();
 
-        // await process.StandardOutput.BaseStream.DisposeAsync();
-        // await process.StandardError.BaseStream.DisposeAsync();
-
         if (process.ExitCode != 0)
         {
             var errorMessage = string.Join(Environment.NewLine, errors);
@@ -88,7 +85,7 @@ internal partial class YoutubeSearch(
             return;
         }
 
-        logger.LogWarning("{Message}", e.Data);
+        logger.LogTrace("{Message}", e.Data);
         var match = ErrorRegex().Match(e.Data);
 
         if (match.Success)

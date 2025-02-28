@@ -68,6 +68,7 @@ internal partial class YouTubeDownload(
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    CreateNoWindow = true
                 }
             );
 
@@ -77,11 +78,11 @@ internal partial class YouTubeDownload(
                 return Error.Unexpected(description: $"Failed to start process yt-dlp with command {command}");
             }
 
-            var lines = new List<string>();
-            var errors = new List<string>();
+            var ytdlpLines = new List<string>();
+            var ytdlpErrors = new List<string>();
 
-            ytdlpProcess.OutputDataReceived += (_, args) => ProcessOutput(args, lines);
-            ytdlpProcess.ErrorDataReceived += (_, args) => ProcessError(args, errors);
+            ytdlpProcess.OutputDataReceived += (_, args) => ProcessOutput(args, ytdlpLines);
+            ytdlpProcess.ErrorDataReceived += (_, args) => ProcessError(args, ytdlpErrors);
 
             ytdlpProcess.BeginOutputReadLine();
             ytdlpProcess.BeginErrorReadLine();
@@ -91,12 +92,9 @@ internal partial class YouTubeDownload(
             ytdlpProcess.CancelOutputRead();
             ytdlpProcess.CancelErrorRead();
 
-            // await ytdlpProcess.StandardOutput.BaseStream.DisposeAsync();
-            // await ytdlpProcess.StandardError.BaseStream.DisposeAsync();
-
             if (ytdlpProcess.ExitCode != 0)
             {
-                var errorMessage = string.Join(Environment.NewLine, errors);
+                var errorMessage = string.Join(Environment.NewLine, ytdlpErrors);
                 logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
                 return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
             }
@@ -113,6 +111,8 @@ internal partial class YouTubeDownload(
                     FileName = ffmpeg.Value.PathToFile,
                     Arguments = ffmpegArgs,
                     UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     CreateNoWindow = true,
                 }
             );
@@ -128,17 +128,23 @@ internal partial class YouTubeDownload(
                 );
             }
 
+            var ffmpegLines = new List<string>();
+            var ffmpegErrors = new List<string>();
+
+            ffmpegProcess.OutputDataReceived += (_, args) => ProcessOutput(args, ffmpegLines);
+            ffmpegProcess.ErrorDataReceived += (_, args) => ProcessError(args, ffmpegErrors);
+
+            ffmpegProcess.BeginOutputReadLine();
+            ffmpegProcess.BeginErrorReadLine();
+
             await ffmpegProcess.WaitForExitAsync(ct);
 
             ffmpegProcess.CancelOutputRead();
             ffmpegProcess.CancelErrorRead();
 
-            // await ffmpegProcess.StandardOutput.BaseStream.DisposeAsync();
-            // await ffmpegProcess.StandardError.BaseStream.DisposeAsync();
-
             if (ffmpegProcess.ExitCode != 0)
             {
-                var errorMessage = string.Join(Environment.NewLine, errors);
+                var errorMessage = string.Join(Environment.NewLine, ffmpegErrors);
                 logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
                 return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
             }
@@ -180,7 +186,7 @@ internal partial class YouTubeDownload(
             return;
         }
 
-        logger.LogWarning("{Message}", e.Data);
+        logger.LogTrace("{Message}", e.Data);
         var match = ErrorRegex().Match(e.Data);
 
         if (match.Success)
