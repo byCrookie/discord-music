@@ -91,8 +91,8 @@ internal partial class YouTubeDownload(
             ytdlpProcess.CancelOutputRead();
             ytdlpProcess.CancelErrorRead();
 
-            await ytdlpProcess.StandardOutput.BaseStream.DisposeAsync();
-            await ytdlpProcess.StandardError.BaseStream.DisposeAsync();
+            // await ytdlpProcess.StandardOutput.BaseStream.DisposeAsync();
+            // await ytdlpProcess.StandardError.BaseStream.DisposeAsync();
 
             if (ytdlpProcess.ExitCode != 0)
             {
@@ -133,8 +133,8 @@ internal partial class YouTubeDownload(
             ffmpegProcess.CancelOutputRead();
             ffmpegProcess.CancelErrorRead();
 
-            await ffmpegProcess.StandardOutput.BaseStream.DisposeAsync();
-            await ffmpegProcess.StandardError.BaseStream.DisposeAsync();
+            // await ffmpegProcess.StandardOutput.BaseStream.DisposeAsync();
+            // await ffmpegProcess.StandardError.BaseStream.DisposeAsync();
 
             if (ffmpegProcess.ExitCode != 0)
             {
