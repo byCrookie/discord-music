@@ -440,6 +440,9 @@ public class VoiceHost(
 
         if (spotifySeacher.IsSpotifyQuery(firstTrack.Url))
         {
+            logger.LogDebug("Use YouTube to search for Spotify track {Name} {Artists}", firstTrack.Name,
+                firstTrack.Artists);
+
             var search = await youtubeSearch.SearchAsync($"{firstTrack.Name} {firstTrack.Artists}", ct);
 
             if (search.IsError)
@@ -483,6 +486,8 @@ public class VoiceHost(
 
         if (cache.Value.Exists())
         {
+            logger.LogDebug("Playing existing track {Name} {Artists}", firstTrack.Name, firstTrack.Artists);
+
             var playExisting = await audioPlayer.PlayAsync(cache.Value, ct);
 
             if (playExisting.IsError)
@@ -521,6 +526,9 @@ public class VoiceHost(
             {
                 if (musicQueue.TryPeek(out var nextTrack))
                 {
+                    logger.LogDebug("Downloading next track {Name} {Artists} in the background", nextTrack.Name,
+                        nextTrack.Artists);
+
                     if (spotifySeacher.IsSpotifyQuery(nextTrack.Url))
                     {
                         var search = await youtubeSearch.SearchAsync($"{nextTrack.Name} {nextTrack.Artists}", ct);
@@ -578,8 +586,12 @@ public class VoiceHost(
                         if (download.IsError)
                         {
                             logger.LogError("Failed to download next track: {Error}", download.ToPrint());
+                            return;
                         }
                     }
+
+                    logger.LogDebug("Downloaded next track {Name} {Artists} in the background", nextTrack.Name,
+                        nextTrack.Artists);
                 }
             },
             ct

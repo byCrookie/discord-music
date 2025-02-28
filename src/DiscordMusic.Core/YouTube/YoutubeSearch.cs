@@ -58,6 +58,12 @@ internal partial class YoutubeSearch(
 
         await process.WaitForExitAsync(ct);
 
+        process.CancelOutputRead();
+        process.CancelErrorRead();
+
+        await process.StandardOutput.BaseStream.DisposeAsync();
+        await process.StandardError.BaseStream.DisposeAsync();
+
         if (process.ExitCode != 0)
         {
             var errorMessage = string.Join(Environment.NewLine, errors);

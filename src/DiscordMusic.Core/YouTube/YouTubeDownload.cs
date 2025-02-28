@@ -88,6 +88,12 @@ internal partial class YouTubeDownload(
 
             await ytdlpProcess.WaitForExitAsync(ct);
 
+            ytdlpProcess.CancelOutputRead();
+            ytdlpProcess.CancelErrorRead();
+
+            await ytdlpProcess.StandardOutput.BaseStream.DisposeAsync();
+            await ytdlpProcess.StandardError.BaseStream.DisposeAsync();
+
             if (ytdlpProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, errors);
@@ -124,6 +130,12 @@ internal partial class YouTubeDownload(
 
             await ffmpegProcess.WaitForExitAsync(ct);
 
+            ffmpegProcess.CancelOutputRead();
+            ffmpegProcess.CancelErrorRead();
+
+            await ffmpegProcess.StandardOutput.BaseStream.DisposeAsync();
+            await ffmpegProcess.StandardError.BaseStream.DisposeAsync();
+
             if (ffmpegProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, errors);
@@ -140,6 +152,12 @@ internal partial class YouTubeDownload(
             {
                 logger.LogTrace("Deleting temporary file {TempFile}", opusTempFile);
                 fileSystem.File.Delete(opusTempFile);
+            }
+
+            if (fileSystem.File.Exists(tempFile))
+            {
+                logger.LogTrace("Deleting temporary file {TempFile}", tempFile);
+                fileSystem.File.Delete(tempFile);
             }
         }
     }
