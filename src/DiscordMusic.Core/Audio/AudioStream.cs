@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
@@ -54,6 +55,8 @@ public class AudioStream : IDisposable
     public const int BitsPerSample = 16;
     private const int BytesPerSample = BitsPerSample / 8;
 
+    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
+
     private readonly byte[] _buffer;
     private readonly Bytes _bufferSize;
     private readonly TimeSpan _bufferTime;
@@ -80,8 +83,10 @@ public class AudioStream : IDisposable
         _logger = logger;
         _bufferTime = options.Value.BufferTime;
         _bufferSize = Bytes.ToBytes(_bufferTime);
-        _buffer = new byte[_bufferSize];
-        _emptyBuffer = new byte[_bufferSize];
+        _buffer = Pool.Rent((int)_bufferSize);
+        Array.Clear(_buffer, 0, _buffer.Length);
+        _emptyBuffer = Pool.Rent((int)_bufferSize);
+        Array.Clear(_emptyBuffer, 0, _emptyBuffer.Length);
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _lock = new Lock();
 
@@ -144,6 +149,9 @@ public class AudioStream : IDisposable
         StreamEnded = null;
         StreamFailed = null;
         _inputStream.Dispose();
+
+        Pool.Return(_buffer, true);
+        Pool.Return(_emptyBuffer, true);
     }
 
     private async Task HandlePlayingAsync(CancellationToken ct)
