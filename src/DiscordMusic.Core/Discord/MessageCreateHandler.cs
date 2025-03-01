@@ -83,8 +83,6 @@ public class MessageCreateHandler(
 
             using var proc = Process.GetCurrentProcess();
             logger.LogInformation("Memory usage: {MemoryUsage}", proc.PrivateMemorySize64.Bytes());
-
-            logger.LogInformation("{Tree}", ProcessTree.Tree());
         }
         catch (Exception e)
         {
