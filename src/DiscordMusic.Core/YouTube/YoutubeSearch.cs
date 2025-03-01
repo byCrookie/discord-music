@@ -27,8 +27,7 @@ internal partial class YoutubeSearch(
             return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
         }
 
-        var command =
-            $"--default-search auto \"{query}\" --no-download --flat-playlist -j --user-agent \"Firefox 134.0, Linux\"";
+        var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
         logger.LogTrace("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
         using var process = Process.Start(
