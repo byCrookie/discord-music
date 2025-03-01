@@ -6,3 +6,5 @@ services:
             - .env
         volumes:
             - /home/bycrookie/private/temp/cache:/data
+        platform: "linux/amd64"
+#        platform: "linux/arm64"

@@ -57,13 +57,22 @@ jobs:
         with:
           images: ghcr.io/bycrookie/discord-music
 
-      - name: Build and push Docker image
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push multi-arch Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/bycrookie/discord-music:${{ needs.release.outputs.version }}
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/bycrookie/discord-music:${{ needs.release.outputs.version }}
+            ghcr.io/bycrookie/discord-music:latest
           labels: ${{ steps.meta.outputs.labels }}
   
   windows:
