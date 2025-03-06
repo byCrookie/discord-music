@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /build/libs
 
 ARG TARGETPLATFORM
@@ -51,7 +51,7 @@ RUN case "$TARGETARCH" in \
     dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r "$RID" -o /build/publish -v minimal --no-restore && \
     cp "natives/$LIB" "/build/publish/$(basename $LIB)"
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra AS final
 WORKDIR /app
 
 COPY --from=build /build/publish .
