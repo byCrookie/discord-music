@@ -35,8 +35,9 @@ and [Genius](https://genius.com) for lyrics.
 
 > Recommended: Use the docker image to run the bot.
 
-[Dockerfile](Dockerfile) lets you build a docker image of the bot. The argument BUILDPLATFORM can be used to specify
-the target runtime of the image. The default value is `linux-x64`. All config values have to be provided as environment
+[Dockerfile](Dockerfile) lets you build a docker image of the bot. The platform argument to specify
+the target environment of the image. The default value is `linux-x64`. Supported are `linux-x64` and `linux-arm64`. All
+config values have to be provided as environment
 variables.
 This can be achieved by using the `--env-file` option of the `docker run` command or other methods to pass environment
 variables to the container. The cache location should be mounted as a volume to persist the cache between container
