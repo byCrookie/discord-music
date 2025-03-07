@@ -9,6 +9,8 @@ RUN echo "Target platform: $TARGETPLATFORM"
 RUN echo "Build platform: $BUILDPLATFORM"
 RUN echo "Target architecture: $TARGETARCH"
 
+RUN dotnet --version && dotnet --list-sdks && dotnet --info
+
 RUN apt update && apt install -y --fix-missing curl xz-utils
 
 RUN case "$TARGETARCH" in \
@@ -38,6 +40,7 @@ COPY src/DiscordMusic.Core/DiscordMusic.Core.csproj src/DiscordMusic.Core/Discor
 COPY src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj
 COPY src/Directory.Build.props src/Directory.Build.props
 COPY src/Directory.Packages.props src/Directory.Packages.props
+COPY src/global.json src/global.json
 RUN dotnet restore src/DiscordMusic.sln
 
 COPY . .
@@ -51,7 +54,7 @@ RUN case "$TARGETARCH" in \
     dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r "$RID" -o /build/publish -v minimal --no-restore && \
     cp "natives/$LIB" "/build/publish/$(basename $LIB)"
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0.2-noble-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
 COPY --from=build /build/publish .

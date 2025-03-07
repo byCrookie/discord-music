@@ -1,10 +1,12 @@
 services:
     discord-music:
+        #        image: ghcr.io/bycrookie/discord-music:latest
+        container_name: dm
         build:
             context: .
         env_file:
             - .env
         volumes:
-            - /home/bycrookie/private/temp/cache:/data
-        platform: "linux/amd64"
-#        platform: "linux/arm64"
+            - /temp/cache:/data
+        #        platform: linux/arm64
+        platform: linux/amd64
