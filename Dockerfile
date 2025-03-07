@@ -21,16 +21,18 @@ RUN case "$TARGETARCH" in \
     echo "Downloading FFmpeg from $FFMPEG_URL" && \
     curl -L "$FFMPEG_URL" -o ffmpeg.tar.xz && \
     tar -xf ffmpeg.tar.xz --strip-components=1 && \
-    chmod +x ffmpeg
+    chmod +x ffmpeg && \
+    ./ffmpeg -version
 
 RUN case "$TARGETARCH" in \
         amd64)  YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" ;; \
-        arm64)  YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_arm64" ;; \
+        arm64)  YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64" ;; \
         *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
     esac && \
     echo "Downloading yt-dlp from $YTDLP_URL" && \
     curl -L "$YTDLP_URL" -o yt-dlp && \
-    chmod +x yt-dlp
+    chmod +x yt-dlp && \
+    ./yt-dlp --version
 
 WORKDIR /build/source
 
