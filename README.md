@@ -183,3 +183,20 @@ dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic"
 During development use the `appsettings.Development.json` file to store settings. 
 Secrets should not be included in the `appsettings.Development.json` file,
 instead use the `dotnet user-secrets` command to set the secrets.
+
+### Docker Arm64
+
+> Warning: At the moment building on windows for linux-arm64 does not work. Use a linux machine to build the docker
+> image for linux-arm64.
+
+To build docker image for linux-arm64 on windows use the `binfmt` image to register the arm64 architecture.
+
+```sh
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker run --privileged --rm tonistiigi/binfmt --install all
+docker run --rm --platform linux/arm64 alpine uname -m
+docker buildx create --name mybuilder --driver docker-container --use
+docker buildx inspect --bootstrap
+docker buildx build --platform linux/arm64 -t dm:latest . --load
+docker run -d --platform linux/arm64 --env-file .env --name dm dm:latest
+```

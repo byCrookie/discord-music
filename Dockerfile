@@ -41,7 +41,14 @@ COPY src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj src/DiscordMusic
 COPY src/Directory.Build.props src/Directory.Build.props
 COPY src/Directory.Packages.props src/Directory.Packages.props
 COPY src/global.json src/global.json
-RUN dotnet restore src/DiscordMusic.sln
+
+RUN case "$TARGETARCH" in \
+        amd64)  RID="linux-x64" ;; \
+        arm64)  RID="linux-arm64" ;; \
+        *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
+    esac && \
+    echo "RID: $RID" && \
+    dotnet restore src/DiscordMusic.sln -r "$RID" -v normal
 
 COPY . .
 
