@@ -5,7 +5,7 @@
         <PackageVersion Include="HtmlAgilityPack" Version="1.12.0"/>
         <PackageVersion Include="Humanizer.Core" Version="2.14.1"/>
         <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.3"/>
-        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.2"/>
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.3"/>
         <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.3"/>
         <PackageVersion Include="Nerdbank.GitVersioning" Version="3.7.115"/>
         <PackageVersion Include="NetCord" Version="1.0.0-alpha.349"/>
@@ -16,7 +16,7 @@
         <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1"/>
         <PackageVersion Include="System.Interactive.Async.Providers" Version="6.0.1"/>
         <PackageVersion Include="Testably.Abstractions" Version="9.0.0"/>
-        <PackageVersion Include="TUnit" Version="0.18.33"/>
+        <PackageVersion Include="TUnit" Version="0.18.40"/>
         <PackageVersion Include="ValueOf" Version="2.0.31"/>
     </ItemGroup>
 </Project>
