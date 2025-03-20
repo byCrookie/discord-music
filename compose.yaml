@@ -7,6 +7,6 @@ services:
         env_file:
             - .env
         volumes:
-            - /temp/cache:/data
+            - /tmp/cache:/data
         #        platform: linux/arm64
         platform: linux/amd64
