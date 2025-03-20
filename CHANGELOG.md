@@ -1,3 +1,3 @@
 **Changes:**
 
-- Docker image now runs on arm64
+- Use nightly builds of yt-dlp in docker
