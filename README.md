@@ -51,7 +51,7 @@ restarts.
 
 ```sh
 docker pull ghcr.io/bycrookie/discord-music:latest
-docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /tmp/cache:/data ghcr.io/bycrookie/discord-music:latest
+docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:latest
 ```
 
 [Dockerfile](Dockerfile) lets you build your own docker image of the bot, it is recommended to use the pre-built images.
