@@ -15,7 +15,7 @@ public static class SpotifyModule
             .ValidateOnStart();
 
         builder.Services.AddSingleton(SpotifyClientConfig.CreateDefault());
-        builder.Services.AddTransient<ISpotifySeacher, SpotifySeacher>();
+        builder.Services.AddTransient<ISpotifySearch, SpotifySearch>();
         return builder;
     }
 }

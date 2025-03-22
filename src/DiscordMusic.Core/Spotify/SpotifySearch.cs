@@ -8,11 +8,11 @@ using SpotifyAPI.Web;
 
 namespace DiscordMusic.Core.Spotify;
 
-internal class SpotifySeacher(
-    ILogger<SpotifySeacher> logger,
+internal class SpotifySearch(
+    ILogger<SpotifySearch> logger,
     IOptions<SpotifyOptions> spotifyOptions,
     SpotifyClientConfig spotifyClientConfig
-) : ISpotifySeacher
+) : ISpotifySearch
 {
     private const string SpotifyDomain = "open.spotify.com";
     private const string SpotifyApiDomain = "api.spotify.com";

@@ -29,7 +29,7 @@ public static class SpotifySearchCommand
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddSpotify();
         var host = builder.Build();
-        var spotifySearch = host.Services.GetRequiredService<ISpotifySeacher>();
+        var spotifySearch = host.Services.GetRequiredService<ISpotifySearch>();
         var search = await spotifySearch.SearchAsync(query, ct);
 
         if (search.IsError)

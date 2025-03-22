@@ -21,7 +21,7 @@ public class VoiceHost(
     IYouTubeDownload youTubeDownload,
     IMusicCache musicCache,
     IQueue<Track> musicQueue,
-    ISpotifySeacher spotifySeacher
+    ISpotifySearch spotifySearch
 ) : IVoiceHost
 {
     private readonly AsyncLock _lock = new();
@@ -284,9 +284,9 @@ public class VoiceHost(
             .WithDeletion()
             .SendAsync(ct);
 
-        if (spotifySeacher.IsSpotifyQuery(query))
+        if (spotifySearch.IsSpotifyQuery(query))
         {
-            var searchSpotify = await spotifySeacher.SearchAsync(query, ct);
+            var searchSpotify = await spotifySearch.SearchAsync(query, ct);
 
             if (searchSpotify.IsError)
             {
@@ -438,7 +438,7 @@ public class VoiceHost(
             return VoiceUpdate.None(VoiceUpdateType.Next);
         }
 
-        if (spotifySeacher.IsSpotifyQuery(firstTrack.Url))
+        if (spotifySearch.IsSpotifyQuery(firstTrack.Url))
         {
             logger.LogDebug("Use YouTube to search for Spotify track {Name} {Artists}", firstTrack.Name,
                 firstTrack.Artists);
@@ -529,7 +529,7 @@ public class VoiceHost(
                     logger.LogDebug("Downloading next track {Name} {Artists} in the background", nextTrack.Name,
                         nextTrack.Artists);
 
-                    if (spotifySeacher.IsSpotifyQuery(nextTrack.Url))
+                    if (spotifySearch.IsSpotifyQuery(nextTrack.Url))
                     {
                         var search = await youtubeSearch.SearchAsync($"{nextTrack.Name} {nextTrack.Artists}", ct);
 
