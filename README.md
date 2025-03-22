@@ -5,6 +5,10 @@ uses [NetCord](https://github.com/NetCordDev/NetCord), [FFmpeg](https://github.c
 [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET)
 and [Genius](https://genius.com) for lyrics.
 
+> **Important:** This bot uses yt-dlp to fetch YouTube audio streams. Since YouTube often blocks IP ranges from cloud
+> providers, it's recommended to use a residential IP for reliable access. If you encounter a "confirm you're not a
+> robot" error, your IP is likely blocked. Running the bot from a home network should work smoothly.
+
 ## Features
 
 #### 🎵 **Core Music Functions**
