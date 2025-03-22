@@ -22,6 +22,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{979E4AB0-B6F7-AF
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
 		..\.env = ..\.env
+		..\.dmrc.example = ..\.dmrc.example
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{68D7CF19-058E-3C51-4172-A5881C305BE6}"

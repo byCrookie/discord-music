@@ -1,14 +1,18 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Configuration;
 
 namespace DiscordMusic.Core.Discord.Cache;
 
+[SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
+[SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
 internal class CacheOptions
 {
     public const string SectionName = "cache";
 
     [ConfigurationKeyName("maxSize")]
-    public string MaxSize { get; init; } = "5GB";
+    public required string MaxSize { get; init; } = "5GB";
 
     [ConfigurationKeyName("location")]
-    public string Location { get; init; } = null!;
+    public string? Location { get; init; } = "/var/tmp/dm/data";
 }

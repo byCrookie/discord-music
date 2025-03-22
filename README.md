@@ -39,6 +39,11 @@ and [Genius](https://genius.com) for lyrics.
     - Simple allow/deny command system.
     - Role-based access control for commands.
 
+## Installation
+
+> Warning: Tokens should be kept secret and not shared with anyone. If tokens are shared or exposed, they should be
+> regenerated.
+
 ## Docker
 
 > Recommended: Use the docker image to run the bot.
@@ -60,91 +65,25 @@ docker run -d --restart always --platform linux/amd64 --env-file .env --name dm 
 
 [Dockerfile](Dockerfile) lets you build your own docker image of the bot, it is recommended to use the pre-built images.
 
-## Runtimes
+## Local
 
-> Warning: Only win-x64, linux-x64 and linux-arm64 are currently fully supported. The bot will not work on other
+> Runtimes: Only win-x64, linux-x64 and linux-arm64 are currently fully supported. The bot will not work on other
 > architectures if opus and libsodium are not installed on the system. It is recommended to use the docker image for
 > to run the bot.
 
-## Setup
-
-> Warning: The token should be kept secret and not shared with anyone. If the token is shared, it should be regenerated.
-
-> Note: If you do not want to use the `appsettings.json` file, you can use environment variables prefixed
+> Note: If you do not want to use the `.dmrc` file, you can use environment variables prefixed
 > with `DISCORD_MUSIC_`. This is required when using docker to deploy discord-music. Further information can be found in
 > the [Configuration](#Configuration) section.
 
-### Configuration
+### Required Binaries and Libraries
 
-The bot uses the `appsettings.json` file for configuration values. If a value is not found in the `appsettings.json`
-file it will look for an environment variable prefixed with `DISCORD_MUSIC_`.
-Make sure to use double underscores `__` for nested properties. Example: `DISCORD_MUSIC_DISCORD__TOKEN`.
-When providing a list, use an indexer `__0` for the first item, `__1` for the second item and so on.
-Example: `DISCORD_MUSIC_DISCORD__ALLOW__0=music`.
+The bot requires FFmpeg and yt-dlp to be installed on the system. Download it
+from https://www.ffmpeg.org/download.html and https://github.com/yt-dlp/yt-dlp/releases.
+Make the binaries discoverable by adding them to the system path or place them in the same directory as the bot.
+If you want to specify paths explicitly, change the `ffmpeg` and `ytdlp` value in the `.dmrc` file to the path of
+the executable.
 
-### Discord
-
-Go to https://discord.com/developers/applications and create a new application.
-
-Replace the `Discord:ApplicationId` in the `appsettings.json` file with the application id of your new application.
-Next replace the `Discord:Token` in the `appsettings.json` file with the token of your new application.
-Environment variables can be used to set the token and application id.
-
-- `DISCORD_MUSIC_DISCORD__TOKEN`
-- `DISCORD_MUSIC_DISCORD__APPLICATIONID`
-
-### Spotify (Optional)
-
-Go to https://developer.spotify.com/dashboard/applications and create a new application.
-
-Replace the `Spotify:ClientId` in the `appsettings.json` file with the client
-id of your new application. Next replace the `Spotify:ClientSecret` in the `appsettings.json`
-file with the client secret of your new application.
-Environment variables can be used to set the client id and client secret.
-
-- `DISCORD_MUSIC_SPOTIFY__CLIENTID`
-- `DISCORD_MUSIC_SPOTIFY__CLIENTSECRET`
-
-### Genius (Optional)
-
-Go to https://genius.com/api-clients and create a new application.
-
-Replace the `Lyrics:Token` in the `appsettings.json` file with the token of your new application.
-Environment variables can be used to set the token.
-
-- `DISCORD_MUSIC_LYRICS__TOKEN`
-
-### FFmpeg
-
-The bot requires FFmpeg to be installed on the system. Download it
-from https://www.ffmpeg.org/download.html and add it to the system path
-or place it in the same directory as the bot. If you want to specify the path
-explicitly change the `ffmpeg` value in the `appsettings.json` file to the path of
-the FFmpeg executable.
-
-```json
-{
-  "ffmpeg": "C:\\ffmpeg\\bin\\ffmpeg.exe"
-}
-```
-
-### yt-dlp
-
-The bot requires yt-dlp to be installed on the system. Download it
-from https://github.com/yt-dlp/yt-dlp/releases and add it to the system path
-or place it in the same directory as the bot. If you want to specify the path
-explicitly change the `ytdlp` value in the `appsettings.json` file to the path of
-the yt-dlp executable.
-
-```json
-{
-  "ytdlp": "C:\\yt-dlp\\yt-dlp.exe"
-}
-```
-
-## Development
-
-### Opus
+#### Opus
 
 The bot requires the Opus codec to be installed on the system. Some platforms/runtimes are directly supported
 by discord-music and do not require the Opus codec to be installed. If you receive an error message about the Opus
@@ -152,72 +91,23 @@ codec not being found, find it under [Natives](natives) or download it from http
 downloading the codec is not possible, build it from source or try to find a pre-built version of the dll for your
 platform.
 
-### Libsodium
+#### Libsodium
 
 The bot requires the Libsodium library to be installed on the system. Some platforms/runtimes are directly supported
 by discord-music and do not require the Libsodium library to be installed. If you receive an error message about the
 Libsodium library not being found, download it from https://libsodium.org/ if possible or build it from
 source.
 
-### Secrets
+## Configuration
 
-During development environment variables can not be used. Instead use the `dotnet user-secrets` command to set the
-secrets
-and use the `appsettings.Development.json` for other settings.
+The bot uses the `.dmrc` ini-file for configuration values. If a value is not found in the `.dmrc`
+file it will look for an environment variable prefixed with `DISCORD_MUSIC_`.
+Make sure to use double underscores `__` for nested properties. Example: `DISCORD_MUSIC_DISCORD__TOKEN`.
+When providing a list, use an indexer `__0` for the first item, `__1` for the second item and so on.
+Example: `DISCORD_MUSIC_DISCORD__ALLOW__0=music`. An example `.dmrc` file can be found [here](.dmrc.example).
 
-#### Token
+## Development
 
-Token from https://discord.com/developers/applications/1200147726013300866/bot
-
-```powershell
-dotnet user-secrets set "Discord:Token" ""
-```
-
-#### ApplicationId
-
-ApplicationId from https://discord.com/developers/applications/1200147726013300866/information
-
-```powershell
-dotnet user-secrets set "Discord:ApplicationId" ""
-```
-
-### Publish
-
-To publish the bot use the `dotnet publish` command. `appsettings.json` will be included in the publish directory but
-not overwritten.
-
-```powershell
-dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic"
-```
-
-#### Runtime
-
-To specify the runtime use the `--runtime` option. Available runtimes can be
-found [here](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog).
-
-```powershell
-dotnet publish .\DiscordMusic.Cli\ --output "D:\Apps\Discord\Music\DiscordMusic" --runtime win-x64
-```
-
-### Settings
-
-During development use the `appsettings.Development.json` file to store settings.
-Secrets should not be included in the `appsettings.Development.json` file,
-instead use the `dotnet user-secrets` command to set the secrets.
-
-### Docker Arm64
-
-> Warning: At the moment building on windows for linux-arm64 does not work. Use a linux machine to build the docker
-> image for linux-arm64.
-
-To build docker image for linux-arm64 on windows use the `binfmt` image to register the arm64 architecture.
-
-```sh
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-docker run --privileged --rm tonistiigi/binfmt --install all
-docker run --rm --platform linux/arm64 alpine uname -m
-docker buildx create --name mybuilder --driver docker-container --use
-docker buildx inspect --bootstrap
-docker buildx build --platform linux/arm64 -t dm:latest . --load
-docker run -d --platform linux/arm64 --env-file .env --name dm dm:latest
-```
+During development change the [`.dmrc.ini`](src/DiscordMusic.Client/.dmrc.ini) file to test settings.
+Secrets should be kept secret [`dotnet user-secrets`](#Secrets). Use the [
+`dotnet user-secrets`](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets).
