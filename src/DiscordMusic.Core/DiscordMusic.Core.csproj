@@ -6,6 +6,7 @@
         <PackageReference Include="HtmlAgilityPack"/>
         <PackageReference Include="Humanizer.Core"/>
         <PackageReference Include="Microsoft.Extensions.Configuration"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini"/>
         <PackageReference Include="Microsoft.Extensions.Options"/>
         <PackageReference Include="NetCord.Hosting.AspNetCore"/>
         <PackageReference Include="NetCord.Hosting.Services"/>

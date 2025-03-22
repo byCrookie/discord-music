@@ -1,18 +1,15 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 
-namespace DiscordMusic.Core.Spotify;
+namespace DiscordMusic.Core.Config;
 
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 [SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
-internal class SpotifyOptions
+public class ConfigOptions
 {
-    public const string SectionName = "spotify";
+    public const string ConfigFileKey = "CONFIG_FILE";
 
-    [ConfigurationKeyName("clientId")]
-    public string? ClientId { get; init; }
-
-    [ConfigurationKeyName("clientSecret")]
-    public string? ClientSecret { get; init; }
+    [ConfigurationKeyName(ConfigFileKey)]
+    public string? ConfigFile { get; init; }
 }

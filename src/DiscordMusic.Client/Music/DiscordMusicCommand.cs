@@ -21,6 +21,7 @@ public static class DiscordMusicCommand
         root.SetHandler(async ctx =>
         {
             var builder = Host.CreateApplicationBuilder(args);
+            builder.Configuration.Sources.Clear();
             builder.AddCore(ctx.GetCancellationToken());
             var host = builder.Build();
             host.UseCore();

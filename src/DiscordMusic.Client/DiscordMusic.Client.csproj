@@ -9,6 +9,7 @@
     <ItemGroup>
         <PackageReference Include="ErrorOr"/>
         <PackageReference Include="Humanizer.Core"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini"/>
         <PackageReference Include="Microsoft.Extensions.Hosting"/>
         <PackageReference Include="NetCord.Hosting.Services"/>
         <PackageReference Include="System.CommandLine"/>
@@ -20,14 +21,11 @@
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="appsettings.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        </Content>
-        <Content Include="appsettings.Development.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <ItemGroup Condition="'$(DOTNET_ENVIRONMENT)' == 'Development' OR '$(ASPNETCORE_ENVIRONMENT)' == 'Development'">
+        <Content Include=".dmrc.ini">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+            <TargetPath>.dmrc</TargetPath>
         </Content>
     </ItemGroup>
 

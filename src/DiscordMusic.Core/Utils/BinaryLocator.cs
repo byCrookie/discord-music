@@ -7,8 +7,14 @@ namespace DiscordMusic.Core.Utils;
 
 public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger)
 {
-    public ErrorOr<BinaryLocation> LocateAndValidate(string path, string defaultBinaryName)
+    public ErrorOr<BinaryLocation> LocateAndValidate(string? path, string defaultBinaryName)
     {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            logger.LogTrace("{DefaultBinaryName} will be resolved at runtime by the system.", defaultBinaryName);
+            return new BinaryLocation(LocationType.Runtime, null, null, defaultBinaryName);
+        }
+
         if (path.Trim() == ".")
         {
             logger.LogTrace("Path is '.', returning current directory for binary {DefaultBinaryName}.",
@@ -32,12 +38,6 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
                 defaultBinaryName, current.Directory!.FullName);
             return Error.Unexpected(
                 description: $"Binary {defaultBinaryName} not found in current directory {current.Directory.FullName}");
-        }
-
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            logger.LogTrace("{DefaultBinaryName} will be resolved at runtime by the system.", defaultBinaryName);
-            return new BinaryLocation(LocationType.Runtime, null, null, defaultBinaryName);
         }
 
         if (fileSystem.File.Exists(path))
@@ -70,10 +70,11 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             logger.LogError("Binary {DefaultBinaryName} not found in directory {Path}.", defaultBinaryName, path);
             return Error.Unexpected(description: $"Binary {defaultBinaryName} not found in directory {path}");
         }
-        
+
         logger.LogError("Path {Path} is not a valid path or directory for binary {DefaultBinaryName}.",
             path, defaultBinaryName);
-        return Error.Unexpected(description: $"Path {path} is not a valid path or directory for binary {defaultBinaryName}");
+        return Error.Unexpected(
+            description: $"Path {path} is not a valid path or directory for binary {defaultBinaryName}");
     }
 
     public record BinaryLocation(LocationType Type, IDirectoryInfo? Directory, IFileInfo? Binary, string BinaryName)

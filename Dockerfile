@@ -36,7 +36,7 @@ RUN case "$TARGETARCH" in \
 
 WORKDIR /build/source
 
-COPY src/DiscordMusic.sln src/DiscordMusic.sln
+COPY src/DiscordMusic.slnx src/DiscordMusic.slnx
 COPY src/DiscordMusic.Client/DiscordMusic.Client.csproj src/DiscordMusic.Client/DiscordMusic.Client.csproj
 COPY src/DiscordMusic.Core/DiscordMusic.Core.csproj src/DiscordMusic.Core/DiscordMusic.Core.csproj
 COPY src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj
@@ -50,7 +50,7 @@ RUN case "$TARGETARCH" in \
         *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
     esac && \
     echo "RID: $RID" && \
-    dotnet restore src/DiscordMusic.sln -r "$RID" -v normal
+    dotnet restore src/DiscordMusic.slnx -r "$RID" -v normal
 
 COPY . .
 
