@@ -1,4 +1,3 @@
 **Changes:**
 
-- Change volume mount paths from `/tmp/cache` to `/var/tmp/dm/data`
-- Add watchtower to docker-compose file for automatic updates of docker containers
+- Keep yt-dlp up to date by periodically updating `yt-dlp -U` inside running container

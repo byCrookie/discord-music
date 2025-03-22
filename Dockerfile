@@ -70,4 +70,13 @@ COPY --from=build /build/publish .
 COPY --from=build /build/libs/ffmpeg /usr/bin/ffmpeg
 COPY --from=build /build/libs/yt-dlp /usr/bin/yt-dlp
 
-ENTRYPOINT ["/app/dm"]
+RUN yt-dlp -U
+
+RUN apt-get update && \
+    apt-get install -y cron && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN echo "0 2 * * * /usr/bin/yt-dlp -U >> /var/log/yt-dlp-update.log 2>&1" > /etc/cron.d/yt-dlp-cron
+RUN chmod 0644 /etc/cron.d/yt-dlp-cron && touch /var/log/yt-dlp-update.log && crontab /etc/cron.d/yt-dlp-cron
+
+ENTRYPOINT service cron start && tail -f /var/log/yt-dlp-update.log & exec /app/dm
