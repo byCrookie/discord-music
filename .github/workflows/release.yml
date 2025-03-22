@@ -89,15 +89,15 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        run: dotnet restore DiscordMusic.sln
+        run: dotnet restore DiscordMusic.slnx
         working-directory: ./src
 
       - name: Build
-        run: dotnet build DiscordMusic.sln --configuration Release --no-restore
+        run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
         working-directory: ./src
 
       - name: Test
-        run: dotnet test DiscordMusic.sln --configuration Release --no-restore
+        run: dotnet test DiscordMusic.slnx --configuration Release --no-restore
         working-directory: ./src
 
       - name: Publish
@@ -143,15 +143,15 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        run: dotnet restore DiscordMusic.sln
+        run: dotnet restore DiscordMusic.slnx
         working-directory: ./src
 
       - name: Build
-        run: dotnet build DiscordMusic.sln --configuration Release --no-restore
+        run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
         working-directory: ./src
 
       - name: Test
-        run: dotnet test DiscordMusic.sln --configuration Release --no-restore
+        run: dotnet test DiscordMusic.slnx --configuration Release --no-restore
         working-directory: ./src
 
       - name: Publish
@@ -206,15 +206,15 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        run: dotnet restore DiscordMusic.sln
+        run: dotnet restore DiscordMusic.slnx
         working-directory: ./src
 
       - name: Build
-        run: dotnet build DiscordMusic.sln --configuration Release --no-restore
+        run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
         working-directory: ./src
 
       - name: Test
-        run: dotnet test DiscordMusic.sln --configuration Release --no-restore
+        run: dotnet test DiscordMusic.slnx --configuration Release --no-restore
         working-directory: ./src
 
       - name: Publish
