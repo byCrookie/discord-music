@@ -18,6 +18,7 @@
     </Folder>
     <Folder Name="/_/.github/">
         <File Path="..\.github\dependabot.yml"/>
+      <File Path="..\.github\FUNDING.yml"/>
     </Folder>
     <Folder Name="/_/.github/workflows/">
         <File Path="..\.github\workflows\release.yml"/>

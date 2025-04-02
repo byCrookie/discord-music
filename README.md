@@ -95,6 +95,15 @@ DISCORD_MUSIC_DISCORD__ALLOW__0=music
 
 An example `.dmrc` file is available [here](.dmrc.example).
 
+## Support
+
+If you enjoy the bot, consider supporting the project by starring the repository and contributing to its development
+through the following methods:
+
+<a href="https://buymeacoffee.com/bycrookie" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+[:heart: Sponsor](https://github.com/sponsors/byCrookie)
+
 ## Development
 
 For development, modify the [`.dmrc.ini`](src/DiscordMusic.Client/.dmrc.ini) file to test configuration changes. Keep
