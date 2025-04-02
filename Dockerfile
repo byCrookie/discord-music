@@ -79,4 +79,5 @@ RUN apt-get update && \
 RUN echo "0 2 * * * /usr/bin/yt-dlp -U >> /var/log/yt-dlp-update.log 2>&1" > /etc/cron.d/yt-dlp-cron
 RUN chmod 0644 /etc/cron.d/yt-dlp-cron && touch /var/log/yt-dlp-update.log && crontab /etc/cron.d/yt-dlp-cron
 
-ENTRYPOINT service cron start && tail -f /var/log/yt-dlp-update.log & exec /app/dm
+ENTRYPOINT yt-dlp -U && tail -f /var/log/yt-dlp-update.log && service cron start && \
+    tail -f /var/log/yt-dlp-update.log & exec /app/dm
