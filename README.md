@@ -64,6 +64,9 @@ For custom-builds, refer to the [Dockerfile](Dockerfile).
 **Supported Platforms**: `win-x64`, `linux-x64`, and `linux-arm64`. Other architectures may require additional
 dependencies like `opus` and `libsodium`.
 
+Make sure to change the cache location in the `.dmrc` file to a writable directory if you don't have write access to
+`/data`.
+
 #### Required Binaries and Libraries:
 
 - **FFmpeg**: Install from [FFmpeg](https://www.ffmpeg.org/download.html).

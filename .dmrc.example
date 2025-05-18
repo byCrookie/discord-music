@@ -55,7 +55,7 @@ Microsoft.Hosting.Lifetime = Information
 ; maxSize = 5GB
 
 ; Path to the cache directory.
-; location = /var/tmp/dm/data
+; location = /data
 
 [audio]
 ; Buffer size for audio playback. A higher buffer size can reduce stuttering but increases latency.

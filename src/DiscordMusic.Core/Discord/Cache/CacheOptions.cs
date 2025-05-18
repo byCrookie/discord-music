@@ -14,5 +14,5 @@ internal class CacheOptions
     public required string MaxSize { get; init; } = "5GB";
 
     [ConfigurationKeyName("location")]
-    public string? Location { get; init; } = "/var/tmp/dm/data";
+    public string? Location { get; init; } = "/data";
 }
