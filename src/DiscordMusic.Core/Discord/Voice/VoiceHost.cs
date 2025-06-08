@@ -378,7 +378,6 @@ public class VoiceHost(
                 if (nextFromError.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-                    await audioPlayer.StopAsync(ct);
 
                     await replier
                         .Reply()
@@ -404,7 +403,6 @@ public class VoiceHost(
                 if (next.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-                    await audioPlayer.StopAsync(ct);
 
                     await replier
                         .Reply()
@@ -425,11 +423,13 @@ public class VoiceHost(
 
     private async Task<ErrorOr<VoiceUpdate>> PlayNextTrackFromQueueAsync(bool now, CancellationToken ct)
     {
-        if (_currentTrack is not null && !now)
+        var status = await audioPlayer.StatusAsync(ct);
+
+        if (_currentTrack is not null && !now && status.State != AudioState.Ended)
         {
             DownloadNextTrackInBackgroud(ct);
             return musicQueue.TryPeek(out var nextTrack)
-                ? new VoiceUpdate(VoiceUpdateType.Next, nextTrack, await audioPlayer.StatusAsync(ct))
+                ? new VoiceUpdate(VoiceUpdateType.Next, nextTrack, status)
                 : VoiceUpdate.None(VoiceUpdateType.Next);
         }
 

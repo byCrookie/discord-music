@@ -1,3 +1,3 @@
 **Changes:**
 
-- change default cache location to `/data` to be consistent with the default mounted location of the docker compose file
+- do not break commands when end of queue is reached

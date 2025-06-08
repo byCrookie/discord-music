@@ -40,6 +40,7 @@ public class AudioStream : IDisposable
     {
         Playing,
         Silence,
+        Ended,
         Stopped,
     }
 
@@ -107,6 +108,9 @@ public class AudioStream : IDisposable
                             case AudioState.Silence:
                                 await HandleSilenceAsync(_cts.Token);
                                 break;
+                            case AudioState.Ended:
+                                await HandleEndedAsync(_cts.Token);
+                                break;
                             case AudioState.Stopped:
                                 await HandleStoppedAsync(_cts.Token);
                                 break;
@@ -158,7 +162,7 @@ public class AudioStream : IDisposable
 
         if (bytesRead == 0)
         {
-            State = AudioState.Stopped;
+            State = AudioState.Ended;
             _logger.LogStreamEnded(_id);
 
             if (StreamEnded is not null)
@@ -190,6 +194,11 @@ public class AudioStream : IDisposable
         await Task.Delay(_bufferTime, ct);
     }
 
+    private async Task HandleEndedAsync(CancellationToken ct)
+    {
+        await Task.Delay(_bufferTime, ct);
+    }
+
     public event Func<Exception, object, EventArgs, Task>? StreamFailed;
     public event Func<object, EventArgs, Task>? StreamEnded;
 
@@ -206,14 +215,6 @@ public class AudioStream : IDisposable
         lock (_lock)
         {
             State = AudioState.Playing;
-        }
-    }
-
-    public void Stop()
-    {
-        lock (_lock)
-        {
-            State = AudioState.Stopped;
         }
     }
 

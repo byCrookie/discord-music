@@ -145,7 +145,7 @@ public class AudioPlayer(
         {
             AudioStream.AudioState.Playing => AudioState.Playing,
             AudioStream.AudioState.Silence => AudioState.Paused,
-            AudioStream.AudioState.Stopped => AudioState.Stopped,
+            AudioStream.AudioState.Ended => AudioState.Ended,
             _ => AudioState.Stopped,
         };
     }
