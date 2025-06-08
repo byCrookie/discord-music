@@ -9,10 +9,10 @@
         <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.5"/>
         <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.5"/>
         <PackageVersion Include="Nerdbank.GitVersioning" Version="3.7.115"/>
-        <PackageVersion Include="NetCord" Version="1.0.0-alpha.359"/>
-        <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.359"/>
-        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.359"/>
-        <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.359"/>
+        <PackageVersion Include="NetCord" Version="1.0.0-alpha.383"/>
+        <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.383"/>
+        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.383"/>
+        <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.383"/>
         <PackageVersion Include="SpotifyAPI.Web" Version="7.2.1"/>
         <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1"/>
         <PackageVersion Include="System.Interactive.Async.Providers" Version="6.0.1"/>
