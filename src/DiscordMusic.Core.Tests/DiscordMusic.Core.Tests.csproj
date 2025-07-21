@@ -5,11 +5,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="TUnit"/>
+        <PackageReference Include="TUnit" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
+        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj" />
     </ItemGroup>
 
 </Project>

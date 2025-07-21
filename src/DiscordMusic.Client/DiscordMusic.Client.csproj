@@ -7,18 +7,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ErrorOr"/>
-        <PackageReference Include="Humanizer.Core"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Ini"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting"/>
-        <PackageReference Include="NetCord.Hosting.Services"/>
-        <PackageReference Include="System.CommandLine"/>
-        <PackageReference Include="Testably.Abstractions"/>
-        <PackageReference Include="ValueOf"/>
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="Humanizer.Core" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" />
+        <PackageReference Include="NetCord.Hosting.Services" />
+        <PackageReference Include="System.CommandLine" />
+        <PackageReference Include="Testably.Abstractions" />
+        <PackageReference Include="ValueOf" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
+        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(DOTNET_ENVIRONMENT)' == 'Development' OR '$(ASPNETCORE_ENVIRONMENT)' == 'Development'">
