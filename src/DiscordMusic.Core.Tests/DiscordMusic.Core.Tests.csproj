@@ -9,6 +9,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="HtmlAgilityPack" VersionOverride="1.12.4" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Options" VersionOverride="9.0.9" />
+    <PackageReference Include="NetCord.Hosting.AspNetCore" VersionOverride="1.0.0-alpha.433" />
+    <PackageReference Include="System.Interactive.Async.Providers" VersionOverride="6.0.3" />
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
     </ItemGroup>
 
