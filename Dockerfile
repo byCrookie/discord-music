@@ -11,13 +11,15 @@ RUN echo "Target platform: $TARGETPLATFORM | Build platform: $BUILDPLATFORM | Ta
 RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils ca-certificates && rm -rf /var/lib/apt/lists/*
 
 RUN case "$TARGETARCH" in \
-        amd64)  FFMPEG_URL="https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz" ;; \
-        arm64)  FFMPEG_URL="https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-arm64-static.tar.xz" ;; \
+        amd64)  FFMPEG_URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz" ;; \
+        arm64)  FFMPEG_URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linuxarm64-gpl.tar.xz" ;; \
         *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
     esac && \
     echo "Downloading FFmpeg from $FFMPEG_URL" && \
     curl -L "$FFMPEG_URL" -o ffmpeg.tar.xz && \
-    tar -xf ffmpeg.tar.xz --strip-components=1 && rm ffmpeg.tar.xz && \
+    mkdir ffmpeg-extract && tar -xf ffmpeg.tar.xz -C ffmpeg-extract && rm ffmpeg.tar.xz && \
+    cp ffmpeg-extract/*/bin/ffmpeg ffmpeg && cp ffmpeg-extract/*/bin/ffprobe ffprobe && \
+    rm -rf ffmpeg-extract && \
     chmod +x ffmpeg ffprobe && ./ffmpeg -version
 
 RUN case "$TARGETARCH" in \

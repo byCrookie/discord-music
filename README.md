@@ -69,8 +69,11 @@ Make sure to change the cache location in the `.dmrc` file to a writable directo
 
 #### Required Binaries and Libraries:
 
-- **FFmpeg**: Install from [FFmpeg](https://www.ffmpeg.org/download.html).
-- **yt-dlp**: Install from [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases).
+- **FFmpeg**: Use the static builds from the yt-dlp
+  project: [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds/releases). Choose the archive matching your
+  architecture (e.g. `ffmpeg-master-latest-linux64-gpl.tar.xz` or `ffmpeg-master-latest-linuxarm64-gpl.tar.xz`) and
+  extract `ffmpeg` and `ffprobe`.
+- **yt-dlp**: Install from [yt-dlp releases](https://github.com/yt-dlp/yt-dlp/releases) (or nightly builds if desired).
 - Add them to your system PATH or place them in the bot's directory.
 - **Opus**: Install the Opus codec if not available. Download from [Opus Codec](https://opus-codec.org/) or build from
   source.
