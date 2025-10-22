@@ -1,3 +1,4 @@
 **Changes:**
 
-- do not break commands when end of queue is reached
+- implement yt-dlp js runtime requirements
+- optimize docker image
