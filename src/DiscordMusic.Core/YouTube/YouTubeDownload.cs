@@ -103,7 +103,7 @@ internal partial class YouTubeDownload(
                 tempFile, output.FullName);
 
             var ffmpegArgs =
-                $"-i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} {output.FullName}";
+                $"-y -i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} \"{output.FullName}\"";
             logger.LogTrace("Calling {Ffmpeg} with arguments {FfmpegArgs}", ffmpeg.Value.PathToFile, ffmpegArgs);
             using var ffmpegProcess = Process.Start(
                 new ProcessStartInfo
@@ -145,7 +145,7 @@ internal partial class YouTubeDownload(
             if (ffmpegProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, ffmpegErrors);
-                logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
+                logger.LogError("YouTube download failed with exit code {ExitCode}", ffmpegProcess.ExitCode);
                 return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
             }
 

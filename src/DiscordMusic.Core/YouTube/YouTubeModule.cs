@@ -42,7 +42,7 @@ public static class YouTubeModule
                 );
             }
 
-            var ytdlp = binaryLocator.LocateAndValidate(options.Ffmpeg, "yt-dlp");
+            var ytdlp = binaryLocator.LocateAndValidate(options.Ytdlp, "yt-dlp");
 
             if (ytdlp.IsError)
             {

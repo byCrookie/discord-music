@@ -5,13 +5,10 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETARCH
 
-RUN echo "Target platform: $TARGETPLATFORM"
-RUN echo "Build platform: $BUILDPLATFORM"
-RUN echo "Target architecture: $TARGETARCH"
+RUN echo "Target platform: $TARGETPLATFORM | Build platform: $BUILDPLATFORM | Target architecture: $TARGETARCH" && \
+    dotnet --version && dotnet --list-sdks && dotnet --info
 
-RUN dotnet --version && dotnet --list-sdks && dotnet --info
-
-RUN apt update && apt install -y --fix-missing curl xz-utils
+RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils ca-certificates && rm -rf /var/lib/apt/lists/*
 
 RUN case "$TARGETARCH" in \
         amd64)  FFMPEG_URL="https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz" ;; \
@@ -20,9 +17,8 @@ RUN case "$TARGETARCH" in \
     esac && \
     echo "Downloading FFmpeg from $FFMPEG_URL" && \
     curl -L "$FFMPEG_URL" -o ffmpeg.tar.xz && \
-    tar -xf ffmpeg.tar.xz --strip-components=1 && \
-    chmod +x ffmpeg && \
-    ./ffmpeg -version
+    tar -xf ffmpeg.tar.xz --strip-components=1 && rm ffmpeg.tar.xz && \
+    chmod +x ffmpeg ffprobe && ./ffmpeg -version
 
 RUN case "$TARGETARCH" in \
         amd64)  YTDLP_URL="https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_linux" ;; \
@@ -31,8 +27,7 @@ RUN case "$TARGETARCH" in \
     esac && \
     echo "Downloading yt-dlp from $YTDLP_URL" && \
     curl -L "$YTDLP_URL" -o yt-dlp && \
-    chmod +x yt-dlp && \
-    ./yt-dlp --version
+    chmod +x yt-dlp && ./yt-dlp --version
 
 WORKDIR /build/source
 
@@ -48,36 +43,28 @@ RUN case "$TARGETARCH" in \
         amd64)  RID="linux-x64" ;; \
         arm64)  RID="linux-arm64" ;; \
         *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
-    esac && \
-    echo "RID: $RID" && \
-    dotnet restore src/DiscordMusic.slnx -r "$RID" -v normal
+    esac && echo "RID: $RID" && dotnet restore src/DiscordMusic.slnx -r "$RID" -v minimal
 
 COPY . .
 
 RUN case "$TARGETARCH" in \
         amd64)  RID="linux-x64";   LIB="linux-x86_64/libopus.so" ;; \
-        arm64)  RID="linux-arm64";   LIB="linux-aarch64/libopus.so" ;; \
+        arm64)  RID="linux-arm64"; LIB="linux-aarch64/libopus.so" ;; \
         *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
-    esac && \
-    echo "RID: $RID" && \
-    dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -r "$RID" -o /build/publish -v minimal --no-restore && \
+    esac && echo "RID: $RID" && \
+    dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -c Release -r "$RID" -o /build/publish --no-restore -v minimal && \
     cp "natives/$LIB" "/build/publish/$(basename $LIB)"
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+RUN printf '#!/usr/bin/env sh\nset -e\n( while true; do /usr/bin/yt-dlp -U || true; sleep 86400; done ) &\nexec /app/dm "$@"\n' > /build/publish/entrypoint.sh && chmod +x /build/publish/entrypoint.sh
+
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
 WORKDIR /app
 
 COPY --from=build /build/publish .
 COPY --from=build /build/libs/ffmpeg /usr/bin/ffmpeg
+COPY --from=build /build/libs/ffprobe /usr/bin/ffprobe
 COPY --from=build /build/libs/yt-dlp /usr/bin/yt-dlp
 
-RUN yt-dlp -U
+ENV DOTNET_EnableDiagnostics=0
 
-RUN apt-get update && \
-    apt-get install -y cron && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN echo "0 2 * * * /usr/bin/yt-dlp -U >> /var/log/yt-dlp-update.log 2>&1" > /etc/cron.d/yt-dlp-cron
-RUN chmod 0644 /etc/cron.d/yt-dlp-cron && touch /var/log/yt-dlp-update.log && crontab /etc/cron.d/yt-dlp-cron
-
-ENTRYPOINT yt-dlp -U && tail -f /var/log/yt-dlp-update.log && service cron start && \
-    tail -f /var/log/yt-dlp-update.log & exec /app/dm
+ENTRYPOINT ["/app/entrypoint.sh"]
