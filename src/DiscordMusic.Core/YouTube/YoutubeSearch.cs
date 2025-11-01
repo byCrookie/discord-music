@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
@@ -27,19 +29,29 @@ internal partial class YoutubeSearch(
             return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
         }
 
+        var deno = binaryLocator.LocateAndValidate(youTubeOptions.Value.Deno, "deno");
+
+        if (deno.IsError)
+        {
+            logger.LogError("Failed to locate deno: {Error}", deno.ToPrint());
+            return Error.Unexpected(description: $"Failed to locate deno: {deno.ToPrint()}");
+        }
+
         var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
         logger.LogTrace("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
-        using var process = Process.Start(
-            new ProcessStartInfo
-            {
-                FileName = ytdlp.Value.PathToFile,
-                Arguments = command,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            }
-        );
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = ytdlp.Value.PathToFile,
+            Arguments = command,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        AppendBinaryDirectoryToPath(startInfo, deno.Value);
+
+        using var process = Process.Start(startInfo);
 
         if (process is null)
         {
@@ -111,4 +123,35 @@ internal partial class YoutubeSearch(
 
     [GeneratedRegex("ERROR.*: (?<Error>.*)")]
     private static partial Regex ErrorRegex();
+
+    private static void AppendBinaryDirectoryToPath(
+        ProcessStartInfo startInfo,
+        BinaryLocator.BinaryLocation location)
+    {
+        if (location.Type != BinaryLocator.LocationType.Resolved)
+        {
+            return;
+        }
+
+        var directory = location.PathToFolder;
+        var pathKey = startInfo.Environment.Keys
+            .FirstOrDefault(k => string.Equals(k, "PATH", StringComparison.OrdinalIgnoreCase))
+            ?? "PATH";
+        var existingPath = startInfo.Environment.TryGetValue(pathKey, out var current)
+            ? current
+            : Environment.GetEnvironmentVariable(pathKey) ?? string.Empty;
+
+        existingPath ??= string.Empty;
+
+        var segments = existingPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Contains(directory, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        startInfo.Environment[pathKey] = string.IsNullOrWhiteSpace(existingPath)
+            ? directory
+            : string.Join(Path.PathSeparator, new[] { directory, existingPath });
+    }
 }

@@ -42,6 +42,15 @@ public static class YouTubeModule
                 );
             }
 
+            var deno = binaryLocator.LocateAndValidate(options.Deno, "deno");
+
+            if (deno.IsError)
+            {
+                (failure ??= new StringBuilder()).AppendLine(
+                    $"{nameof(YouTubeOptions.Deno)} {deno.ToPrint()}"
+                );
+            }
+
             var ytdlp = binaryLocator.LocateAndValidate(options.Ytdlp, "yt-dlp");
 
             if (ytdlp.IsError)

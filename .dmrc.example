@@ -42,12 +42,13 @@ Microsoft.Hosting.Lifetime = Information
 ; token = YOUR_GENIUS_API_TOKEN
 
 [youtube]
-; Path to ffmpeg and yt-dlp binaries.
-; Can be a file or directory path. If a directory path is used, yt-dlp and ffmpeg is appended to the path.
+; Path to ffmpeg, yt-dlp, and deno binaries.
+; Can be a file or directory path. If a directory path is used, the binary name is appended to the path.
 ; If empty the binaries are discovered using os specific ways of finding binaries (e.g. PATH environment variable).
 ; Current directory can be explicitly defined with "."
 ; ffmpeg = 
 ; ytdlp =
+; deno =
 
 [cache]
 ; Max size of the cache directory. If the cache directory exceeds this size, the oldest files are deleted if enough

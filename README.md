@@ -7,6 +7,7 @@ Another music bot for Discord with playback controls, song lyrics and advanced q
 - [NetCord](https://github.com/NetCordDev/NetCord): For Discord interaction.
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg): For audio processing.
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp): For YouTube audio extraction.
+- [Deno](https://deno.com/): JavaScript runtime required by yt-dlp-ejs.
 - [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET): For Spotify integration.
 - [Genius](https://genius.com): For lyrics fetching.
 
@@ -57,7 +58,7 @@ docker run -d --restart always --platform linux/amd64 --env-file .env --name dm 
 
 Use the `--env-file` option to pass environment variables. Example `.env` files are available [here](.env.example).
 
-For custom-builds, refer to the [Dockerfile](Dockerfile).
+For custom-builds, refer to the [Dockerfile](Dockerfile). The published image bundles the latest nightly `yt-dlp`, patched `ffmpeg`, and the `deno` runtime so that YouTube extraction works out of the box.
 
 ### Local Installation
 
@@ -75,6 +76,7 @@ Make sure to change the cache location in the `.dmrc` file to a writable directo
   extract `ffmpeg` and `ffprobe`.
 - **yt-dlp**: Install from [yt-dlp releases](https://github.com/yt-dlp/yt-dlp/releases) (or nightly builds if desired).
 - Add them to your system PATH or place them in the bot's directory.
+- **Deno**: Install by following the [official instructions](https://docs.deno.com/runtime/getting_started/installation/) for your platform. Make sure the `deno` binary is available on the PATH or configure it via the `youtube.deno` setting described below.
 - **Opus**: Install the Opus codec if not available. Download from [Opus Codec](https://opus-codec.org/) or build from
   source.
 - **Libsodium**: Install from [Libsodium](https://libsodium.org/) if needed or build from source.
@@ -100,6 +102,8 @@ DISCORD_MUSIC_DISCORD__ALLOW__0=music
 ```
 
 An example `.dmrc` file is available [here](.dmrc.example).
+
+The `[youtube]` section accepts `ffmpeg`, `ytdlp`, and `deno` entries. Each value can point to either a binary file or a directory that contains the executable. Leave them empty to fall back to the system `PATH`.
 
 ## Support
 

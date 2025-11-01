@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.IO;
 using System.IO.Abstractions;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Audio;
@@ -35,6 +37,14 @@ internal partial class YouTubeDownload(
                 return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
             }
 
+            var deno = binaryLocator.LocateAndValidate(options.Value.Deno, "deno");
+
+            if (deno.IsError)
+            {
+                logger.LogError("Failed to locate deno: {Error}", deno.ToPrint());
+                return Error.Unexpected(description: $"Failed to locate deno: {deno.ToPrint()}");
+            }
+
             var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
 
             if (ffmpeg.IsError)
@@ -60,17 +70,19 @@ internal partial class YouTubeDownload(
 
             logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
-            using var ytdlpProcess = Process.Start(
-                new ProcessStartInfo
-                {
-                    FileName = ytdlp.Value.PathToFile,
-                    Arguments = command.ToString(),
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                }
-            );
+            var ytdlpStartInfo = new ProcessStartInfo
+            {
+                FileName = ytdlp.Value.PathToFile,
+                Arguments = command.ToString(),
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            AppendBinaryDirectoryToPath(ytdlpStartInfo, deno.Value);
+
+            using var ytdlpProcess = Process.Start(ytdlpStartInfo);
 
             if (ytdlpProcess is null)
             {
@@ -166,6 +178,37 @@ internal partial class YouTubeDownload(
                 fileSystem.File.Delete(tempFile);
             }
         }
+    }
+
+    private static void AppendBinaryDirectoryToPath(
+        ProcessStartInfo startInfo,
+        BinaryLocator.BinaryLocation location)
+    {
+        if (location.Type != BinaryLocator.LocationType.Resolved)
+        {
+            return;
+        }
+
+        var directory = location.PathToFolder;
+        var pathKey = startInfo.Environment.Keys
+            .FirstOrDefault(k => string.Equals(k, "PATH", StringComparison.OrdinalIgnoreCase))
+            ?? "PATH";
+        var existingPath = startInfo.Environment.TryGetValue(pathKey, out var current)
+            ? current
+            : Environment.GetEnvironmentVariable(pathKey) ?? string.Empty;
+
+        existingPath ??= string.Empty;
+
+        var segments = existingPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Contains(directory, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        startInfo.Environment[pathKey] = string.IsNullOrWhiteSpace(existingPath)
+            ? directory
+            : string.Join(Path.PathSeparator, new[] { directory, existingPath });
     }
 
     private void ProcessOutput(DataReceivedEventArgs e, List<string> lines)

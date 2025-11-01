@@ -13,6 +13,9 @@ public class YouTubeOptions
     [ConfigurationKeyName("ytdlp")]
     public string? Ytdlp { get; init; }
 
+    [ConfigurationKeyName("deno")]
+    public string? Deno { get; init; }
+
     [ConfigurationKeyName("ffmpeg")]
     public string? Ffmpeg { get; init; }
 }
