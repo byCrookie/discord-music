@@ -8,6 +8,7 @@ Another music bot for Discord with playback controls, song lyrics and advanced q
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg): For audio processing.
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp): For YouTube audio extraction.
 - [Deno](https://deno.com/): JavaScript runtime required by yt-dlp-ejs.
+- [yt-dlp-ejs](https://github.com/yt-dlp/ejs): External JavaScript challenge solver scripts used by yt-dlp.
 - [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET): For Spotify integration.
 - [Genius](https://genius.com): For lyrics fetching.
 
@@ -77,6 +78,7 @@ Make sure to change the cache location in the `.dmrc` file to a writable directo
 - **yt-dlp**: Install from [yt-dlp releases](https://github.com/yt-dlp/yt-dlp/releases) (or nightly builds if desired).
 - Add them to your system PATH or place them in the bot's directory.
 - **Deno**: Install by following the [official instructions](https://docs.deno.com/runtime/getting_started/installation/) for your platform. Make sure the `deno` binary is available on the PATH or configure it via the `youtube.deno` setting described below.
+- **yt-dlp-ejs scripts**: Allow yt-dlp to download the solver scripts by keeping the default `youtube.remoteComponents = ejs:github`, or install the [yt-dlp-ejs](https://pypi.org/project/yt-dlp-ejs/) package alongside yt-dlp if you manage the Python environment yourself.
 - **Opus**: Install the Opus codec if not available. Download from [Opus Codec](https://opus-codec.org/) or build from
   source.
 - **Libsodium**: Install from [Libsodium](https://libsodium.org/) if needed or build from source.
@@ -103,7 +105,7 @@ DISCORD_MUSIC_DISCORD__ALLOW__0=music
 
 An example `.dmrc` file is available [here](.dmrc.example).
 
-The `[youtube]` section accepts `ffmpeg`, `ytdlp`, and `deno` entries. Each value can point to either a binary file or a directory that contains the executable. Leave them empty to fall back to the system `PATH`.
+The `[youtube]` section accepts `ffmpeg`, `ytdlp`, and `deno` entries. Each value can point to either a binary file or a directory that contains the executable. Leave them empty to fall back to the system `PATH`. Advanced yt-dlp switches can be configured via `jsRuntimes`, `remoteComponents`, `noJsRuntimes`, and `noRemoteComponents`, mirroring the `--js-runtimes`/`--remote-components` flags. By default the bot enables the `deno` runtime and remote downloads for `ejs:github` so yt-dlp can fetch the latest solver scripts automatically.
 
 ## Support
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 
@@ -18,4 +19,16 @@ public class YouTubeOptions
 
     [ConfigurationKeyName("ffmpeg")]
     public string? Ffmpeg { get; init; }
+
+    [ConfigurationKeyName("jsRuntimes")]
+    public List<string> JsRuntimes { get; init; } = ["deno"];
+
+    [ConfigurationKeyName("remoteComponents")]
+    public List<string> RemoteComponents { get; init; } = ["ejs:github"];
+
+    [ConfigurationKeyName("noJsRuntimes")]
+    public bool NoJsRuntimes { get; init; }
+
+    [ConfigurationKeyName("noRemoteComponents")]
+    public bool NoRemoteComponents { get; init; }
 }

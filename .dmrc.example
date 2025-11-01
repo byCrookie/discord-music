@@ -49,6 +49,15 @@ Microsoft.Hosting.Lifetime = Information
 ; ffmpeg = 
 ; ytdlp =
 ; deno =
+; Additional JavaScript runtimes to enable for yt-dlp (default: deno).
+; Separate multiple entries with commas or repeat the key.
+; jsRuntimes = deno
+; Remote components yt-dlp is allowed to fetch (default: ejs:github).
+; remoteComponents = ejs:github
+; Set to true to disable all pre-configured runtimes.
+; noJsRuntimes = false
+; Set to true to block downloading remote components entirely.
+; noRemoteComponents = false
 
 [cache]
 ; Max size of the cache directory. If the cache directory exceeds this size, the oldest files are deleted if enough

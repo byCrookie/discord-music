@@ -68,6 +68,8 @@ internal partial class YouTubeDownload(
             command.Append($" --output \"{tempFile}\"");
             command.Append(" --no-playlist");
 
+            YtdlpArgumentWriter.AppendRuntimeArguments(command, options.Value);
+
             logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
 
             var ytdlpStartInfo = new ProcessStartInfo

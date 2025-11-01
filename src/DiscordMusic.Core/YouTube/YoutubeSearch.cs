@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
@@ -37,13 +38,21 @@ internal partial class YoutubeSearch(
             return Error.Unexpected(description: $"Failed to locate deno: {deno.ToPrint()}");
         }
 
-        var command = $"--default-search auto \"{query}\" --no-download --flat-playlist -j";
-        logger.LogTrace("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
+        var command = new StringBuilder();
+        command.Append($"--default-search auto \"{query}\"");
+        command.Append(" --no-download");
+        command.Append(" --flat-playlist");
+        command.Append(" -j");
+
+        YtdlpArgumentWriter.AppendRuntimeArguments(command, youTubeOptions.Value);
+
+        var commandText = command.ToString();
+        logger.LogTrace("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, commandText);
 
         var startInfo = new ProcessStartInfo
         {
             FileName = ytdlp.Value.PathToFile,
-            Arguments = command,
+            Arguments = commandText,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -55,8 +64,8 @@ internal partial class YoutubeSearch(
 
         if (process is null)
         {
-            logger.LogError("Failed to start process {Ytdlp} with command {Command}.", ytdlp, command);
-            return Error.Unexpected(description: $"Failed to start process {ytdlp} with command {command}");
+            logger.LogError("Failed to start process {Ytdlp} with command {Command}.", ytdlp, commandText);
+            return Error.Unexpected(description: $"Failed to start process {ytdlp} with command {commandText}");
         }
 
         var lines = new List<string>();
