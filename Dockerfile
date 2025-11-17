@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build/libs
 
 ARG TARGETPLATFORM
@@ -70,7 +70,7 @@ RUN case "$TARGETARCH" in \
 
 RUN printf '#!/usr/bin/env sh\nset -e\n( while true; do /usr/bin/yt-dlp -U || true; sleep 86400; done ) &\nexec /app/dm "$@"\n' > /build/publish/entrypoint.sh && chmod +x /build/publish/entrypoint.sh
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 
 COPY --from=build /build/publish .
