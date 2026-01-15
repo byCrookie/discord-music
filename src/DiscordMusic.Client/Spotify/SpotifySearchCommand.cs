@@ -9,7 +9,7 @@ namespace DiscordMusic.Client.Spotify;
 public static class SpotifySearchCommand
 {
     private static Argument<string> QueryArgument { get; } =
-        new("query") {Description = "The query to search for. Urls are also supported."};
+        new("query") { Description = "The query to search for. Urls are also supported." };
 
     public static Command Create(string[] args)
     {
@@ -18,7 +18,11 @@ public static class SpotifySearchCommand
         return command;
     }
 
-    private static async Task SearchAsync(string[] args, ParseResult parseResult,  CancellationToken ct)
+    private static async Task SearchAsync(
+        string[] args,
+        ParseResult parseResult,
+        CancellationToken ct
+    )
     {
         var query = parseResult.GetRequiredValue(QueryArgument);
 
@@ -36,7 +40,9 @@ public static class SpotifySearchCommand
 
         foreach (var track in search.Value)
         {
-            await parseResult.InvocationConfiguration.Output.WriteLineAsync($"{track.Name} by {string.Join(", ", track.Artists)} - {track.Url}");
+            await parseResult.InvocationConfiguration.Output.WriteLineAsync(
+                $"{track.Name} by {string.Join(", ", track.Artists)} - {track.Url}"
+            );
         }
     }
 }

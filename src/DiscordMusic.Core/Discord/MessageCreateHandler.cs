@@ -25,9 +25,18 @@ public class MessageCreateHandler(
 
         try
         {
-            logger.LogTrace("Message {Message} created by {User}", message.Content, message.Author.Username);
+            logger.LogTrace(
+                "Message {Message} created by {User}",
+                message.Content,
+                message.Author.Username
+            );
 
-            if (!message.Content.StartsWith(options.Value.Prefix, StringComparison.OrdinalIgnoreCase))
+            if (
+                !message.Content.StartsWith(
+                    options.Value.Prefix,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 logger.LogTrace(
                     "Message {Message} does not start with command prefix {Prefix}",
@@ -62,7 +71,11 @@ public class MessageCreateHandler(
             }
 
             var (action, args) = eval.Value;
-            logger.LogDebug("Executing action {Action} for message {Message}", action.GetType().Name, message.Content);
+            logger.LogDebug(
+                "Executing action {Action} for message {Message}",
+                action.GetType().Name,
+                message.Content
+            );
 
             var execution = await action.ExecuteAsync(message, args, ct);
 
@@ -78,7 +91,11 @@ public class MessageCreateHandler(
                 return;
             }
 
-            logger.LogTrace("Executed action {Action} for message {Message}", action.GetType().Name, message.Content);
+            logger.LogTrace(
+                "Executed action {Action} for message {Message}",
+                action.GetType().Name,
+                message.Content
+            );
 
             using var proc = Process.GetCurrentProcess();
             logger.LogInformation("Memory usage: {MemoryUsage}", proc.PrivateMemorySize64.Bytes());
@@ -110,7 +127,9 @@ public class MessageCreateHandler(
 
         var guild = await restClient.GetGuildAsync(message.GuildId.Value, cancellationToken: ct);
 
-        var matchingRoles = guild.Roles.Where(gr => options.Value.Roles.Any(r => r == gr.Value.Name)).ToList();
+        var matchingRoles = guild
+            .Roles.Where(gr => options.Value.Roles.Any(r => r == gr.Value.Name))
+            .ToList();
 
         if (matchingRoles.Count == 0)
         {
@@ -120,8 +139,7 @@ public class MessageCreateHandler(
                 string.Join(",", message.Guild?.Roles.Select(r => r.Value.Name).ToList() ?? [])
             );
             return Error.Forbidden(
-                description:
-                $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
+                description: $"You can't use this command. Valid roles are not configured on the server - {string.Join("|", options.Value.Roles)}."
             );
         }
 
@@ -140,8 +158,7 @@ public class MessageCreateHandler(
             string.Join("|", matchingRoles)
         );
         return Error.Forbidden(
-            description:
-            $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
+            description: $"You can't use this command. You don't have any of these roles - {string.Join("|", options.Value.Roles)}."
         );
     }
 
@@ -157,22 +174,31 @@ public class MessageCreateHandler(
         if (channel is null)
         {
             logger.LogError("Failed to get guild channel for id {ChannelId}", message.ChannelId);
-            return Error.Conflict(description: "You can't use this command in this channel. Not a guild channel.");
+            return Error.Conflict(
+                description: "You can't use this command in this channel. Not a guild channel."
+            );
         }
 
         if (options.Value.Deny.Contains(channel.Value.Value.Name))
         {
             logger.LogTrace("Channel {Channel} is in deny list", channel.Value.Value.Name);
-            return Error.Forbidden(description: "You can't use this command in this channel. Channel is not allowed.");
+            return Error.Forbidden(
+                description: "You can't use this command in this channel. Channel is not allowed."
+            );
         }
 
-        if (options.Value.Allow.Count == 0 || options.Value.Allow.Contains(channel.Value.Value.Name))
+        if (
+            options.Value.Allow.Count == 0
+            || options.Value.Allow.Contains(channel.Value.Value.Name)
+        )
         {
             return Result.Success;
         }
 
         logger.LogTrace("Channel {Channel} is not in allow list", channel.Value.Value.Name);
-        return Error.Forbidden(description: "You can't use this command in this channel. Channel is not allowed.");
+        return Error.Forbidden(
+            description: "You can't use this command in this channel. Channel is not allowed."
+        );
     }
 
     private ErrorOr<(IDiscordAction Action, string[] Args)> EvaluateAction(Message message)

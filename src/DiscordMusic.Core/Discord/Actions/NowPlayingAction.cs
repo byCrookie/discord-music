@@ -6,7 +6,11 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<NowPlayingAction> logger) : IDiscordAction
+public class NowPlayingAction(
+    IVoiceHost voiceHost,
+    Replier replier,
+    ILogger<NowPlayingAction> logger
+) : IDiscordAction
 {
     public string Long => "nowplaying";
     public string Short => "np";
@@ -17,7 +21,11 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
             Usage: `nowplaying`
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Nowplaying");
         var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
@@ -46,7 +54,12 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
             {nowPlaying.Value.AudioStatus.Position.HumanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
-        await replier.Reply().To(message).WithEmbed("Now", nowPlayingMessage).WithDeletion().SendAsync(ct);
+        await replier
+            .Reply()
+            .To(message)
+            .WithEmbed("Now", nowPlayingMessage)
+            .WithDeletion()
+            .SendAsync(ct);
 
         return Result.Success;
     }

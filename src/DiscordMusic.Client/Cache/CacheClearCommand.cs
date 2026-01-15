@@ -17,7 +17,11 @@ public static class CacheClearCommand
         return command;
     }
 
-    private static async Task ClearAsync(string[] args, ParseResult parseResult, CancellationToken ct)
+    private static async Task ClearAsync(
+        string[] args,
+        ParseResult parseResult,
+        CancellationToken ct
+    )
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddUtils();

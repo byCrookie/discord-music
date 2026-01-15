@@ -6,7 +6,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayNextAction> logger) : IDiscordAction
+public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayNextAction> logger)
+    : IDiscordAction
 {
     public string Long => "playnext";
 
@@ -19,7 +20,11 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
             `<query>` - Can be a URL or a search term
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         if (args.Length == 0)
         {
@@ -38,7 +43,12 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
 
         if (play.Value.Track is null)
         {
-            await replier.Reply().To(message).WithEmbed(messageTitle, "No track found").WithDeletion().SendAsync(ct);
+            await replier
+                .Reply()
+                .To(message)
+                .WithEmbed(messageTitle, "No track found")
+                .WithDeletion()
+                .SendAsync(ct);
 
             return Result.Success;
         }

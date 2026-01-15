@@ -7,47 +7,73 @@ namespace DiscordMusic.Core.Utils;
 
 public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger)
 {
+    public enum LocationType
+    {
+        Runtime,
+        Resolved,
+    }
+
     public ErrorOr<BinaryLocation> LocateAndValidate(string? path, string defaultBinaryName)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            logger.LogTrace("{DefaultBinaryName} will be resolved at runtime by the system by the os.", defaultBinaryName);
+            logger.LogTrace(
+                "{DefaultBinaryName} will be resolved at runtime by the system by the os.",
+                defaultBinaryName
+            );
             return new BinaryLocation(LocationType.Runtime, null, null, defaultBinaryName);
         }
 
         if (path.Trim() == ".")
         {
-            logger.LogTrace("Path is '.', returning current directory for binary {DefaultBinaryName}.",
-                defaultBinaryName);
+            logger.LogTrace(
+                "Path is '.', returning current directory for binary {DefaultBinaryName}.",
+                defaultBinaryName
+            );
             var current = new BinaryLocation(
                 LocationType.Resolved,
                 fileSystem.DirectoryInfo.New(fileSystem.Directory.GetCurrentDirectory()),
-                fileSystem.FileInfo.New(fileSystem.Path.Combine(fileSystem.Directory.GetCurrentDirectory(),
-                    defaultBinaryName)),
+                fileSystem.FileInfo.New(
+                    fileSystem.Path.Combine(
+                        fileSystem.Directory.GetCurrentDirectory(),
+                        defaultBinaryName
+                    )
+                ),
                 defaultBinaryName
             );
 
             if (fileSystem.File.Exists(current.Binary!.FullName))
             {
-                logger.LogTrace("Binary {DefaultBinaryName} found in current directory {CurrentDirectory}.",
-                    defaultBinaryName, current.Directory!.FullName);
+                logger.LogTrace(
+                    "Binary {DefaultBinaryName} found in current directory {CurrentDirectory}.",
+                    defaultBinaryName,
+                    current.Directory!.FullName
+                );
                 return current;
             }
 
-            logger.LogError("Binary {DefaultBinaryName} not found in current directory {CurrentDirectory}.",
-                defaultBinaryName, current.Directory!.FullName);
+            logger.LogError(
+                "Binary {DefaultBinaryName} not found in current directory {CurrentDirectory}.",
+                defaultBinaryName,
+                current.Directory!.FullName
+            );
             return Error.Unexpected(
-                description: $"Binary {defaultBinaryName} not found in current directory {current.Directory.FullName}");
+                description: $"Binary {defaultBinaryName} not found in current directory {current.Directory.FullName}"
+            );
         }
 
         if (fileSystem.File.Exists(path))
         {
-            logger.LogTrace("Path is a file, returning directory of file for binary {DefaultBinaryName}.",
-                defaultBinaryName);
+            logger.LogTrace(
+                "Path is a file, returning directory of file for binary {DefaultBinaryName}.",
+                defaultBinaryName
+            );
             return new BinaryLocation(
                 LocationType.Resolved,
-                fileSystem.DirectoryInfo.New(fileSystem.Path.GetDirectoryName(path) ??
-                                             fileSystem.Directory.GetCurrentDirectory()),
+                fileSystem.DirectoryInfo.New(
+                    fileSystem.Path.GetDirectoryName(path)
+                        ?? fileSystem.Directory.GetCurrentDirectory()
+                ),
                 fileSystem.FileInfo.New(path),
                 fileSystem.Path.GetFileName(path)
             );
@@ -58,7 +84,11 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             var binaryPath = fileSystem.Path.Combine(path, defaultBinaryName);
             if (fileSystem.File.Exists(binaryPath))
             {
-                logger.LogTrace("Binary {DefaultBinaryName} found in directory {Path}.", defaultBinaryName, path);
+                logger.LogTrace(
+                    "Binary {DefaultBinaryName} found in directory {Path}.",
+                    defaultBinaryName,
+                    path
+                );
                 return new BinaryLocation(
                     LocationType.Resolved,
                     fileSystem.DirectoryInfo.New(path),
@@ -67,37 +97,49 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
                 );
             }
 
-            logger.LogError("Binary {DefaultBinaryName} not found in directory {Path}.", defaultBinaryName, path);
-            return Error.Unexpected(description: $"Binary {defaultBinaryName} not found in directory {path}");
+            logger.LogError(
+                "Binary {DefaultBinaryName} not found in directory {Path}.",
+                defaultBinaryName,
+                path
+            );
+            return Error.Unexpected(
+                description: $"Binary {defaultBinaryName} not found in directory {path}"
+            );
         }
 
-        logger.LogError("Path {Path} is not a valid path or directory for binary {DefaultBinaryName}.",
-            path, defaultBinaryName);
+        logger.LogError(
+            "Path {Path} is not a valid path or directory for binary {DefaultBinaryName}.",
+            path,
+            defaultBinaryName
+        );
         return Error.Unexpected(
-            description: $"Path {path} is not a valid path or directory for binary {defaultBinaryName}");
+            description: $"Path {path} is not a valid path or directory for binary {defaultBinaryName}"
+        );
     }
 
-    public record BinaryLocation(LocationType Type, IDirectoryInfo? Directory, IFileInfo? Binary, string BinaryName)
+    public record BinaryLocation(
+        LocationType Type,
+        IDirectoryInfo? Directory,
+        IFileInfo? Binary,
+        string BinaryName
+    )
     {
-        public string PathToFile => Type switch
-        {
-            LocationType.Runtime => BinaryName,
-            LocationType.Resolved => Binary!.FullName,
-            _ => throw new ArgumentOutOfRangeException(nameof(Type))
-        };
+        public string PathToFile =>
+            Type switch
+            {
+                LocationType.Runtime => BinaryName,
+                LocationType.Resolved => Binary!.FullName,
+                _ => throw new ArgumentOutOfRangeException(nameof(Type)),
+            };
 
-        public string PathToFolder => Type switch
-        {
-            LocationType.Runtime => throw new UnreachableException(
-                $"Cannot get folder path for runtime binary {BinaryName}."),
-            LocationType.Resolved => Directory!.FullName,
-            _ => throw new ArgumentOutOfRangeException(nameof(Type))
-        };
-    }
-
-    public enum LocationType
-    {
-        Runtime,
-        Resolved,
+        public string PathToFolder =>
+            Type switch
+            {
+                LocationType.Runtime => throw new UnreachableException(
+                    $"Cannot get folder path for runtime binary {BinaryName}."
+                ),
+                LocationType.Resolved => Directory!.FullName,
+                _ => throw new ArgumentOutOfRangeException(nameof(Type)),
+            };
     }
 }

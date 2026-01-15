@@ -1,13 +1,13 @@
 {
-  "version": 1,
-  "isRoot": true,
-  "tools": {
-    "csharpier": {
-      "version": "1.2.5",
-      "commands": [
-        "csharpier"
-      ],
-      "rollForward": false
+    "version": 1,
+    "isRoot": true,
+    "tools": {
+        "csharpier": {
+            "version": "1.2.5",
+            "commands": [
+                "csharpier"
+            ],
+            "rollForward": false
+        }
     }
-  }
 }

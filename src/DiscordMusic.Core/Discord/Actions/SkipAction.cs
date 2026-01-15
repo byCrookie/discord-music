@@ -6,7 +6,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipAction> logger) : IDiscordAction
+public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipAction> logger)
+    : IDiscordAction
 {
     public string Long => "skip";
 
@@ -19,7 +20,11 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
             <position> - The position of the track to skip to
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Skip");
 
@@ -29,7 +34,12 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
         {
             if (!int.TryParse(args[0], out skipCount) || skipCount < 1)
             {
-                await replier.Reply().To(message).WithEmbed("Skip", "Invalid position").WithDeletion().SendAsync(ct);
+                await replier
+                    .Reply()
+                    .To(message)
+                    .WithEmbed("Skip", "Invalid position")
+                    .WithDeletion()
+                    .SendAsync(ct);
 
                 return Result.Success;
             }
@@ -59,7 +69,12 @@ public class SkipAction(IVoiceHost voiceHost, Replier replier, ILogger<SkipActio
         var skipMessage =
             $"**{skip.Value.Track!.Name}** by **{skip.Value.Track!.Artists}** ({skip.Value.Track!.Duration.HumanizeSecond()})";
 
-        await replier.Reply().To(message).WithEmbed("Now", skipMessage).WithDeletion().SendAsync(ct);
+        await replier
+            .Reply()
+            .To(message)
+            .WithEmbed("Now", skipMessage)
+            .WithDeletion()
+            .SendAsync(ct);
 
         return Result.Success;
     }

@@ -11,13 +11,14 @@ namespace DiscordMusic.Client.YouTube;
 
 public static class YouTubeDownloadCommand
 {
-    private static Argument<string> UrlArgument { get; } = new("url")
-        { Description = "The url of the track to download from YouTube" };
+    private static Argument<string> UrlArgument { get; } =
+        new("url") { Description = "The url of the track to download from YouTube" };
 
     private static Argument<FileInfo> OutputArgument { get; } =
-        new("output") {
+        new("output")
+        {
             Description =
-                "The output file path + name to save the track to. Track will be saved as an opus file with the .opus extension."
+                "The output file path + name to save the track to. Track will be saved as an opus file with the .opus extension.",
         };
 
     public static Command Create(string[] args)
@@ -25,13 +26,17 @@ public static class YouTubeDownloadCommand
         var command = new Command("download", "Download a track from YouTube")
         {
             UrlArgument,
-            OutputArgument
+            OutputArgument,
         };
         command.SetAction(async (pr, ct) => await DownloadAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task DownloadAsync(string[] args, ParseResult parseResult, CancellationToken ct)
+    private static async Task DownloadAsync(
+        string[] args,
+        ParseResult parseResult,
+        CancellationToken ct
+    )
     {
         var url = parseResult.GetRequiredValue(UrlArgument);
         var output = parseResult.GetRequiredValue(OutputArgument);
@@ -43,7 +48,11 @@ public static class YouTubeDownloadCommand
         var host = builder.Build();
         var fileSystem = host.Services.GetRequiredService<IFileSystem>();
         var youTubeDownload = host.Services.GetRequiredService<IYouTubeDownload>();
-        var download = await youTubeDownload.DownloadAsync(new Url(url), fileSystem.FileInfo.Wrap(output), ct);
+        var download = await youTubeDownload.DownloadAsync(
+            new Url(url),
+            fileSystem.FileInfo.Wrap(output),
+            ct
+        );
 
         if (download.IsError)
         {
@@ -51,6 +60,8 @@ public static class YouTubeDownloadCommand
             return;
         }
 
-        await parseResult.InvocationConfiguration.Output.WriteLineAsync($"Downloaded track to {output.FullName}");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync(
+            $"Downloaded track to {output.FullName}"
+        );
     }
 }

@@ -23,7 +23,11 @@ public class HelpAction(
             Usage: `help`
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         var help = new StringBuilder();
 
@@ -49,7 +53,9 @@ public class HelpAction(
             typeof(HelpAction),
         };
 
-        var actionInstances = serviceProvider.GetServices<IDiscordAction>().OrderBy(x => actions.IndexOf(x.GetType()));
+        var actionInstances = serviceProvider
+            .GetServices<IDiscordAction>()
+            .OrderBy(x => actions.IndexOf(x.GetType()));
 
         help.AppendLine(
             $"All actions must be prefixed with `{options.Value.Prefix}` (e.g. `{options.Value.Prefix}play` or `{options.Value.Prefix}p`)"
@@ -63,7 +69,11 @@ public class HelpAction(
         }
 
         logger.LogTrace("Help");
-        await replier.Reply().DirectMessage(message).WithEmbed("Help", help.ToString()).SendAsync(ct);
+        await replier
+            .Reply()
+            .DirectMessage(message)
+            .WithEmbed("Help", help.ToString())
+            .SendAsync(ct);
 
         return Result.Success;
     }

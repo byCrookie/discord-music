@@ -6,7 +6,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAction> logger) : IDiscordAction
+public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAction> logger)
+    : IDiscordAction
 {
     public string Long => "pause";
     public string Short => "pa";
@@ -17,7 +18,11 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
             Usage: `pause`
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Pause");
         var pause = await voiceHost.PauseAsync(message, ct);
@@ -32,7 +37,12 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
             {pause.Value.AudioStatus.Position.HumanizeSecond()} / {pause.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
-        await replier.Reply().To(message).WithEmbed("Paused", pausedMessage).WithDeletion().SendAsync(ct);
+        await replier
+            .Reply()
+            .To(message)
+            .WithEmbed("Paused", pausedMessage)
+            .WithDeletion()
+            .SendAsync(ct);
 
         return Result.Success;
     }

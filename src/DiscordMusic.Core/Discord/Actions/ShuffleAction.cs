@@ -6,7 +6,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<ShuffleAction> logger) : IDiscordAction
+public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<ShuffleAction> logger)
+    : IDiscordAction
 {
     public string Long => "shuffle";
     public string Short => "sh";
@@ -17,7 +18,11 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
             Usage: `shuffle`
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Shuffle");
         var shuffle = await voiceHost.ShuffleAsync(message, ct);
@@ -29,7 +34,12 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
 
         if (shuffle.Value.Track is null)
         {
-            await replier.Reply().To(message).WithEmbed("Shuffle", "The queue is empty").WithDeletion().SendAsync(ct);
+            await replier
+                .Reply()
+                .To(message)
+                .WithEmbed("Shuffle", "The queue is empty")
+                .WithDeletion()
+                .SendAsync(ct);
 
             return Result.Success;
         }

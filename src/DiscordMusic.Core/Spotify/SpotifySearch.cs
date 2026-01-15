@@ -19,7 +19,8 @@ internal class SpotifySearch(
 
     public bool IsSpotifyQuery(string query)
     {
-        return Url.IsValid(query) && (query.Contains(SpotifyDomain) || query.Contains(SpotifyApiDomain));
+        return Url.IsValid(query)
+            && (query.Contains(SpotifyDomain) || query.Contains(SpotifyApiDomain));
     }
 
     public async Task<ErrorOr<List<SpotifyTrack>>> SearchAsync(string query, CancellationToken ct)
@@ -36,7 +37,10 @@ internal class SpotifySearch(
         }
 
         var config = spotifyClientConfig.WithAuthenticator(
-            new ClientCredentialsAuthenticator(spotifyOptions.Value.ClientId, spotifyOptions.Value.ClientSecret)
+            new ClientCredentialsAuthenticator(
+                spotifyOptions.Value.ClientId,
+                spotifyOptions.Value.ClientSecret
+            )
         );
 
         var spotify = new SpotifyClient(config);
@@ -55,10 +59,17 @@ internal class SpotifySearch(
         [EnumeratorCancellation] CancellationToken ct
     )
     {
-        var search = await spotify.Search.Item(new SearchRequest(SearchRequest.Types.Track, query), ct);
+        var search = await spotify.Search.Item(
+            new SearchRequest(SearchRequest.Types.Track, query),
+            ct
+        );
         await foreach (var track in spotify.Paginate(search.Tracks, s => s.Tracks, cancel: ct))
         {
-            yield return new SpotifyTrack(track.Name, BuildArtists(track.Artists), new Url(track.Href));
+            yield return new SpotifyTrack(
+                track.Name,
+                BuildArtists(track.Artists),
+                new Url(track.Href)
+            );
         }
     }
 
@@ -70,14 +81,20 @@ internal class SpotifySearch(
     {
         if (url.Host != SpotifyDomain)
         {
-            throw new ArgumentException($"Url {url} is not a Spotify url (host is not {SpotifyDomain})");
+            throw new ArgumentException(
+                $"Url {url} is not a Spotify url (host is not {SpotifyDomain})"
+            );
         }
 
         if (url.Path.Contains("track"))
         {
             var trackId = url.PathSegments.Last();
             var track = await client.Tracks.Get(trackId, ct);
-            yield return new SpotifyTrack(track.Name, BuildArtists(track.Artists), new Url(track.Href));
+            yield return new SpotifyTrack(
+                track.Name,
+                BuildArtists(track.Artists),
+                new Url(track.Href)
+            );
             yield break;
         }
 
@@ -89,7 +106,11 @@ internal class SpotifySearch(
             {
                 yield return item.Track switch
                 {
-                    FullTrack track => new SpotifyTrack(track.Name, BuildArtists(track.Artists), new Url(track.Href)),
+                    FullTrack track => new SpotifyTrack(
+                        track.Name,
+                        BuildArtists(track.Artists),
+                        new Url(track.Href)
+                    ),
                     FullEpisode episode => new SpotifyTrack(
                         episode.Name,
                         episode.Show.Publisher,
@@ -108,7 +129,11 @@ internal class SpotifySearch(
             var album = await client.Albums.GetTracks(albumId, ct);
             await foreach (var track in client.Paginate(album, cancel: ct))
             {
-                yield return new SpotifyTrack(track.Name, BuildArtists(track.Artists), new Url(track.Href));
+                yield return new SpotifyTrack(
+                    track.Name,
+                    BuildArtists(track.Artists),
+                    new Url(track.Href)
+                );
             }
 
             yield break;
@@ -123,13 +148,19 @@ internal class SpotifySearch(
             var topTracks = await client.Artists.GetTopTracks(artistId, artistTopTracksRequest, ct);
             foreach (var topTrack in topTracks.Tracks)
             {
-                yield return new SpotifyTrack(topTrack.Name, BuildArtists(topTrack.Artists), new Url(topTrack.Href));
+                yield return new SpotifyTrack(
+                    topTrack.Name,
+                    BuildArtists(topTrack.Artists),
+                    new Url(topTrack.Href)
+                );
             }
 
             yield break;
         }
 
-        throw new NotSupportedException($"Unknown url type {url}. Supported types are track, playlist, album, artist");
+        throw new NotSupportedException(
+            $"Unknown url type {url}. Supported types are track, playlist, album, artist"
+        );
     }
 
     private static string BuildArtists(IEnumerable<SimpleArtist> artists)

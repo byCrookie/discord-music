@@ -34,27 +34,43 @@ public static class CoreModule
         {
             if (!File.Exists(config))
             {
-                throw new FileNotFoundException($"Configuration file '{Path.GetFullPath(config)}' does not exist.");
+                throw new FileNotFoundException(
+                    $"Configuration file '{Path.GetFullPath(config)}' does not exist."
+                );
             }
 
-            builder.Configuration.AddJsonFile(config, optional: false, reloadOnChange: false);
+            builder.Configuration.AddJsonFile(config, false, false);
         }
 
-        builder.Configuration.AddIniFile(new PhysicalFileProvider(EvalDmrcPath(), ExclusionFilters.None), Dmrc,
-            reloadOnChange: false, optional: true);
+        builder.Configuration.AddIniFile(
+            new PhysicalFileProvider(EvalDmrcPath(), ExclusionFilters.None),
+            Dmrc,
+            reloadOnChange: false,
+            optional: true
+        );
 
         builder.Configuration.AddIniFile(
             new PhysicalFileProvider(
-                Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? Directory.GetCurrentDirectory(),
-                ExclusionFilters.None), Dmrc,
-            reloadOnChange: false, optional: true);
+                Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location)
+                    ?? Directory.GetCurrentDirectory(),
+                ExclusionFilters.None
+            ),
+            Dmrc,
+            reloadOnChange: false,
+            optional: true
+        );
 
-        if (builder.Environment.IsDevelopment() && builder.Environment.ApplicationName is { Length: > 0 })
+        if (
+            builder.Environment.IsDevelopment()
+            && builder.Environment.ApplicationName is { Length: > 0 }
+        )
         {
             try
             {
-                var appAssembly = Assembly.Load(new AssemblyName(builder.Environment.ApplicationName));
-                builder.Configuration.AddUserSecrets(appAssembly, optional: true, reloadOnChange: false);
+                var appAssembly = Assembly.Load(
+                    new AssemblyName(builder.Environment.ApplicationName)
+                );
+                builder.Configuration.AddUserSecrets(appAssembly, true, false);
             }
             catch (FileNotFoundException)
             {
@@ -86,7 +102,7 @@ public static class CoreModule
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
             return Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")
-                   ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         }
 
         return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

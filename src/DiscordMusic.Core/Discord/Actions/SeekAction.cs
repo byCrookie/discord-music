@@ -7,7 +7,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekAction> logger) : IDiscordAction
+public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekAction> logger)
+    : IDiscordAction
 {
     public string Long => "seek";
     public string Short => "sk";
@@ -19,7 +20,11 @@ public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekActio
             `<position>` - The position to seek to (e.g. hh:mm:ss). Precision is in seconds.
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         if (args.Length == 0)
         {
@@ -28,7 +33,9 @@ public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekActio
 
         if (!TimeSpanParser.TryParse(args[0], out var position))
         {
-            return Error.Validation(description: "Not a valid duration (<position>) Usage: seek <position>");
+            return Error.Validation(
+                description: "Not a valid duration (<position>) Usage: seek <position>"
+            );
         }
 
         logger.LogTrace("Seeking to {Position}", position);

@@ -1,4 +1,4 @@
-<Project>    
+<Project>
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <LangVersion>14</LangVersion>
@@ -8,7 +8,7 @@
         <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
-    
+
     <PropertyGroup>
         <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
         <RuntimeIdentifiers>$(RuntimeIdentifiers);win-x86</RuntimeIdentifiers>
@@ -33,6 +33,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Nerdbank.GitVersioning"/>
+        <PackageReference Include="Nerdbank.GitVersioning" />
     </ItemGroup>
 </Project>

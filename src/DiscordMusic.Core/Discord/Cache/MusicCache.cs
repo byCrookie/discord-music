@@ -17,8 +17,12 @@ internal class MusicCache(
     ILogger<FileCache<string, Track>> fileCacheLogger
 ) : IMusicCache
 {
-    private readonly FileCache<string, Track> _fileCache = new(fileSystem, jsonSerializer, fileCacheLogger,
-        ByteSize.Parse(cacheOptions.Value.MaxSize));
+    private readonly FileCache<string, Track> _fileCache = new(
+        fileSystem,
+        jsonSerializer,
+        fileCacheLogger,
+        ByteSize.Parse(cacheOptions.Value.MaxSize)
+    );
 
     public async Task<ErrorOr<Success>> ClearAsync(CancellationToken ct)
     {
@@ -32,7 +36,11 @@ internal class MusicCache(
         return await _fileCache.ClearAsync(ct);
     }
 
-    public async Task<ErrorOr<IFileInfo>> GetOrAddTrackAsync(Track track, ByteSize approxSize, CancellationToken ct)
+    public async Task<ErrorOr<IFileInfo>> GetOrAddTrackAsync(
+        Track track,
+        ByteSize approxSize,
+        CancellationToken ct
+    )
     {
         var index = await IndexAsync(ct);
 
@@ -45,8 +53,12 @@ internal class MusicCache(
         return cache.IsError ? cache.Errors : cache.Value.File.ToErrorOr();
     }
 
-    public async Task<ErrorOr<IFileInfo>> AddOrUpdateTrackAsync(Track track, Track updatedTrack, ByteSize approxSize,
-        CancellationToken ct)
+    public async Task<ErrorOr<IFileInfo>> AddOrUpdateTrackAsync(
+        Track track,
+        Track updatedTrack,
+        ByteSize approxSize,
+        CancellationToken ct
+    )
     {
         var index = await IndexAsync(ct);
 
@@ -55,7 +67,13 @@ internal class MusicCache(
             return index.Errors;
         }
 
-        var cache = await _fileCache.AddOrUpdateAsync(track.Url, updatedTrack.Url, updatedTrack, approxSize, ct);
+        var cache = await _fileCache.AddOrUpdateAsync(
+            track.Url,
+            updatedTrack.Url,
+            updatedTrack,
+            approxSize,
+            ct
+        );
         return cache.IsError ? cache.Errors : cache.Value.File.ToErrorOr();
     }
 
@@ -93,7 +111,9 @@ internal class MusicCache(
         if (string.IsNullOrWhiteSpace(cacheOptions.Value.Location))
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var cacheDir = fileSystem.DirectoryInfo.New(Path.Combine(appData, "discord-music", "cache"));
+            var cacheDir = fileSystem.DirectoryInfo.New(
+                Path.Combine(appData, "discord-music", "cache")
+            );
             logger.LogWarning("Cache location not set, using default {Location}", cacheDir);
 
             if (cacheDir.Exists())

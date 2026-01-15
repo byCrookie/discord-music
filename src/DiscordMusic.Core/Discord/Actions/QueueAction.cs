@@ -7,7 +7,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAction> logger) : IDiscordAction
+public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAction> logger)
+    : IDiscordAction
 {
     private const int PageSize = 20;
 
@@ -22,7 +23,11 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
             <page> - The page number to display. Default is 1.
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Queue");
 
@@ -42,7 +47,12 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
 
         if (tracks.Value.Count == 0)
         {
-            await replier.Reply().To(message).WithEmbed("Queue", "The queue is empty").WithDeletion().SendAsync(ct);
+            await replier
+                .Reply()
+                .To(message)
+                .WithEmbed("Queue", "The queue is empty")
+                .WithDeletion()
+                .SendAsync(ct);
 
             return Result.Success;
         }
@@ -74,7 +84,9 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
             }
             else
             {
-                queue.AppendLine($"{counter} {track.Name} - {track.Artists} [{track.Duration.HumanizeSecond()}]");
+                queue.AppendLine(
+                    $"{counter} {track.Name} - {track.Artists} [{track.Duration.HumanizeSecond()}]"
+                );
             }
         }
 

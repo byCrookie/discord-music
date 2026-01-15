@@ -2,7 +2,12 @@ using NetCord.Gateway.Voice;
 
 namespace DiscordMusic.Core.Discord.Voice;
 
-public record VoiceConnection(VoiceClient VoiceClient, ulong GuildId, ulong ChannelId, Stream Output) : IAsyncDisposable
+public record VoiceConnection(
+    VoiceClient VoiceClient,
+    ulong GuildId,
+    ulong ChannelId,
+    Stream Output
+) : IAsyncDisposable
 {
     public async ValueTask DisposeAsync()
     {

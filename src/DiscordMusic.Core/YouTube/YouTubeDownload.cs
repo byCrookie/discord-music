@@ -17,15 +17,23 @@ internal partial class YouTubeDownload(
     BinaryLocator binaryLocator
 ) : IYouTubeDownload
 {
-    public async Task<ErrorOr<Success>> DownloadAsync(string query, IFileInfo output, CancellationToken ct)
+    public async Task<ErrorOr<Success>> DownloadAsync(
+        string query,
+        IFileInfo output,
+        CancellationToken ct
+    )
     {
         var tempFile = $"{output}.tmp";
         var opusTempFile = $"{tempFile}.opus";
 
         try
         {
-            logger.LogDebug("Downloading audio from YouTube for {Query} to {Output} with temporary file {TempFile}.",
-                query, output.FullName, tempFile);
+            logger.LogDebug(
+                "Downloading audio from YouTube for {Query} to {Output} with temporary file {TempFile}.",
+                query,
+                output.FullName,
+                tempFile
+            );
 
             var ytdlp = binaryLocator.LocateAndValidate(options.Value.Ytdlp, "yt-dlp");
 
@@ -48,7 +56,9 @@ internal partial class YouTubeDownload(
             if (ffmpeg.IsError)
             {
                 logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToPrint());
-                return Error.Unexpected(description: $"Failed to locate ffmpeg: {ffmpeg.ToPrint()}");
+                return Error.Unexpected(
+                    description: $"Failed to locate ffmpeg: {ffmpeg.ToPrint()}"
+                );
             }
 
             var command = new StringBuilder();
@@ -68,7 +78,11 @@ internal partial class YouTubeDownload(
 
             YtdlpArgumentWriter.AppendRuntimeArguments(command, options.Value);
 
-            logger.LogDebug("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, command);
+            logger.LogDebug(
+                "Start process {Ytdlp} with command {Command}.",
+                ytdlp.Value.PathToFile,
+                command
+            );
 
             var ytdlpStartInfo = new ProcessStartInfo
             {
@@ -77,7 +91,7 @@ internal partial class YouTubeDownload(
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                CreateNoWindow = true
+                CreateNoWindow = true,
             };
 
             AppendBinaryDirectoryToPath(ytdlpStartInfo, deno.Value);
@@ -87,7 +101,9 @@ internal partial class YouTubeDownload(
             if (ytdlpProcess is null)
             {
                 logger.LogError("Failed to start process yt-dlp with command {Command}.", command);
-                return Error.Unexpected(description: $"Failed to start process yt-dlp with command {command}");
+                return Error.Unexpected(
+                    description: $"Failed to start process yt-dlp with command {command}"
+                );
             }
 
             var ytdlpLines = new List<string>();
@@ -107,16 +123,28 @@ internal partial class YouTubeDownload(
             if (ytdlpProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, ytdlpErrors);
-                logger.LogError("YouTube download failed with exit code {ExitCode}", ytdlpProcess.ExitCode);
-                return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
+                logger.LogError(
+                    "YouTube download failed with exit code {ExitCode}",
+                    ytdlpProcess.ExitCode
+                );
+                return Error.Unexpected(
+                    description: $"Download from YouTube for {query} failed: {errorMessage}"
+                );
             }
 
-            logger.LogDebug("YouTube download completed. Converting opus in {TempFile} to raw pcm in {Output}.",
-                tempFile, output.FullName);
+            logger.LogDebug(
+                "YouTube download completed. Converting opus in {TempFile} to raw pcm in {Output}.",
+                tempFile,
+                output.FullName
+            );
 
             var ffmpegArgs =
                 $"-y -i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} \"{output.FullName}\"";
-            logger.LogTrace("Calling {Ffmpeg} with arguments {FfmpegArgs}", ffmpeg.Value.PathToFile, ffmpegArgs);
+            logger.LogTrace(
+                "Calling {Ffmpeg} with arguments {FfmpegArgs}",
+                ffmpeg.Value.PathToFile,
+                ffmpegArgs
+            );
             using var ffmpegProcess = Process.Start(
                 new ProcessStartInfo
                 {
@@ -157,11 +185,19 @@ internal partial class YouTubeDownload(
             if (ffmpegProcess.ExitCode != 0)
             {
                 var errorMessage = string.Join(Environment.NewLine, ffmpegErrors);
-                logger.LogError("YouTube download failed with exit code {ExitCode}", ffmpegProcess.ExitCode);
-                return Error.Unexpected(description: $"Download from YouTube for {query} failed: {errorMessage}");
+                logger.LogError(
+                    "YouTube download failed with exit code {ExitCode}",
+                    ffmpegProcess.ExitCode
+                );
+                return Error.Unexpected(
+                    description: $"Download from YouTube for {query} failed: {errorMessage}"
+                );
             }
 
-            logger.LogDebug("YouTube download completed. Audio file saved at {Output}.", output.FullName);
+            logger.LogDebug(
+                "YouTube download completed. Audio file saved at {Output}.",
+                output.FullName
+            );
             return Result.Success;
         }
         finally
@@ -182,7 +218,8 @@ internal partial class YouTubeDownload(
 
     private static void AppendBinaryDirectoryToPath(
         ProcessStartInfo startInfo,
-        BinaryLocator.BinaryLocation location)
+        BinaryLocator.BinaryLocation location
+    )
     {
         if (location.Type != BinaryLocator.LocationType.Resolved)
         {
@@ -190,16 +227,20 @@ internal partial class YouTubeDownload(
         }
 
         var directory = location.PathToFolder;
-        var pathKey = startInfo.Environment.Keys
-            .FirstOrDefault(k => string.Equals(k, "PATH", StringComparison.OrdinalIgnoreCase))
-            ?? "PATH";
+        var pathKey =
+            startInfo.Environment.Keys.FirstOrDefault(k =>
+                string.Equals(k, "PATH", StringComparison.OrdinalIgnoreCase)
+            ) ?? "PATH";
         var existingPath = startInfo.Environment.TryGetValue(pathKey, out var current)
             ? current
             : Environment.GetEnvironmentVariable(pathKey) ?? string.Empty;
 
         existingPath ??= string.Empty;
 
-        var segments = existingPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        var segments = existingPath.Split(
+            Path.PathSeparator,
+            StringSplitOptions.RemoveEmptyEntries
+        );
 
         if (segments.Contains(directory, StringComparer.OrdinalIgnoreCase))
         {

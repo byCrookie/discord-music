@@ -29,10 +29,18 @@ public class AudioPlayer(
         }
 
         _audioStream.Resume();
-        return new AudioStatus(ToAudioState(_audioStream.State), _audioStream.Position, _audioStream.Length);
+        return new AudioStatus(
+            ToAudioState(_audioStream.State),
+            _audioStream.Position,
+            _audioStream.Length
+        );
     }
 
-    public async Task<ErrorOr<AudioStatus>> SeekAsync(TimeSpan time, AudioStream.SeekMode mode, CancellationToken ct)
+    public async Task<ErrorOr<AudioStatus>> SeekAsync(
+        TimeSpan time,
+        AudioStream.SeekMode mode,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Seek audio");
         await using var _ = await _lock.AquireAsync(ct);
@@ -49,7 +57,11 @@ public class AudioPlayer(
             return seek.Errors;
         }
 
-        return new AudioStatus(ToAudioState(_audioStream.State), _audioStream.Position, _audioStream.Length);
+        return new AudioStatus(
+            ToAudioState(_audioStream.State),
+            _audioStream.Position,
+            _audioStream.Length
+        );
     }
 
     public async Task<AudioStatus> StatusAsync(CancellationToken ct)
@@ -58,7 +70,11 @@ public class AudioPlayer(
         await using var _ = await _lock.AquireAsync(ct);
         return _audioStream is null
             ? AudioStatus.Stopped
-            : new AudioStatus(ToAudioState(_audioStream.State), _audioStream.Position, _audioStream.Length);
+            : new AudioStatus(
+                ToAudioState(_audioStream.State),
+                _audioStream.Position,
+                _audioStream.Length
+            );
     }
 
     public async Task<bool> IsPlayingAsync(CancellationToken ct)
@@ -79,7 +95,11 @@ public class AudioPlayer(
         }
 
         _audioStream.Pause();
-        return new AudioStatus(ToAudioState(_audioStream.State), _audioStream.Position, _audioStream.Length);
+        return new AudioStatus(
+            ToAudioState(_audioStream.State),
+            _audioStream.Position,
+            _audioStream.Length
+        );
     }
 
     public async Task StartAsync(
@@ -104,7 +124,14 @@ public class AudioPlayer(
             return Error.Unexpected(description: "Audio not started");
         }
 
-        var audioStream = AudioStream.Load(file, _output, fileSystem, audioStreamlogger, options, ct);
+        var audioStream = AudioStream.Load(
+            file,
+            _output,
+            fileSystem,
+            audioStreamlogger,
+            options,
+            ct
+        );
 
         if (audioStream.IsError)
         {
@@ -126,7 +153,11 @@ public class AudioPlayer(
             _updateAsync(AudioEvent.Error, e, ct).FireAndForget(logger, ct);
         };
 
-        return new AudioStatus(ToAudioState(_audioStream.State), _audioStream.Position, _audioStream.Length);
+        return new AudioStatus(
+            ToAudioState(_audioStream.State),
+            _audioStream.Position,
+            _audioStream.Length
+        );
     }
 
     public async Task StopAsync(CancellationToken ct)

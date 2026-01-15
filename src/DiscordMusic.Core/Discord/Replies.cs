@@ -8,19 +8,22 @@ namespace DiscordMusic.Core.Discord;
 
 public class Replier(RestClient restClient, IOptions<DiscordOptions> options)
 {
-    public Reply Reply() => new(restClient, options);
+    public Reply Reply()
+    {
+        return new Reply(restClient, options);
+    }
 }
 
 public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 {
-    private ulong? _channelId;
-    private Message? _message;
-    private string? _content;
-    private Color _color = options.Value.DiscordColor;
-    private TimeSpan? _deletionDelay;
     private readonly List<IMessageComponentProperties> _components = [];
     private readonly List<EmbedProperties> _embeds = [];
+    private ulong? _channelId;
+    private Color _color = options.Value.DiscordColor;
+    private string? _content;
+    private TimeSpan? _deletionDelay;
     private bool _isDirectMessage;
+    private Message? _message;
 
     public Reply To(Message message)
     {
@@ -80,7 +83,10 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 
         if (delay < TimeSpan.Zero)
         {
-            throw new ArgumentOutOfRangeException(nameof(delay), "Deletion delay must be non-negative.");
+            throw new ArgumentOutOfRangeException(
+                nameof(delay),
+                "Deletion delay must be non-negative."
+            );
         }
 
         _deletionDelay = delay.Value;
@@ -123,7 +129,9 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
 
         if (_message == null && !_channelId.HasValue)
         {
-            throw new InvalidOperationException("Either a message or a channel ID must be provided.");
+            throw new InvalidOperationException(
+                "Either a message or a channel ID must be provided."
+            );
         }
 
         if (_message is not null)
@@ -166,7 +174,11 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
         }
     }
 
-    private static Task DeleteNonBlockingAfterAsync(RestMessage message, TimeSpan deletionDelay, CancellationToken ct)
+    private static Task DeleteNonBlockingAfterAsync(
+        RestMessage message,
+        TimeSpan deletionDelay,
+        CancellationToken ct
+    )
     {
         _ = Task.Run(
             async () =>

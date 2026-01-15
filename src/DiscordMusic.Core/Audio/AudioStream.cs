@@ -12,7 +12,12 @@ namespace DiscordMusic.Core.Audio;
 internal static partial class AudioStreamLogMessages
 {
     [LoggerMessage(Message = "[{Id}] Streaming {Type} ({Bytes})", Level = LogLevel.Trace)]
-    internal static partial void LogStreaming(this ILogger logger, string id, string type, string bytes);
+    internal static partial void LogStreaming(
+        this ILogger logger,
+        string id,
+        string type,
+        string bytes
+    );
 
     [LoggerMessage(Message = "[{Id}] Stream ended", Level = LogLevel.Trace)]
     internal static partial void LogStreamEnded(this ILogger logger, string id);
@@ -63,10 +68,10 @@ public class AudioStream : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly byte[] _emptyBuffer;
     private readonly string _id;
-    private readonly Lock _lock;
-    private readonly ILogger _logger;
 
     private readonly Stream _inputStream;
+    private readonly Lock _lock;
+    private readonly ILogger _logger;
     private readonly Stream _outputStream;
 
     private AudioStream(
@@ -97,7 +102,10 @@ public class AudioStream : IDisposable
                 {
                     while (!_cts.IsCancellationRequested)
                     {
-                        _logger.LogPosition(Position.HumanizeMillisecond(), Length.HumanizeMillisecond());
+                        _logger.LogPosition(
+                            Position.HumanizeMillisecond(),
+                            Length.HumanizeMillisecond()
+                        );
 
                         switch (State)
                         {
@@ -114,7 +122,11 @@ public class AudioStream : IDisposable
                                 await HandleStoppedAsync(_cts.Token);
                                 break;
                             default:
-                                throw new ArgumentOutOfRangeException(nameof(State), State, $"Unknown state {State}");
+                                throw new ArgumentOutOfRangeException(
+                                    nameof(State),
+                                    State,
+                                    $"Unknown state {State}"
+                                );
                         }
                     }
                 }
@@ -288,7 +300,9 @@ public class AudioStream : IDisposable
 
         public static Bytes ToBytes(TimeSpan time)
         {
-            return From((long)Math.Ceiling(1d * time.TotalSeconds * SampleRate * Channels * BytesPerSample));
+            return From(
+                (long)Math.Ceiling(1d * time.TotalSeconds * SampleRate * Channels * BytesPerSample)
+            );
         }
 
         public static Bytes operator +(Bytes a, Bytes b)

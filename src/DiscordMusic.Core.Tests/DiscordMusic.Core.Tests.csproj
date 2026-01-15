@@ -1,19 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="TUnit"/>
+        <PackageReference Include="TUnit" />
         <PackageReference Update="Nerdbank.GitVersioning">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
+        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj" />
     </ItemGroup>
-
 </Project>

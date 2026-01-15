@@ -45,7 +45,11 @@ internal partial class YoutubeSearch(
         YtdlpArgumentWriter.AppendRuntimeArguments(command, youTubeOptions.Value);
 
         var commandText = command.ToString();
-        logger.LogTrace("Start process {Ytdlp} with command {Command}.", ytdlp.Value.PathToFile, commandText);
+        logger.LogTrace(
+            "Start process {Ytdlp} with command {Command}.",
+            ytdlp.Value.PathToFile,
+            commandText
+        );
 
         var startInfo = new ProcessStartInfo
         {
@@ -62,8 +66,14 @@ internal partial class YoutubeSearch(
 
         if (process is null)
         {
-            logger.LogError("Failed to start process {Ytdlp} with command {Command}.", ytdlp, commandText);
-            return Error.Unexpected(description: $"Failed to start process {ytdlp} with command {commandText}");
+            logger.LogError(
+                "Failed to start process {Ytdlp} with command {Command}.",
+                ytdlp,
+                commandText
+            );
+            return Error.Unexpected(
+                description: $"Failed to start process {ytdlp} with command {commandText}"
+            );
         }
 
         var lines = new List<string>();
@@ -84,7 +94,9 @@ internal partial class YoutubeSearch(
         {
             var errorMessage = string.Join(Environment.NewLine, errors);
             logger.LogError("YouTube search failed with exit code {ExitCode}", process.ExitCode);
-            return Error.Unexpected(description: $"Search on YouTube for {query} failed: {errorMessage}");
+            return Error.Unexpected(
+                description: $"Search on YouTube for {query} failed: {errorMessage}"
+            );
         }
 
         var tracks = lines
@@ -133,7 +145,8 @@ internal partial class YoutubeSearch(
 
     private static void AppendBinaryDirectoryToPath(
         ProcessStartInfo startInfo,
-        BinaryLocator.BinaryLocation location)
+        BinaryLocator.BinaryLocation location
+    )
     {
         if (location.Type != BinaryLocator.LocationType.Resolved)
         {
@@ -141,16 +154,20 @@ internal partial class YoutubeSearch(
         }
 
         var directory = location.PathToFolder;
-        var pathKey = startInfo.Environment.Keys
-            .FirstOrDefault(k => string.Equals(k, "PATH", StringComparison.OrdinalIgnoreCase))
-            ?? "PATH";
+        var pathKey =
+            startInfo.Environment.Keys.FirstOrDefault(k =>
+                string.Equals(k, "PATH", StringComparison.OrdinalIgnoreCase)
+            ) ?? "PATH";
         var existingPath = startInfo.Environment.TryGetValue(pathKey, out var current)
             ? current
             : Environment.GetEnvironmentVariable(pathKey) ?? string.Empty;
 
         existingPath ??= string.Empty;
 
-        var segments = existingPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        var segments = existingPath.Split(
+            Path.PathSeparator,
+            StringSplitOptions.RemoveEmptyEntries
+        );
 
         if (segments.Contains(directory, StringComparer.OrdinalIgnoreCase))
         {

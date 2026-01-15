@@ -16,7 +16,11 @@ public class LeaveAction(IVoiceHost voiceHost, ILogger<LeaveAction> logger) : ID
             Usage: `leave`
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Leave");
         var stop = await voiceHost.DisconnectAsync(ct);

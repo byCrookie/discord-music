@@ -10,11 +10,18 @@ public interface IAudioPlayer
         Func<AudioEvent, Exception?, CancellationToken, Task> updateAsync,
         CancellationToken ct
     );
+
     Task StopAsync(CancellationToken ct);
     Task<ErrorOr<AudioStatus>> PlayAsync(IFileInfo file, CancellationToken ct);
     Task<ErrorOr<AudioStatus>> PauseAsync(CancellationToken ct);
     Task<ErrorOr<AudioStatus>> ResumeAsync(CancellationToken ct);
-    Task<ErrorOr<AudioStatus>> SeekAsync(TimeSpan time, AudioStream.SeekMode mode, CancellationToken ct);
+
+    Task<ErrorOr<AudioStatus>> SeekAsync(
+        TimeSpan time,
+        AudioStream.SeekMode mode,
+        CancellationToken ct
+    );
+
     Task<AudioStatus> StatusAsync(CancellationToken ct);
     Task<bool> IsPlayingAsync(CancellationToken ct);
 }

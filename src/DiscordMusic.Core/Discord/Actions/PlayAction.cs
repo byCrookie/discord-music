@@ -6,7 +6,8 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayAction> logger) : IDiscordAction
+public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayAction> logger)
+    : IDiscordAction
 {
     public string Long => "play";
 
@@ -19,7 +20,11 @@ public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayActio
             `<query>` - Can be a URL or a search term. Default search is YouTube. If URL is Spotify, it will search Spotify. Download is always from YouTube.
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         if (args.Length == 0)
         {
@@ -38,7 +43,12 @@ public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayActio
 
         if (play.Value.Track is null)
         {
-            await replier.Reply().To(message).WithEmbed(messageTitle, "No track found").WithDeletion().SendAsync(ct);
+            await replier
+                .Reply()
+                .To(message)
+                .WithEmbed(messageTitle, "No track found")
+                .WithDeletion()
+                .SendAsync(ct);
 
             return Result.Success;
         }

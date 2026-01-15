@@ -22,7 +22,11 @@ public static class CacheGetOrAddCommand
         new("--url", "-u") { Required = true, Description = "The URL of the track" };
 
     private static Option<TimeSpan> DurationOption { get; } =
-        new("--duration", "-d") { DefaultValueFactory = _ => TimeSpan.Zero, Description = "The duration of the track" };
+        new("--duration", "-d")
+        {
+            DefaultValueFactory = _ => TimeSpan.Zero,
+            Description = "The duration of the track",
+        };
 
     public static Command Create(string[] args)
     {
@@ -31,22 +35,32 @@ public static class CacheGetOrAddCommand
             TitleOption,
             ArtistOption,
             UrlOption,
-            DurationOption
+            DurationOption,
         };
         command.SetAction(async (pr, ct) => await ReserveAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task ReserveAsync(string[] args, ParseResult parseResult, CancellationToken ct)
+    private static async Task ReserveAsync(
+        string[] args,
+        ParseResult parseResult,
+        CancellationToken ct
+    )
     {
         var title = parseResult.GetRequiredValue(TitleOption);
         var artist = parseResult.GetRequiredValue(ArtistOption);
         var url = parseResult.GetRequiredValue(UrlOption);
         var duration = parseResult.GetRequiredValue(DurationOption);
 
-        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(artist) || string.IsNullOrWhiteSpace(url))
+        if (
+            string.IsNullOrWhiteSpace(title)
+            || string.IsNullOrWhiteSpace(artist)
+            || string.IsNullOrWhiteSpace(url)
+        )
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync("Title, artist, and URL are required");
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(
+                "Title, artist, and URL are required"
+            );
             return;
         }
 
@@ -56,8 +70,11 @@ public static class CacheGetOrAddCommand
         builder.AddCache();
         var host = builder.Build();
         var musicCache = host.Services.GetRequiredService<IMusicCache>();
-        var file = await musicCache.GetOrAddTrackAsync(new Track(title, artist, url, duration),
-            AudioStream.ApproxSize(duration), ct);
+        var file = await musicCache.GetOrAddTrackAsync(
+            new Track(title, artist, url, duration),
+            AudioStream.ApproxSize(duration),
+            ct
+        );
 
         if (file.IsError)
         {
@@ -65,6 +82,8 @@ public static class CacheGetOrAddCommand
             return;
         }
 
-        await parseResult.InvocationConfiguration.Output.WriteLineAsync($"Track added to cache: {file.Value}");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync(
+            $"Track added to cache: {file.Value}"
+        );
     }
 }

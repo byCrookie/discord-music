@@ -7,8 +7,11 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekBackwardAction> logger)
-    : IDiscordAction
+public class SeekBackwardAction(
+    IVoiceHost voiceHost,
+    Replier replier,
+    ILogger<SeekBackwardAction> logger
+) : IDiscordAction
 {
     public string Long => "seekbackward";
     public string Short => "sb";
@@ -20,7 +23,11 @@ public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<S
             `<duration>` - The duration to seek backward
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         if (args.Length == 0)
         {
@@ -29,7 +36,9 @@ public class SeekBackwardAction(IVoiceHost voiceHost, Replier replier, ILogger<S
 
         if (!TimeSpanParser.TryParse(args[0], out var duration))
         {
-            return Error.Validation(description: "Not a valid duration (<duration>) Usage: seek <duration>");
+            return Error.Validation(
+                description: "Not a valid duration (<duration>) Usage: seek <duration>"
+            );
         }
 
         logger.LogTrace("Seeking backward by {Duration}", duration);
