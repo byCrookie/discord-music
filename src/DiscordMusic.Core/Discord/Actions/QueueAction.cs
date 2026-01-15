@@ -74,7 +74,7 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
             }
             else
             {
-                queue.AppendLine($"{counter} {track.Name} - {track.Artists} [{track.Duration.HummanizeSecond()}]");
+                queue.AppendLine($"{counter} {track.Name} - {track.Artists} [{track.Duration.HumanizeSecond()}]");
             }
         }
 

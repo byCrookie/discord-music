@@ -15,13 +15,17 @@
         <PackageReference Include="System.CommandLine"/>
         <PackageReference Include="Testably.Abstractions"/>
         <PackageReference Include="ValueOf"/>
+        <PackageReference Update="Nerdbank.GitVersioning">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(DOTNET_ENVIRONMENT)' == 'Development' OR '$(ASPNETCORE_ENVIRONMENT)' == 'Development'">
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <Content Include=".dmrc.ini">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <CopyToPublishDirectory>Never</CopyToPublishDirectory>

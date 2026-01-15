@@ -39,7 +39,7 @@
   <Folder Name="/_/natives/win-x86_64/">
     <File Path="..\natives\win-x86_64\opus.dll" />
   </Folder>
-  <Project Path="DiscordMusic.Client\DiscordMusic.Client.csproj" Type="Classic C#" />
-  <Project Path="DiscordMusic.Core.Tests\DiscordMusic.Core.Tests.csproj" Type="Classic C#" />
-  <Project Path="DiscordMusic.Core\DiscordMusic.Core.csproj" Type="Classic C#" />
+  <Project Path="DiscordMusic.Client\DiscordMusic.Client.csproj" Type="C#" />
+  <Project Path="DiscordMusic.Core.Tests\DiscordMusic.Core.Tests.csproj" Type="C#" />
+  <Project Path="DiscordMusic.Core\DiscordMusic.Core.csproj" Type="C#" />
 </Solution>

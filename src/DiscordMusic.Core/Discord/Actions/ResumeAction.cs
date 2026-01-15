@@ -29,7 +29,7 @@ public class ResumeAction(IVoiceHost voiceHost, Replier replier, ILogger<ResumeA
 
         var resumedMessage = $"""
             **{resume.Value.Track?.Name}** by **{resume.Value.Track?.Artists}**
-            {resume.Value.AudioStatus.Position.HummanizeSecond()} / {resume.Value.AudioStatus.Length.HummanizeSecond()}
+            {resume.Value.AudioStatus.Position.HumanizeSecond()} / {resume.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
         await replier.Reply().To(message).WithEmbed("Resumed", resumedMessage).WithDeletion().SendAsync(ct);

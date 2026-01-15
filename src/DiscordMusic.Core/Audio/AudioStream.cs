@@ -3,7 +3,6 @@ using System.IO.Abstractions;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Humanizer;
-using Humanizer.Bytes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ValueOf;
@@ -98,7 +97,7 @@ public class AudioStream : IDisposable
                 {
                     while (!_cts.IsCancellationRequested)
                     {
-                        _logger.LogPosition(Position.HummanizeMillisecond(), Length.HummanizeMillisecond());
+                        _logger.LogPosition(Position.HumanizeMillisecond(), Length.HumanizeMillisecond());
 
                         switch (State)
                         {
@@ -269,7 +268,7 @@ public class AudioStream : IDisposable
             "Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
             audioFile.FullName,
             stream.Length.Bytes(),
-            Bytes.From(stream.Length).ToTimeSpan().HummanizeMillisecond()
+            Bytes.From(stream.Length).ToTimeSpan().HumanizeMillisecond()
         );
 
         return new AudioStream(stream, outputStream, logger, options, ct);

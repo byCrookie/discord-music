@@ -48,7 +48,7 @@ public class PlayNextAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayN
             .To(message)
             .WithEmbed(
                 messageTitle,
-                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HummanizeSecond()})"
+                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HumanizeSecond()})"
             )
             .WithDeletion()
             .SendAsync(ct);
