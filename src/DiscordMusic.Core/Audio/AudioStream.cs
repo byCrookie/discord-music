@@ -63,10 +63,9 @@ public class AudioStream : IDisposable
     private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
     private readonly byte[] _buffer;
-    private readonly Bytes _bufferSize;
+    private readonly string _bufferSizeHumanized;
     private readonly TimeSpan _bufferTime;
     private readonly CancellationTokenSource _cts;
-    private readonly byte[] _emptyBuffer;
     private readonly string _id;
 
     private readonly Stream _inputStream;
@@ -87,11 +86,10 @@ public class AudioStream : IDisposable
         _outputStream = outputStream;
         _logger = logger;
         _bufferTime = options.Value.BufferTime;
-        _bufferSize = Bytes.ToBytes(_bufferTime);
-        _buffer = Pool.Rent((int)_bufferSize);
+        var bufferSize = Bytes.ToBytes(_bufferTime);
+        _bufferSizeHumanized = bufferSize.Value.Bytes().Humanize();
+        _buffer = Pool.Rent((int)bufferSize);
         Array.Clear(_buffer, 0, _buffer.Length);
-        _emptyBuffer = Pool.Rent((int)_bufferSize);
-        Array.Clear(_emptyBuffer, 0, _emptyBuffer.Length);
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _lock = new Lock();
 
@@ -102,10 +100,13 @@ public class AudioStream : IDisposable
                 {
                     while (!_cts.IsCancellationRequested)
                     {
-                        _logger.LogPosition(
-                            Position.HumanizeMillisecond(),
-                            Length.HumanizeMillisecond()
-                        );
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                        {
+                            _logger.LogPosition(
+                                Position.HumanizeMillisecond(),
+                                Length.HumanizeMillisecond()
+                            );
+                        }
 
                         switch (State)
                         {
@@ -162,51 +163,45 @@ public class AudioStream : IDisposable
         StreamEnded = null;
         StreamFailed = null;
         _inputStream.Dispose();
-
         Pool.Return(_buffer, true);
-        Pool.Return(_emptyBuffer, true);
     }
 
     private async Task HandlePlayingAsync(CancellationToken ct)
     {
-        var bytesRead = await _inputStream.ReadAsync(_buffer, ct);
-
-        if (bytesRead == 0)
+        try
         {
+            await _inputStream.ReadExactlyAsync(_buffer, ct);
+            _logger.LogStreaming(_id, "audio", _bufferSizeHumanized);
+            await _outputStream.WriteAsync(_buffer, ct);
+        }
+        catch (EndOfStreamException)
+        {
+            await _outputStream.WriteAsync(_buffer, ct);
+            
             State = AudioState.Ended;
             _logger.LogStreamEnded(_id);
-
             if (StreamEnded is not null)
             {
                 await StreamEnded(this, EventArgs.Empty);
             }
-
-            return;
         }
-
-        if (bytesRead < _bufferSize)
-        {
-            _logger.LogFilled(_id);
-            _buffer.AsSpan(bytesRead).Clear();
-        }
-
-        _logger.LogStreaming(_id, "audio", _bufferSize.Value.Bytes().Humanize());
-        await _outputStream.WriteAsync(_buffer, ct);
     }
 
     private async Task HandleSilenceAsync(CancellationToken ct)
     {
-        _logger.LogStreaming(_id, "silence", _bufferSize.Value.Bytes().Humanize());
-        await _outputStream.WriteAsync(_emptyBuffer, ct);
+        _logger.LogStreaming(_id, "silence", _bufferSizeHumanized);
+        await Task.Delay(_bufferTime, ct);
     }
 
     private async Task HandleStoppedAsync(CancellationToken ct)
     {
+        _logger.LogStreaming(_id, "stopped", _bufferSizeHumanized);
         await Task.Delay(_bufferTime, ct);
     }
 
     private async Task HandleEndedAsync(CancellationToken ct)
     {
+        _logger.LogStreaming(_id, "ended", _bufferSizeHumanized);
         await Task.Delay(_bufferTime, ct);
     }
 

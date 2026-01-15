@@ -14,7 +14,7 @@ public class AudioOptions
 
     [Required]
     [ConfigurationKeyName("buffer")]
-    public required string Buffer { get; init; } = "00:00:00.300";
+    public required string Buffer { get; init; } = "00:00:00.500";
 
     [JsonIgnore]
     public TimeSpan BufferTime => TimeSpan.Parse(Buffer);
