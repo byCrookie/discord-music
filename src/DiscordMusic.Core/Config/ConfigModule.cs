@@ -26,14 +26,19 @@ public static class ConfigModule
         {
             List<string>? errors = null;
 
-            if (!string.IsNullOrWhiteSpace(options.ConfigFile) && !File.Exists(Path.GetFullPath(options.ConfigFile)))
+            if (
+                !string.IsNullOrWhiteSpace(options.ConfigFile)
+                && !File.Exists(Path.GetFullPath(options.ConfigFile))
+            )
             {
                 (errors ??= []).Add(
                     $"{ConfigOptions.ConfigFileKey} '{Path.GetFullPath(options.ConfigFile)}' does not exist."
                 );
             }
 
-            return errors is not null ? ValidateOptionsResult.Fail(errors) : ValidateOptionsResult.Success;
+            return errors is not null
+                ? ValidateOptionsResult.Fail(errors)
+                : ValidateOptionsResult.Success;
         }
     }
 }

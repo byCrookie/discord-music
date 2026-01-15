@@ -1,26 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <ItemGroup>
-        <PackageReference Include="ErrorOr"/>
-        <PackageReference Include="Flurl.Http"/>
-        <PackageReference Include="HtmlAgilityPack"/>
-        <PackageReference Include="Humanizer.Core"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Ini"/>
-        <PackageReference Include="Microsoft.Extensions.Options"/>
-        <PackageReference Include="NetCord.Hosting.AspNetCore"/>
-        <PackageReference Include="NetCord.Hosting.Services"/>
-        <PackageReference Include="SpotifyAPI.Web"/>
-        <PackageReference Include="Testably.Abstractions"/>
-        <PackageReference Include="ValueOf"/>
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="Flurl.Http" />
+        <PackageReference Include="HtmlAgilityPack" />
+        <PackageReference Include="Humanizer.Core" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini" />
+        <PackageReference Include="Microsoft.Extensions.Options" />
+        <PackageReference Include="NetCord.Hosting.AspNetCore" />
+        <PackageReference Include="NetCord.Hosting.Services" />
+        <PackageReference Include="SpotifyAPI.Web" />
+        <PackageReference Include="Testably.Abstractions" />
+        <PackageReference Include="ValueOf" />
         <PackageReference Update="Nerdbank.GitVersioning">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageVersion Update="SpotifyAPI.Web" Version="7.2.1"/>
+        <PackageVersion Update="SpotifyAPI.Web" Version="7.2.1" />
     </ItemGroup>
-
 </Project>

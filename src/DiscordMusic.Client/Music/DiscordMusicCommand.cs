@@ -17,18 +17,20 @@ public static class DiscordMusicCommand
             SpotifyCommand.Create(args),
             YouTubeCommand.Create(args),
             LyricsCommand.Create(args),
-            CacheCommand.Create(args)
+            CacheCommand.Create(args),
         };
 
-        root.SetAction(async (pr, ct) =>
-        {
-            var builder = Host.CreateApplicationBuilder(args);
-            builder.Configuration.Sources.Clear();
-            builder.AddCore(ct);
-            var host = builder.Build();
-            host.UseCore();
-            await host.RunAsync(ct);
-        });
+        root.SetAction(
+            async (pr, ct) =>
+            {
+                var builder = Host.CreateApplicationBuilder(args);
+                builder.Configuration.Sources.Clear();
+                builder.AddCore(ct);
+                var host = builder.Build();
+                host.UseCore();
+                await host.RunAsync(ct);
+            }
+        );
 
         return root;
     }

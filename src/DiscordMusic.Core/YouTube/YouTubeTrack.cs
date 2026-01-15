@@ -8,5 +8,7 @@ public readonly record struct YouTubeTrack(
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("channel")] string Channel,
     [property: JsonPropertyName("duration")] double? Duration,
-    [property: JsonPropertyName("original_url")] [property: JsonConverter(typeof(FlurlUrlJsonConverter))] Url Url
+    [property: JsonPropertyName("original_url")]
+    [property: JsonConverter(typeof(FlurlUrlJsonConverter))]
+        Url Url
 );

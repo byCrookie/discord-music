@@ -54,7 +54,9 @@ public class VoiceStateUpdateHandler(
             }
 
             var voiceStatesInChannel = guild
-                .VoiceStates.Where(vs => vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id)
+                .VoiceStates.Where(vs =>
+                    vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id
+                )
                 .ToList();
 
             if (voiceStatesInChannel.Count != 0)

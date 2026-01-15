@@ -8,12 +8,22 @@ public static class TimeSpanExtensions
     {
         public string HumanizeSecond()
         {
-            return timeSpan.Humanize(2, maxUnit: TimeUnit.Hour, minUnit: TimeUnit.Second, collectionSeparator: " ");
+            return timeSpan.Humanize(
+                2,
+                maxUnit: TimeUnit.Hour,
+                minUnit: TimeUnit.Second,
+                collectionSeparator: " "
+            );
         }
 
         public string HumanizeMillisecond()
         {
-            return timeSpan.Humanize(2, maxUnit: TimeUnit.Hour, minUnit: TimeUnit.Millisecond, collectionSeparator: " ");
+            return timeSpan.Humanize(
+                2,
+                maxUnit: TimeUnit.Hour,
+                minUnit: TimeUnit.Millisecond,
+                collectionSeparator: " "
+            );
         }
     }
 }

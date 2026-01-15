@@ -4,7 +4,8 @@ using NetCord.Services.ComponentInteractions;
 
 namespace DiscordMusic.Core.Discord.Interactions;
 
-public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModule<ButtonInteractionContext>
+public class AudioBarModule(IAudioPlayer audioPlayer)
+    : ComponentInteractionModule<ButtonInteractionContext>
 {
     public const string FastBackwardButton = "fastBackward";
     public const string BackwardButton = "backward";
@@ -17,7 +18,11 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     {
         var duration = TimeSpan.FromSeconds(30);
 
-        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
+        var action = await audioPlayer.SeekAsync(
+            duration,
+            AudioStream.SeekMode.Backward,
+            CancellationToken.None
+        );
 
         return action.IsError
             ? action.ToPrint()
@@ -29,7 +34,11 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     {
         var duration = TimeSpan.FromSeconds(10);
 
-        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Backward, CancellationToken.None);
+        var action = await audioPlayer.SeekAsync(
+            duration,
+            AudioStream.SeekMode.Backward,
+            CancellationToken.None
+        );
 
         return action.IsError
             ? action.ToPrint()
@@ -44,11 +53,15 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
         if (isPlaying)
         {
             var pause = await audioPlayer.PauseAsync(CancellationToken.None);
-            return pause.IsError ? pause.ToPrint() : $"Paused. Now at {StatusHumanReadable(pause.Value)}";
+            return pause.IsError
+                ? pause.ToPrint()
+                : $"Paused. Now at {StatusHumanReadable(pause.Value)}";
         }
 
         var resume = await audioPlayer.ResumeAsync(CancellationToken.None);
-        return resume.IsError ? resume.ToPrint() : $"Resumed. Now at {StatusHumanReadable(resume.Value)}";
+        return resume.IsError
+            ? resume.ToPrint()
+            : $"Resumed. Now at {StatusHumanReadable(resume.Value)}";
     }
 
     [ComponentInteraction(FowardButton)]
@@ -56,7 +69,11 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     {
         var duration = TimeSpan.FromSeconds(10);
 
-        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Forward, CancellationToken.None);
+        var action = await audioPlayer.SeekAsync(
+            duration,
+            AudioStream.SeekMode.Forward,
+            CancellationToken.None
+        );
 
         return action.IsError
             ? action.ToPrint()
@@ -68,7 +85,11 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
     {
         var duration = TimeSpan.FromSeconds(30);
 
-        var action = await audioPlayer.SeekAsync(duration, AudioStream.SeekMode.Forward, CancellationToken.None);
+        var action = await audioPlayer.SeekAsync(
+            duration,
+            AudioStream.SeekMode.Forward,
+            CancellationToken.None
+        );
 
         return action.IsError
             ? action.ToPrint()

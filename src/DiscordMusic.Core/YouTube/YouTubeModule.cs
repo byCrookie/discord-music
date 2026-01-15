@@ -27,7 +27,8 @@ public static class YouTubeModule
         return builder;
     }
 
-    private sealed class ValidateSettingsOptions(BinaryLocator binaryLocator) : IValidateOptions<YouTubeOptions>
+    private sealed class ValidateSettingsOptions(BinaryLocator binaryLocator)
+        : IValidateOptions<YouTubeOptions>
     {
         public ValidateOptionsResult Validate(string? name, YouTubeOptions options)
         {
@@ -60,7 +61,9 @@ public static class YouTubeModule
                 );
             }
 
-            return failure is not null ? ValidateOptionsResult.Fail(failure.ToString()) : ValidateOptionsResult.Success;
+            return failure is not null
+                ? ValidateOptionsResult.Fail(failure.ToString())
+                : ValidateOptionsResult.Success;
         }
     }
 }

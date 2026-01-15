@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <AssemblyName>dm</AssemblyName>
@@ -7,22 +6,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ErrorOr"/>
-        <PackageReference Include="Humanizer.Core"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Ini"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting"/>
-        <PackageReference Include="NetCord.Hosting.Services"/>
-        <PackageReference Include="System.CommandLine"/>
-        <PackageReference Include="Testably.Abstractions"/>
-        <PackageReference Include="ValueOf"/>
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="Humanizer.Core" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" />
+        <PackageReference Include="NetCord.Hosting.Services" />
+        <PackageReference Include="System.CommandLine" />
+        <PackageReference Include="Testably.Abstractions" />
+        <PackageReference Include="ValueOf" />
         <PackageReference Update="Nerdbank.GitVersioning">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj"/>
+        <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
@@ -38,5 +37,4 @@
         <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     </PropertyGroup>
-
 </Project>

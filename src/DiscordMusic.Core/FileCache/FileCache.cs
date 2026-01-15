@@ -119,17 +119,24 @@ public class FileCache<TKey, TItem>(
 
         if (!location.Exists())
         {
-            return Error.Validation(description: $"Directory for cache {location.FullName} does not exist");
+            return Error.Validation(
+                description: $"Directory for cache {location.FullName} does not exist"
+            );
         }
 
-        foreach (var dataFile in location.EnumerateFiles().Where(file => file.Name.EndsWith(DataFile)))
+        foreach (
+            var dataFile in location.EnumerateFiles().Where(file => file.Name.EndsWith(DataFile))
+        )
         {
             var content = await fileSystem.File.ReadAllTextAsync(dataFile.FullName, ct);
             var data = jsonSerializer.Deserialize<FileCacheItem<TKey, TItem>>(content);
 
             if (!_cache.TryAdd(data.Key, data))
             {
-                logger.LogWarning("Key {Key} already exists in cache, item will be ignored", data.Key);
+                logger.LogWarning(
+                    "Key {Key} already exists in cache, item will be ignored",
+                    data.Key
+                );
             }
         }
 
@@ -138,8 +145,12 @@ public class FileCache<TKey, TItem>(
         return Result.Success;
     }
 
-    public async Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(TKey key, TItem item, ByteSize approxSize,
-        CancellationToken ct)
+    public async Task<ErrorOr<CacheItem<TKey, TItem>>> GetOrAddAsync(
+        TKey key,
+        TItem item,
+        ByteSize approxSize,
+        CancellationToken ct
+    )
     {
         await using var _ = await _lock.AquireAsync(ct);
 
@@ -152,7 +163,11 @@ public class FileCache<TKey, TItem>(
         {
             if (GetDataFile(fileCacheItem.Id).Exists())
             {
-                return new CacheItem<TKey, TItem>(fileCacheItem.Key, fileCacheItem.Item, GetItemFile(fileCacheItem.Id));
+                return new CacheItem<TKey, TItem>(
+                    fileCacheItem.Key,
+                    fileCacheItem.Item,
+                    GetItemFile(fileCacheItem.Id)
+                );
             }
 
             _cache.Remove(key);
@@ -161,7 +176,10 @@ public class FileCache<TKey, TItem>(
         return await AddAsync(key, item, approxSize, ct);
     }
 
-    private async Task<ErrorOr<Success>> ClearOldestToMakeSpaceAsync(ByteSize approxSize, CancellationToken ct)
+    private async Task<ErrorOr<Success>> ClearOldestToMakeSpaceAsync(
+        ByteSize approxSize,
+        CancellationToken ct
+    )
     {
         var size = _location!
             .EnumerateFiles()
@@ -171,17 +189,31 @@ public class FileCache<TKey, TItem>(
 
         if (size + approxSize <= capacity)
         {
-            logger.LogDebug("Cache size {Size} is less than capacity {Capacity}, no need to clear", size, capacity);
+            logger.LogDebug(
+                "Cache size {Size} is less than capacity {Capacity}, no need to clear",
+                size,
+                capacity
+            );
             return Result.Success;
         }
 
-        logger.LogDebug("{Size} + {ApproxSize} > {Capacity}, clearing oldest files", size, approxSize, capacity);
+        logger.LogDebug(
+            "{Size} + {ApproxSize} > {Capacity}, clearing oldest files",
+            size,
+            approxSize,
+            capacity
+        );
 
         var files = _location!
             .EnumerateFiles()
             .Where(file => file.Name.EndsWith(DataFile) || file.Name.EndsWith(ItemFile))
             .OrderBy(file => file.CreationTimeUtc)
-            .Select(file => new { File = file, file.Length, Bytes = file.Length.Bytes() })
+            .Select(file => new
+            {
+                File = file,
+                file.Length,
+                Bytes = file.Length.Bytes(),
+            })
             .ToList();
 
         var maxToFree = files.Sum(file => file.Length).Bytes();
@@ -189,8 +221,8 @@ public class FileCache<TKey, TItem>(
         if (maxToFree <= approxSize)
         {
             return Error.Unexpected(
-                description:
-                $"Cannot free enough space for {approxSize}. Not enough files to delete. Only {maxToFree} can be freed.");
+                description: $"Cannot free enough space for {approxSize}. Not enough files to delete. Only {maxToFree} can be freed."
+            );
         }
 
         var freed = 0.Bytes();
@@ -200,7 +232,11 @@ public class FileCache<TKey, TItem>(
             {
                 if (file.File.Name.EndsWith(DataFile))
                 {
-                    logger.LogTrace("Deleting data file {File} to free {FileSize}", file.File.FullName, file.Bytes);
+                    logger.LogTrace(
+                        "Deleting data file {File} to free {FileSize}",
+                        file.File.FullName,
+                        file.Bytes
+                    );
                     var content = await fileSystem.File.ReadAllTextAsync(file.File.FullName, ct);
                     var data = jsonSerializer.Deserialize<FileCacheItem<TKey, TItem>>(content);
                     _cache.Remove(data.Key);
@@ -210,7 +246,11 @@ public class FileCache<TKey, TItem>(
 
                 if (file.File.Name.EndsWith(ItemFile))
                 {
-                    logger.LogTrace("Deleting item file {File} to free {FileSize}", file.File.FullName, file.Bytes);
+                    logger.LogTrace(
+                        "Deleting item file {File} to free {FileSize}",
+                        file.File.FullName,
+                        file.Bytes
+                    );
                     fileSystem.File.Delete(file.File.FullName);
                     freed += file.Bytes;
                 }
@@ -222,24 +262,37 @@ public class FileCache<TKey, TItem>(
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "Failed to delete file {File} to free {FileSize}", file.File.FullName, file.Bytes);
+                logger.LogWarning(
+                    e,
+                    "Failed to delete file {File} to free {FileSize}",
+                    file.File.FullName,
+                    file.Bytes
+                );
             }
         }
 
         if (size - freed + approxSize > capacity)
         {
             return Error.Unexpected(
-                description:
-                $"Only freed {freed} bytes, still not enough space for {approxSize} below capacity {capacity}");
+                description: $"Only freed {freed} bytes, still not enough space for {approxSize} below capacity {capacity}"
+            );
         }
 
-        logger.LogDebug("Cleared {Freed} bytes to make space for {ApproxSize} below capacity {Capacity}", freed,
-            approxSize, capacity);
+        logger.LogDebug(
+            "Cleared {Freed} bytes to make space for {ApproxSize} below capacity {Capacity}",
+            freed,
+            approxSize,
+            capacity
+        );
         return Result.Success;
     }
 
-    private async Task<ErrorOr<CacheItem<TKey, TItem>>> AddAsync(TKey key, TItem item, ByteSize approxSize,
-        CancellationToken ct)
+    private async Task<ErrorOr<CacheItem<TKey, TItem>>> AddAsync(
+        TKey key,
+        TItem item,
+        ByteSize approxSize,
+        CancellationToken ct
+    )
     {
         var clear = await ClearOldestToMakeSpaceAsync(approxSize, ct);
 

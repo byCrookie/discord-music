@@ -93,7 +93,9 @@ public static class DiscordModule
                 );
             }
 
-            return failure is not null ? ValidateOptionsResult.Fail(failure.ToString()) : ValidateOptionsResult.Success;
+            return failure is not null
+                ? ValidateOptionsResult.Fail(failure.ToString())
+                : ValidateOptionsResult.Success;
         }
     }
 }
