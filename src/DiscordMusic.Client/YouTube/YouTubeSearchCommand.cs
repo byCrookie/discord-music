@@ -18,7 +18,11 @@ public static class YouTubeSearchCommand
         return command;
     }
 
-    private static async Task SearchAsync(string[] args, ParseResult parseResult, CancellationToken ct)
+    private static async Task SearchAsync(
+        string[] args,
+        ParseResult parseResult,
+        CancellationToken ct
+    )
     {
         var query = parseResult.GetRequiredValue(QueryArgument);
 
@@ -37,7 +41,9 @@ public static class YouTubeSearchCommand
 
         foreach (var track in search.Value)
         {
-            await parseResult.InvocationConfiguration.Output.WriteLineAsync($"{track.Title} by {track.Channel} - {track.Url}");
+            await parseResult.InvocationConfiguration.Output.WriteLineAsync(
+                $"{track.Title} by {track.Channel} - {track.Url}"
+            );
         }
     }
 }

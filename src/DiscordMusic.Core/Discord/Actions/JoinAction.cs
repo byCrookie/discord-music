@@ -16,7 +16,11 @@ public class JoinAction(IVoiceHost voiceHost, ILogger<JoinAction> logger) : IDis
             Usage: `join`
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Join");
         var connection = await voiceHost.ConnectAsync(message, ct);

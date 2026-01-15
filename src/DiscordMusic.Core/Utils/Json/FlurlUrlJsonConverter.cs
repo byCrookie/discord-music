@@ -6,7 +6,11 @@ namespace DiscordMusic.Core.Utils.Json;
 
 public class FlurlUrlJsonConverter : JsonConverter<Url>
 {
-    public override Url Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Url Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType == JsonTokenType.String)
         {
@@ -14,7 +18,9 @@ public class FlurlUrlJsonConverter : JsonConverter<Url>
             return string.IsNullOrWhiteSpace(urlString) ? new Url() : new Url(urlString);
         }
 
-        throw new JsonException($"Unexpected token type {reader.TokenType} when parsing a Flurl.Url.");
+        throw new JsonException(
+            $"Unexpected token type {reader.TokenType} when parsing a Flurl.Url."
+        );
     }
 
     public override void Write(Utf8JsonWriter writer, Url value, JsonSerializerOptions options)

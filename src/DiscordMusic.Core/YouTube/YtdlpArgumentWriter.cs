@@ -45,9 +45,7 @@ internal static class YtdlpArgumentWriter
     private static void AppendQuoted(StringBuilder command, string value)
     {
         command.Append('"');
-        command.Append(value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\""));
+        command.Append(value.Replace("\\", "\\\\").Replace("\"", "\\\""));
         command.Append('"');
     }
 }

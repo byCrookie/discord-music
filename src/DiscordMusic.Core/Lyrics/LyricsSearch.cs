@@ -11,9 +11,16 @@ using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.Lyrics;
 
-internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<LyricsOptions> lyricOptions) : ILyricsSearch
+internal partial class LyricsSearch(
+    ILogger<LyricsSearch> logger,
+    IOptions<LyricsOptions> lyricOptions
+) : ILyricsSearch
 {
-    public async Task<ErrorOr<Lyrics>> SearchAsync(string title, string artist, CancellationToken ct)
+    public async Task<ErrorOr<Lyrics>> SearchAsync(
+        string title,
+        string artist,
+        CancellationToken ct
+    )
     {
         logger.LogDebug("Search lyrics for {Title} - {Artist}", title, artist);
 
@@ -49,7 +56,12 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
             return lyrics.Errors;
         }
 
-        return new Lyrics(firstHit.Result.Title, firstHit.Result.ArtistNames, lyrics.Value, lyricsPageUrl);
+        return new Lyrics(
+            firstHit.Result.Title,
+            firstHit.Result.ArtistNames,
+            lyrics.Value,
+            lyricsPageUrl
+        );
     }
 
     private static Hit BestMatchingHit(List<Hit> hits, string title, string artist)
@@ -94,7 +106,10 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
             for (var i = 1; i <= m; i++)
             {
                 var cost = expected[i - 1] == got[j - 1] ? 0 : 1;
-                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
+                d[i, j] = Math.Min(
+                    Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                    d[i - 1, j - 1] + cost
+                );
             }
         }
 
@@ -125,7 +140,8 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
         {
             var htmlContent = div.InnerHtml;
             var decodedContent = HttpUtility.HtmlDecode(htmlContent);
-            var newlineContent = ReplaceBrWithNewLine().Replace(decodedContent, Environment.NewLine);
+            var newlineContent = ReplaceBrWithNewLine()
+                .Replace(decodedContent, Environment.NewLine);
             var textContent = RemoveNonText().Replace(newlineContent, string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(textContent))
             {
@@ -155,5 +171,7 @@ internal partial class LyricsSearch(ILogger<LyricsSearch> logger, IOptions<Lyric
 
     private readonly record struct Response([property: JsonPropertyName("hits")] List<Hit>? Hits);
 
-    private readonly record struct SearchResponse([property: JsonPropertyName("response")] Response Response);
+    private readonly record struct SearchResponse(
+        [property: JsonPropertyName("response")] Response Response
+    );
 }

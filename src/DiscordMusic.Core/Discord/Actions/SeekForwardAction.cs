@@ -7,8 +7,11 @@ using NetCord.Gateway;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekForwardAction> logger)
-    : IDiscordAction
+public class SeekForwardAction(
+    IVoiceHost voiceHost,
+    Replier replier,
+    ILogger<SeekForwardAction> logger
+) : IDiscordAction
 {
     public string Long => "seekforward";
     public string Short => "sf";
@@ -20,7 +23,11 @@ public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<Se
             `<duration>` - The duration to seek forward
             """;
 
-    public async Task<ErrorOr<Success>> ExecuteAsync(Message message, string[] args, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ExecuteAsync(
+        Message message,
+        string[] args,
+        CancellationToken ct
+    )
     {
         if (args.Length == 0)
         {
@@ -29,7 +36,9 @@ public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<Se
 
         if (!TimeSpanParser.TryParse(args[0], out var duration))
         {
-            return Error.Validation(description: "Not a valid duration (<duration>) Usage: seek <duration>");
+            return Error.Validation(
+                description: "Not a valid duration (<duration>) Usage: seek <duration>"
+            );
         }
 
         logger.LogTrace("Seeking foward by {Duration}", duration);

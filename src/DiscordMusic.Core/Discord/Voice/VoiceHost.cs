@@ -69,9 +69,16 @@ public class VoiceHost(
         }
 
         logger.LogInformation("Joining voice channel {ChannelId}", channelId);
-        var voiceClient = await gatewayClient.JoinVoiceChannelAsync(guildId, channelId, cancellationToken: ct);
+        var voiceClient = await gatewayClient.JoinVoiceChannelAsync(
+            guildId,
+            channelId,
+            cancellationToken: ct
+        );
         await voiceClient.StartAsync(ct);
-        await voiceClient.EnterSpeakingStateAsync(new SpeakingProperties(SpeakingFlags.Priority), cancellationToken: ct);
+        await voiceClient.EnterSpeakingStateAsync(
+            new SpeakingProperties(SpeakingFlags.Priority),
+            cancellationToken: ct
+        );
         var opusStream = new OpusEncodeStream(
             voiceClient.CreateOutputStream(),
             PcmFormat.Short,
@@ -105,7 +112,11 @@ public class VoiceHost(
         return Result.Success;
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> PlayAsync(Message message, string query, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> PlayAsync(
+        Message message,
+        string query,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Play");
         var connect = await ConnectAsync(message, ct);
@@ -118,7 +129,11 @@ public class VoiceHost(
         return await PlayFromQueryAsync(message, query, true, ct);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> PlayNextAsync(Message message, string query, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> PlayNextAsync(
+        Message message,
+        string query,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Play");
         var connect = await ConnectAsync(message, ct);
@@ -188,7 +203,11 @@ public class VoiceHost(
             : VoiceUpdate.None(VoiceUpdateType.Next);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> SkipAsync(Message message, int toIndex, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> SkipAsync(
+        Message message,
+        int toIndex,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Skip");
         var connect = await ConnectAsync(message, ct);
@@ -267,7 +286,11 @@ public class VoiceHost(
 
         return _currentTrack is null
             ? VoiceUpdate.None(VoiceUpdateType.Now)
-            : new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, await audioPlayer.StatusAsync(ct));
+            : new VoiceUpdate(
+                VoiceUpdateType.Now,
+                _currentTrack,
+                await audioPlayer.StatusAsync(ct)
+            );
     }
 
     private async Task<ErrorOr<VoiceUpdate>> PlayFromQueryAsync(
@@ -299,7 +322,12 @@ public class VoiceHost(
             }
 
             var spotifyTracks = searchSpotify
-                .Value.Select(track => new Track(track.Name, track.Artists, track.Url, TimeSpan.Zero))
+                .Value.Select(track => new Track(
+                    track.Name,
+                    track.Artists,
+                    track.Url,
+                    TimeSpan.Zero
+                ))
                 .ToList();
 
             foreach (var track in spotifyTracks)
@@ -371,7 +399,10 @@ public class VoiceHost(
                 if (nextFromError.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", nextFromError.ToPrint());
-                    await replier.Reply().To(_connection!.ChannelId).SendErrorAsync(nextFromError.ToPrint(), ct);
+                    await replier
+                        .Reply()
+                        .To(_connection!.ChannelId)
+                        .SendErrorAsync(nextFromError.ToPrint(), ct);
                     return;
                 }
 
@@ -396,7 +427,10 @@ public class VoiceHost(
                 if (next.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", next.ToPrint());
-                    await replier.Reply().To(_connection!.ChannelId).SendErrorAsync(next.ToPrint(), ct);
+                    await replier
+                        .Reply()
+                        .To(_connection!.ChannelId)
+                        .SendErrorAsync(next.ToPrint(), ct);
                     return;
                 }
 
@@ -421,7 +455,10 @@ public class VoiceHost(
         }
     }
 
-    private async Task<ErrorOr<VoiceUpdate>> PlayNextTrackFromQueueAsync(bool now, CancellationToken ct)
+    private async Task<ErrorOr<VoiceUpdate>> PlayNextTrackFromQueueAsync(
+        bool now,
+        CancellationToken ct
+    )
     {
         var status = await audioPlayer.StatusAsync(ct);
 
@@ -440,10 +477,16 @@ public class VoiceHost(
 
         if (spotifySearch.IsSpotifyQuery(firstTrack.Url))
         {
-            logger.LogDebug("Use YouTube to search for Spotify track {Name} {Artists}", firstTrack.Name,
-                firstTrack.Artists);
+            logger.LogDebug(
+                "Use YouTube to search for Spotify track {Name} {Artists}",
+                firstTrack.Name,
+                firstTrack.Artists
+            );
 
-            var search = await youtubeSearch.SearchAsync($"{firstTrack.Name} {firstTrack.Artists}", ct);
+            var search = await youtubeSearch.SearchAsync(
+                $"{firstTrack.Name} {firstTrack.Artists}",
+                ct
+            );
 
             if (search.IsError)
             {
@@ -462,10 +505,12 @@ public class VoiceHost(
                 TimeSpan.FromSeconds(search.Value.First().Duration ?? 0)
             );
 
-            var update =
-                await musicCache.AddOrUpdateTrackAsync(firstTrack, track,
-                    AudioStream.ApproxSize(track.Duration * (5d / 4d)),
-                    ct);
+            var update = await musicCache.AddOrUpdateTrackAsync(
+                firstTrack,
+                track,
+                AudioStream.ApproxSize(track.Duration * (5d / 4d)),
+                ct
+            );
 
             if (update.IsError)
             {
@@ -475,9 +520,11 @@ public class VoiceHost(
             firstTrack = track;
         }
 
-        var cache = await musicCache.GetOrAddTrackAsync(firstTrack,
+        var cache = await musicCache.GetOrAddTrackAsync(
+            firstTrack,
             AudioStream.ApproxSize(firstTrack.Duration * (5d / 4d)),
-            ct);
+            ct
+        );
 
         if (cache.IsError)
         {
@@ -486,7 +533,11 @@ public class VoiceHost(
 
         if (cache.Value.Exists())
         {
-            logger.LogDebug("Playing existing track {Name} {Artists}", firstTrack.Name, firstTrack.Artists);
+            logger.LogDebug(
+                "Playing existing track {Name} {Artists}",
+                firstTrack.Name,
+                firstTrack.Artists
+            );
 
             var playExisting = await audioPlayer.PlayAsync(cache.Value, ct);
 
@@ -497,10 +548,18 @@ public class VoiceHost(
 
             _currentTrack = firstTrack;
             DownloadNextTrackInBackgroud(ct);
-            return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, await audioPlayer.StatusAsync(ct));
+            return new VoiceUpdate(
+                VoiceUpdateType.Now,
+                _currentTrack,
+                await audioPlayer.StatusAsync(ct)
+            );
         }
 
-        var download = await youTubeDownload.DownloadAsync($"{firstTrack.Name} {firstTrack.Artists}", cache.Value, ct);
+        var download = await youTubeDownload.DownloadAsync(
+            $"{firstTrack.Name} {firstTrack.Artists}",
+            cache.Value,
+            ct
+        );
 
         if (download.IsError)
         {
@@ -516,7 +575,11 @@ public class VoiceHost(
 
         _currentTrack = firstTrack;
         DownloadNextTrackInBackgroud(ct);
-        return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, await audioPlayer.StatusAsync(ct));
+        return new VoiceUpdate(
+            VoiceUpdateType.Now,
+            _currentTrack,
+            await audioPlayer.StatusAsync(ct)
+        );
     }
 
     private void DownloadNextTrackInBackgroud(CancellationToken ct)
@@ -526,16 +589,25 @@ public class VoiceHost(
             {
                 if (musicQueue.TryPeek(out var nextTrack))
                 {
-                    logger.LogDebug("Downloading next track {Name} {Artists} in the background", nextTrack.Name,
-                        nextTrack.Artists);
+                    logger.LogDebug(
+                        "Downloading next track {Name} {Artists} in the background",
+                        nextTrack.Name,
+                        nextTrack.Artists
+                    );
 
                     if (spotifySearch.IsSpotifyQuery(nextTrack.Url))
                     {
-                        var search = await youtubeSearch.SearchAsync($"{nextTrack.Name} {nextTrack.Artists}", ct);
+                        var search = await youtubeSearch.SearchAsync(
+                            $"{nextTrack.Name} {nextTrack.Artists}",
+                            ct
+                        );
 
                         if (search.IsError)
                         {
-                            logger.LogError("Failed to download next track: {Error}", search.ToPrint());
+                            logger.LogError(
+                                "Failed to download next track: {Error}",
+                                search.ToPrint()
+                            );
                             return;
                         }
 
@@ -552,26 +624,37 @@ public class VoiceHost(
                             TimeSpan.FromSeconds(search.Value.First().Duration ?? 0)
                         );
 
-                        var update = await musicCache.AddOrUpdateTrackAsync(nextTrack, track,
-                            AudioStream.ApproxSize(track.Duration * (5d / 4d)), ct);
+                        var update = await musicCache.AddOrUpdateTrackAsync(
+                            nextTrack,
+                            track,
+                            AudioStream.ApproxSize(track.Duration * (5d / 4d)),
+                            ct
+                        );
 
                         if (update.IsError)
                         {
-                            logger.LogError("Failed to update next track: {Error}", update.ToPrint());
+                            logger.LogError(
+                                "Failed to update next track: {Error}",
+                                update.ToPrint()
+                            );
                             return;
                         }
 
                         nextTrack = track;
                     }
 
-                    var nextCache =
-                        await musicCache.GetOrAddTrackAsync(nextTrack,
-                            AudioStream.ApproxSize(nextTrack.Duration * (5d / 4d)),
-                            ct);
+                    var nextCache = await musicCache.GetOrAddTrackAsync(
+                        nextTrack,
+                        AudioStream.ApproxSize(nextTrack.Duration * (5d / 4d)),
+                        ct
+                    );
 
                     if (nextCache.IsError)
                     {
-                        logger.LogError("Failed to get or add next track to cache: {Error}", nextCache.ToPrint());
+                        logger.LogError(
+                            "Failed to get or add next track to cache: {Error}",
+                            nextCache.ToPrint()
+                        );
                         return;
                     }
 
@@ -585,13 +668,19 @@ public class VoiceHost(
 
                         if (download.IsError)
                         {
-                            logger.LogError("Failed to download next track: {Error}", download.ToPrint());
+                            logger.LogError(
+                                "Failed to download next track: {Error}",
+                                download.ToPrint()
+                            );
                             return;
                         }
                     }
 
-                    logger.LogDebug("Downloaded next track {Name} {Artists} in the background", nextTrack.Name,
-                        nextTrack.Artists);
+                    logger.LogDebug(
+                        "Downloaded next track {Name} {Artists} in the background",
+                        nextTrack.Name,
+                        nextTrack.Artists
+                    );
                 }
             },
             ct

@@ -17,7 +17,11 @@ public static class CacheSizeCommand
         return command;
     }
 
-    private static async Task SizeAsync(string[] args, ParseResult parseResult, CancellationToken ct)
+    private static async Task SizeAsync(
+        string[] args,
+        ParseResult parseResult,
+        CancellationToken ct
+    )
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddUtils();
@@ -33,6 +37,8 @@ public static class CacheSizeCommand
             return;
         }
 
-        await parseResult.InvocationConfiguration.Output.WriteLineAsync($"Cache size is {size.Value}");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync(
+            $"Cache size is {size.Value}"
+        );
     }
 }
