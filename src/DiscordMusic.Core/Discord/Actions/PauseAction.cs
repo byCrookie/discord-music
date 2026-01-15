@@ -29,7 +29,7 @@ public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAct
 
         var pausedMessage = $"""
             **{pause.Value.Track?.Name}** by **{pause.Value.Track?.Artists}**
-            {pause.Value.AudioStatus.Position.HummanizeSecond()} / {pause.Value.AudioStatus.Length.HummanizeSecond()}
+            {pause.Value.AudioStatus.Position.HumanizeSecond()} / {pause.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
         await replier.Reply().To(message).WithEmbed("Paused", pausedMessage).WithDeletion().SendAsync(ct);

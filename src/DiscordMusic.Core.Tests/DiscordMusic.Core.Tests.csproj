@@ -6,6 +6,10 @@
 
     <ItemGroup>
         <PackageReference Include="TUnit"/>
+        <PackageReference Update="Nerdbank.GitVersioning">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>

@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube;
@@ -13,28 +11,30 @@ namespace DiscordMusic.Client.YouTube;
 
 public static class YouTubeDownloadCommand
 {
-    private static Argument<string> UrlArgument { get; } = new("url", "The url of the track to download from YouTube");
+    private static Argument<string> UrlArgument { get; } = new("url")
+        { Description = "The url of the track to download from YouTube" };
 
     private static Argument<FileInfo> OutputArgument { get; } =
-        new(
-            "output",
-            "The output file path + name to save the track to. Track will be saved as an opus file with the .opus extension."
-        );
+        new("output") {
+            Description =
+                "The output file path + name to save the track to. Track will be saved as an opus file with the .opus extension."
+        };
 
     public static Command Create(string[] args)
     {
-        var command = new Command("download", "Download a track from YouTube");
-        command.AddArgument(UrlArgument);
-        command.AddArgument(OutputArgument);
-        command.SetHandler(async ctx => await DownloadAsync(args, ctx));
+        var command = new Command("download", "Download a track from YouTube")
+        {
+            UrlArgument,
+            OutputArgument
+        };
+        command.SetAction(async (pr, ct) => await DownloadAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task DownloadAsync(string[] args, InvocationContext context)
+    private static async Task DownloadAsync(string[] args, ParseResult parseResult, CancellationToken ct)
     {
-        var ct = context.GetCancellationToken();
-        var url = context.ParseResult.GetValueForArgument(UrlArgument);
-        var output = context.ParseResult.GetValueForArgument(OutputArgument);
+        var url = parseResult.GetRequiredValue(UrlArgument);
+        var output = parseResult.GetRequiredValue(OutputArgument);
 
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
@@ -43,14 +43,14 @@ public static class YouTubeDownloadCommand
         var host = builder.Build();
         var fileSystem = host.Services.GetRequiredService<IFileSystem>();
         var youTubeDownload = host.Services.GetRequiredService<IYouTubeDownload>();
-        var donwload = await youTubeDownload.DownloadAsync(new Url(url), fileSystem.FileInfo.Wrap(output), ct);
+        var download = await youTubeDownload.DownloadAsync(new Url(url), fileSystem.FileInfo.Wrap(output), ct);
 
-        if (donwload.IsError)
+        if (download.IsError)
         {
-            context.Console.Error.WriteLine(donwload.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(download.ToPrint());
             return;
         }
 
-        context.Console.Out.WriteLine($"Downloaded track to {output.FullName}");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync($"Downloaded track to {output.FullName}");
     }
 }

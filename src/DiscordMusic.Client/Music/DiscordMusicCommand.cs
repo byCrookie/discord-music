@@ -12,20 +12,22 @@ public static class DiscordMusicCommand
 {
     public static RootCommand Create(string[] args)
     {
-        var root = new RootCommand("DiscordMusic");
-        root.AddCommand(SpotifyCommand.Create(args));
-        root.AddCommand(YouTubeCommand.Create(args));
-        root.AddCommand(LyricsCommand.Create(args));
-        root.AddCommand(CacheCommand.Create(args));
+        var root = new RootCommand("DiscordMusic")
+        {
+            SpotifyCommand.Create(args),
+            YouTubeCommand.Create(args),
+            LyricsCommand.Create(args),
+            CacheCommand.Create(args)
+        };
 
-        root.SetHandler(async ctx =>
+        root.SetAction(async (pr, ct) =>
         {
             var builder = Host.CreateApplicationBuilder(args);
             builder.Configuration.Sources.Clear();
-            builder.AddCore(ctx.GetCancellationToken());
+            builder.AddCore(ct);
             var host = builder.Build();
             host.UseCore();
-            await host.RunAsync(ctx.GetCancellationToken());
+            await host.RunAsync(ct);
         });
 
         return root;

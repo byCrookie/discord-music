@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Utils;
@@ -15,14 +13,12 @@ public static class CacheClearCommand
     public static Command Create(string[] args)
     {
         var command = new Command("clear", "Clear cache");
-        command.SetHandler(async ctx => await ClearAsync(args, ctx));
+        command.SetAction(async (pr, ct) => await ClearAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task ClearAsync(string[] args, InvocationContext context)
+    private static async Task ClearAsync(string[] args, ParseResult parseResult, CancellationToken ct)
     {
-        var ct = context.GetCancellationToken();
-
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddUtils();
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
@@ -34,10 +30,10 @@ public static class CacheClearCommand
 
         if (clear.IsError)
         {
-            context.Console.Error.WriteLine(clear.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(clear.ToPrint());
             return;
         }
 
-        context.Console.Out.WriteLine("Cache cleared");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync("Cache cleared");
     }
 }

@@ -6,9 +6,8 @@ public static class LyricsCommand
 {
     public static Command Create(string[] args)
     {
-        var command = new Command("lyrics", "Lyric commands") { IsHidden = true };
-
-        command.AddCommand(LyricsSearchCommand.Create(args));
+        var command = new Command("lyrics", "Lyric commands") { Hidden = true };
+        command.Add(LyricsSearchCommand.Create(args));
         return command;
     }
 }

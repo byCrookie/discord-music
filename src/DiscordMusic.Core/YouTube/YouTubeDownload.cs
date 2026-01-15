@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using System.IO;
 using System.IO.Abstractions;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Audio;

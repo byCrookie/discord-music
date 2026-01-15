@@ -71,7 +71,7 @@ public class VoiceHost(
         logger.LogInformation("Joining voice channel {ChannelId}", channelId);
         var voiceClient = await gatewayClient.JoinVoiceChannelAsync(guildId, channelId, cancellationToken: ct);
         await voiceClient.StartAsync(ct);
-        await voiceClient.EnterSpeakingStateAsync(SpeakingFlags.Priority, cancellationToken: ct);
+        await voiceClient.EnterSpeakingStateAsync(new SpeakingProperties(SpeakingFlags.Priority), cancellationToken: ct);
         var opusStream = new OpusEncodeStream(
             voiceClient.CreateOutputStream(),
             PcmFormat.Short,

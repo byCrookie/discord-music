@@ -18,7 +18,7 @@ public class Reply(RestClient restClient, IOptions<DiscordOptions> options)
     private string? _content;
     private Color _color = options.Value.DiscordColor;
     private TimeSpan? _deletionDelay;
-    private readonly List<ComponentProperties> _components = [];
+    private readonly List<IMessageComponentProperties> _components = [];
     private readonly List<EmbedProperties> _embeds = [];
     private bool _isDirectMessage;
 

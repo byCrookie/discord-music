@@ -43,8 +43,8 @@ public static class DiscordModule
                 | GatewayIntents.DirectMessages;
         });
 
-        builder.Services.AddGatewayEventHandler<MessageCreateHandler>();
-        builder.Services.AddGatewayEventHandler<VoiceStateUpdateHandler>();
+        builder.Services.AddGatewayHandler<MessageCreateHandler>();
+        builder.Services.AddGatewayHandler<VoiceStateUpdateHandler>();
 
         builder.Services.AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
@@ -77,9 +77,6 @@ public static class DiscordModule
     public static IHost UseDiscord(this IHost host)
     {
         host.AddComponentInteractionModule<AudioBarModule>();
-
-        host.UseGatewayEventHandlers();
-
         return host;
     }
 

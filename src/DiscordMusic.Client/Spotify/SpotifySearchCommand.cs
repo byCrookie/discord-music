@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,20 +9,18 @@ namespace DiscordMusic.Client.Spotify;
 public static class SpotifySearchCommand
 {
     private static Argument<string> QueryArgument { get; } =
-        new("query", "The query to search for. Urls are also supported.");
+        new("query") {Description = "The query to search for. Urls are also supported."};
 
     public static Command Create(string[] args)
     {
-        var command = new Command("search", "Search for a track on Spotify");
-        command.AddArgument(QueryArgument);
-        command.SetHandler(async ctx => await SearchAsync(args, ctx));
+        var command = new Command("search", "Search for a track on Spotify") { QueryArgument };
+        command.SetAction(async (pr, ct) => await SearchAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task SearchAsync(string[] args, InvocationContext context)
+    private static async Task SearchAsync(string[] args, ParseResult parseResult,  CancellationToken ct)
     {
-        var ct = context.GetCancellationToken();
-        var query = context.ParseResult.GetValueForArgument(QueryArgument);
+        var query = parseResult.GetRequiredValue(QueryArgument);
 
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddSpotify();
@@ -34,13 +30,13 @@ public static class SpotifySearchCommand
 
         if (search.IsError)
         {
-            context.Console.Error.WriteLine(search.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(search.ToPrint());
             return;
         }
 
         foreach (var track in search.Value)
         {
-            context.Console.Out.WriteLine($"{track.Name} by {string.Join(", ", track.Artists)} - {track.Url}");
+            await parseResult.InvocationConfiguration.Output.WriteLineAsync($"{track.Name} by {string.Join(", ", track.Artists)} - {track.Url}");
         }
     }
 }

@@ -3,7 +3,6 @@ using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
 using ErrorOr;
 using Humanizer;
-using Humanizer.Bytes;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.FileCache;

@@ -39,7 +39,7 @@ public class ShuffleAction(IVoiceHost voiceHost, Replier replier, ILogger<Shuffl
             .To(message)
             .WithEmbed(
                 "Next",
-                $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HummanizeSecond()})"
+                $"**{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HumanizeSecond()})"
             )
             .WithDeletion()
             .SendAsync(ct);

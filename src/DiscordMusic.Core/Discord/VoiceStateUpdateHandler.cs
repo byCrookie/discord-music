@@ -7,14 +7,13 @@ using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 
-[GatewayEvent(nameof(GatewayClient.VoiceStateUpdate))]
 public class VoiceStateUpdateHandler(
     ILogger<VoiceStateUpdateHandler> logger,
     Cancellation cancellation,
     RestClient restClient,
     GatewayClient gatewayClient,
     IVoiceHost voiceHost
-) : IGatewayEventHandler<VoiceState>
+) : IVoiceStateUpdateGatewayHandler
 {
     public async ValueTask HandleAsync(VoiceState voiceState)
     {

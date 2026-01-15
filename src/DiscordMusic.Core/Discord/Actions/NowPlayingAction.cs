@@ -43,7 +43,7 @@ public class NowPlayingAction(IVoiceHost voiceHost, Replier replier, ILogger<Now
 
         var nowPlayingMessage = $"""
             **{track.Name}** by **{track.Artists}**
-            {nowPlaying.Value.AudioStatus.Position.HummanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HummanizeSecond()}
+            {nowPlaying.Value.AudioStatus.Position.HumanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
         await replier.Reply().To(message).WithEmbed("Now", nowPlayingMessage).WithDeletion().SendAsync(ct);

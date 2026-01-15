@@ -41,13 +41,13 @@ public class SeekAction(IVoiceHost voiceHost, Replier replier, ILogger<SeekActio
 
         var seekedMessage = $"""
             **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-            {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
+            {seek.Value.AudioStatus.Position.HumanizeSecond()} / {seek.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
         await replier
             .Reply()
             .To(message)
-            .WithEmbed($"Seeked to {position.HummanizeSecond()}", seekedMessage)
+            .WithEmbed($"Seeked to {position.HumanizeSecond()}", seekedMessage)
             .WithDeletion()
             .SendAsync(ct);
 

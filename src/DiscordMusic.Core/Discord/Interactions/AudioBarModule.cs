@@ -21,7 +21,7 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
 
         return action.IsError
             ? action.ToPrint()
-            : $"Seeked backward by {duration.HummanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
+            : $"Seeked backward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
     [ComponentInteraction(BackwardButton)]
@@ -33,7 +33,7 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
 
         return action.IsError
             ? action.ToPrint()
-            : $"Seeked backward by {duration.HummanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
+            : $"Seeked backward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
     [ComponentInteraction(PlayPauseButton)]
@@ -60,7 +60,7 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
 
         return action.IsError
             ? action.ToPrint()
-            : $"Seeked forward by {duration.HummanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
+            : $"Seeked forward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
     [ComponentInteraction(FastForwardButton)]
@@ -72,11 +72,11 @@ public class AudioBarModule(IAudioPlayer audioPlayer) : ComponentInteractionModu
 
         return action.IsError
             ? action.ToPrint()
-            : $"Seeked forward by {duration.HummanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
+            : $"Seeked forward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
     private static string StatusHumanReadable(AudioStatus status)
     {
-        return $"{status.Position.HummanizeSecond()} / {status.Length.HummanizeSecond()}";
+        return $"{status.Position.HumanizeSecond()} / {status.Length.HumanizeSecond()}";
     }
 }

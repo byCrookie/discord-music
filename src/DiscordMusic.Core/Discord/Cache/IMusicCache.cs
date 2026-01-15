@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 using ErrorOr;
-using Humanizer.Bytes;
+using Humanizer;
 
 namespace DiscordMusic.Core.Discord.Cache;
 

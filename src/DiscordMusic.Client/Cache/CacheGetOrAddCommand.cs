@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord;
@@ -15,39 +13,40 @@ namespace DiscordMusic.Client.Cache;
 public static class CacheGetOrAddCommand
 {
     private static Option<string> TitleOption { get; } =
-        new(["--title", "-t"], "The title of the track") { IsRequired = true };
+        new("--title", "-t") { Required = true, Description = "The title of the track" };
 
     private static Option<string> ArtistOption { get; } =
-        new(["--artist", "-a"], "The artist of the track") { IsRequired = true };
+        new("--artist", "-a") { Required = true, Description = "The artist of the track" };
 
     private static Option<string> UrlOption { get; } =
-        new(["--url", "-u"], "The URL of the track") { IsRequired = true };
+        new("--url", "-u") { Required = true, Description = "The URL of the track" };
 
     private static Option<TimeSpan> DurationOption { get; } =
-        new(["--duration", "-d"], () => TimeSpan.Zero, "The duration of the track");
+        new("--duration", "-d") { DefaultValueFactory = _ => TimeSpan.Zero, Description = "The duration of the track" };
 
     public static Command Create(string[] args)
     {
-        var command = new Command("it", "Get or add track to the cache");
-        command.AddOption(TitleOption);
-        command.AddOption(ArtistOption);
-        command.AddOption(UrlOption);
-        command.AddOption(DurationOption);
-        command.SetHandler(async ctx => await ReserveAsync(args, ctx));
+        var command = new Command("it", "Get or add track to the cache")
+        {
+            TitleOption,
+            ArtistOption,
+            UrlOption,
+            DurationOption
+        };
+        command.SetAction(async (pr, ct) => await ReserveAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task ReserveAsync(string[] args, InvocationContext context)
+    private static async Task ReserveAsync(string[] args, ParseResult parseResult, CancellationToken ct)
     {
-        var ct = context.GetCancellationToken();
-        var title = context.ParseResult.GetValueForOption(TitleOption);
-        var artist = context.ParseResult.GetValueForOption(ArtistOption);
-        var url = context.ParseResult.GetValueForOption(UrlOption);
-        var duration = context.ParseResult.GetValueForOption(DurationOption);
+        var title = parseResult.GetRequiredValue(TitleOption);
+        var artist = parseResult.GetRequiredValue(ArtistOption);
+        var url = parseResult.GetRequiredValue(UrlOption);
+        var duration = parseResult.GetRequiredValue(DurationOption);
 
         if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(artist) || string.IsNullOrWhiteSpace(url))
         {
-            context.Console.Error.WriteLine("Title, artist, and URL are required");
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync("Title, artist, and URL are required");
             return;
         }
 
@@ -62,10 +61,10 @@ public static class CacheGetOrAddCommand
 
         if (file.IsError)
         {
-            context.Console.Error.WriteLine(file.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(file.ToPrint());
             return;
         }
 
-        context.Console.Out.WriteLine($"Track added to cache: {file.Value}");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync($"Track added to cache: {file.Value}");
     }
 }
