@@ -10,7 +10,6 @@ using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 
-[GatewayEvent(nameof(GatewayClient.MessageCreate))]
 public class MessageCreateHandler(
     ILogger<MessageCreateHandler> logger,
     IEnumerable<IDiscordAction> actions,
@@ -18,7 +17,7 @@ public class MessageCreateHandler(
     Replier replier,
     Cancellation cancellation,
     RestClient restClient
-) : IGatewayEventHandler<Message>
+) : IMessageCreateGatewayHandler
 {
     public async ValueTask HandleAsync(Message message)
     {

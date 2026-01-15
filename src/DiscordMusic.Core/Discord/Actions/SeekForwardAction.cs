@@ -42,13 +42,13 @@ public class SeekForwardAction(IVoiceHost voiceHost, Replier replier, ILogger<Se
 
         var seekedMessage = $"""
             **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-            {seek.Value.AudioStatus.Position.HummanizeSecond()} / {seek.Value.AudioStatus.Length.HummanizeSecond()}
+            {seek.Value.AudioStatus.Position.HumanizeSecond()} / {seek.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
         await replier
             .Reply()
             .To(message)
-            .WithEmbed($"Seeked forward by {duration.HummanizeSecond()}", seekedMessage)
+            .WithEmbed($"Seeked forward by {duration.HumanizeSecond()}", seekedMessage)
             .WithDeletion()
             .SendAsync(ct);
 

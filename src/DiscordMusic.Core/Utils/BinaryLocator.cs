@@ -11,7 +11,7 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            logger.LogTrace("{DefaultBinaryName} will be resolved at runtime by the system.", defaultBinaryName);
+            logger.LogTrace("{DefaultBinaryName} will be resolved at runtime by the system by the os.", defaultBinaryName);
             return new BinaryLocation(LocationType.Runtime, null, null, defaultBinaryName);
         }
 

@@ -2,7 +2,7 @@
 
 Another music bot for Discord with playback controls, song lyrics and advanced queue management.
 
-**Core Libraries & APIs**:
+**Libraries & APIs**:
 
 - [NetCord](https://github.com/NetCordDev/NetCord): For Discord interaction.
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg): For audio processing.
@@ -14,12 +14,11 @@ Another music bot for Discord with playback controls, song lyrics and advanced q
 
 > **Important**: This bot uses `yt-dlp` to fetch YouTube audio streams. Since YouTube may block IP ranges from cloud
 > providers, it's recommended to run the bot on a residential IP for reliable access. If you encounter the "confirm
-> you're
-> not a robot" error, your IP is likely blocked. A home network should work smoothly.
+> you're not a robot" error, your IP is likely blocked. A home network should work smoothly.
 
 ## Features
 
-### 🎵 **Core Music Functions**
+### **Music Functions**
 
 - **Join & Leave**: Auto-connect and disconnect from voice channels.
 - **Play Music**:
@@ -27,34 +26,48 @@ Another music bot for Discord with playback controls, song lyrics and advanced q
   - Play from Spotify (search on Spotify and stream via YouTube).
 - **Playback Control**: Pause, resume, and seek to specific timestamps.
 
-### 📜 **Queue Management**
+### **Queue Management**
 
 - **Queue System**:
   - Add, remove, clear, and skip tracks.
 
-### 🎶 **Extra Features**
+### **Extra Features**
 
 - **Lyrics Fetching**: Fetch lyrics for the currently playing song.
 - **Audio Controls**: Interactive audio controls with buttons.
 - **Audio Caching**: Cache tracks to reduce load times and enhance performance.
 - **Auto Disconnect**: Automatically disconnect from the voice channel when empty.
 
-### ⚙️ **Bot Management**
+### **Bot Management**
 
 - **Docker Support**: Easily deploy the bot in a containerized environment.
 - **Permission System**: Role-based access control for commands.
 
 ## Installation
 
+### Discord Bot-Token
+
 > **Important**: Keep your tokens secret. If exposed, regenerate them immediately.
 
+To get a token, go to https://discord.com/developers/applications and add an application. Next, go to the tab `Bot` and
+reset Token to get a new token. Add this token to your [.env](.env.example) (docker) or [.dmrc](.dmrc.example) (manual). Still under `Bot`
+and `Privileged Gateway Intents` enable `Message Content Intent`. To invite the bot to your server go to `Installation` tab
+and select `Scopes & Permissions` like in the image below.
+
+![oauth_scopes](docs/images/oauth_scopes.png)
+
+Then copy the install-link, paste it into the browser, enter and select your server. You should now see the bot
+offline as member of your server. After running the bot with your token, the status should change to online.
+
 ### Docker (Recommended)
+
+The `latest` tag is used for the newest version and has possibly not been in use for long. If you want a better experience, use the `stable` tag.
 
 To run the bot with Docker, use the following commands:
 
 ```bash
 docker pull ghcr.io/bycrookie/discord-music:latest
-docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:latest
+docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:stable
 ```
 
 Use the `--env-file` option to pass environment variables. Example `.env` files are available [here](.env.example).
@@ -121,3 +134,7 @@ through the following methods:
 For development, modify the [`.dmrc.ini`](src/DiscordMusic.Client/.dmrc.ini) file to test configuration changes. Keep
 secrets secure by using tools
 like [dotnet user-secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets).
+
+```bash
+dotnet user-secrets set --project ./src/DiscordMusic.Client/DiscordMusic.Client.csproj "discord:token" "your-discord-bot-token"
+```

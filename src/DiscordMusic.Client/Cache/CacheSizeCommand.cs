@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Utils;
@@ -15,14 +13,12 @@ public static class CacheSizeCommand
     public static Command Create(string[] args)
     {
         var command = new Command("size", "Get the size of the cache");
-        command.SetHandler(async ctx => await SizeAsync(args, ctx));
+        command.SetAction(async (pr, ct) => await SizeAsync(args, pr, ct));
         return command;
     }
 
-    private static async Task SizeAsync(string[] args, InvocationContext context)
+    private static async Task SizeAsync(string[] args, ParseResult parseResult, CancellationToken ct)
     {
-        var ct = context.GetCancellationToken();
-
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddUtils();
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
@@ -33,10 +29,10 @@ public static class CacheSizeCommand
 
         if (size.IsError)
         {
-            context.Console.Error.WriteLine(size.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(size.ToPrint());
             return;
         }
 
-        context.Console.Out.WriteLine($"Cache size is {size.Value}");
+        await parseResult.InvocationConfiguration.Output.WriteLineAsync($"Cache size is {size.Value}");
     }
 }

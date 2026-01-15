@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build/libs
 
 ARG TARGETPLATFORM
@@ -70,14 +70,16 @@ RUN case "$TARGETARCH" in \
 
 RUN printf '#!/usr/bin/env sh\nset -e\n( while true; do /usr/bin/yt-dlp -U || true; sleep 86400; done ) &\nexec /app/dm "$@"\n' > /build/publish/entrypoint.sh && chmod +x /build/publish/entrypoint.sh
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 
 COPY --from=build /build/publish .
-COPY --from=build /build/libs/ffmpeg /usr/bin/ffmpeg
-COPY --from=build /build/libs/ffprobe /usr/bin/ffprobe
-COPY --from=build /build/libs/yt-dlp /usr/bin/yt-dlp
-COPY --from=build /build/libs/deno /usr/bin/deno
+COPY --from=build \
+    /build/libs/ffmpeg \
+    /build/libs/ffprobe \
+    /build/libs/yt-dlp \
+    /build/libs/deno \
+    /usr/bin/
 
 ENV DOTNET_EnableDiagnostics=0
 
