@@ -5,6 +5,7 @@ using DiscordMusic.Client.Spotify;
 using DiscordMusic.Client.YouTube;
 using DiscordMusic.Core;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Client.Music;
 
@@ -23,9 +24,12 @@ public static class DiscordMusicCommand
         root.SetAction(
             async (pr, ct) =>
             {
+                using var factory = LoggerFactory.Create(builder => builder.AddConsole());
+                var logger = factory.CreateLogger("DiscordMusicCommand");
+
                 var builder = Host.CreateApplicationBuilder(args);
                 builder.Configuration.Sources.Clear();
-                builder.AddCore(ct);
+                builder.AddCore(logger, ct);
                 var host = builder.Build();
                 host.UseCore();
                 await host.RunAsync(ct);

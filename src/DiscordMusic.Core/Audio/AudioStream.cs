@@ -177,7 +177,7 @@ public class AudioStream : IDisposable
         catch (EndOfStreamException)
         {
             await _outputStream.WriteAsync(_buffer, ct);
-            
+
             State = AudioState.Ended;
             _logger.LogStreamEnded(_id);
             if (StreamEnded is not null)
