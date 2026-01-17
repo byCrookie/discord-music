@@ -1,14 +1,15 @@
 services:
     discord-music:
-        #        image: ghcr.io/bycrookie/discord-music:latest
+        # image: ghcr.io/bycrookie/discord-music:latest
         container_name: dm
         build:
+            dockerfile: Containerfile
             context: .
         env_file:
             - .env
         volumes:
             - /var/tmp/dm/data:/data
-        #        platform: linux/arm64
+        # platform: linux/arm64
         platform: linux/amd64
         restart: unless-stopped
     watchtower:

@@ -1,13 +1,6 @@
 ; .dmrc - https://github.com/byCrookie/discord-music
 ; Defaults are commented out. Uncomment to use.
 
-# Path to the config file. If empty, the config file is searched in the current
-# execution directory or system specific directories. If no config file is found
-# env variables are used.
-# Linux/macOS: `XDG_CONFIG_HOME/.dmrc` or `~/.dmrc`
-# Windows: `%USERPROFILE%/.dmrc`
-# DISCORD_MUSIC_CONFIG_FILE = ".dmrc"
-
 [Logging]
 ; Define what log messages are printed to stdout https://learn.microsoft.com/en-us/dotnet/core/extensions/logging.
 ; LogLevel: Trace, Debug, Information, Warning, Error, Critical, None

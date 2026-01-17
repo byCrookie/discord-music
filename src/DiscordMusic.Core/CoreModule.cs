@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.FileProviders.Physical;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Testably.Abstractions;
 
 namespace DiscordMusic.Core;
@@ -22,43 +23,19 @@ public static class CoreModule
 {
     private const string Dmrc = ".dmrc";
 
-    public static void AddCore(this IHostApplicationBuilder builder, CancellationToken ct)
+    public static void AddCore(
+        this IHostApplicationBuilder builder,
+        ILogger logger,
+        CancellationToken ct
+    )
     {
         builder.Configuration.AddEnvironmentVariables("DISCORD_MUSIC_");
 
         builder.AddConfig();
 
-        var config = builder.Configuration.GetValue<string?>(ConfigOptions.ConfigFileKey);
-
-        if (!string.IsNullOrWhiteSpace(config))
-        {
-            if (!File.Exists(config))
-            {
-                throw new FileNotFoundException(
-                    $"Configuration file '{Path.GetFullPath(config)}' does not exist."
-                );
-            }
-
-            builder.Configuration.AddJsonFile(config, false, false);
-        }
-
-        builder.Configuration.AddIniFile(
-            new PhysicalFileProvider(EvalDmrcPath(), ExclusionFilters.None),
-            Dmrc,
-            reloadOnChange: false,
-            optional: true
-        );
-
-        builder.Configuration.AddIniFile(
-            new PhysicalFileProvider(
-                Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location)
-                    ?? Directory.GetCurrentDirectory(),
-                ExclusionFilters.None
-            ),
-            Dmrc,
-            reloadOnChange: false,
-            optional: true
-        );
+        AddConfigFromOsSpecificDirs(builder, logger);
+        AddConfigurationFromExecution(builder);
+        AddConfigurationFromEnvOrDmrc(builder);
 
         if (
             builder.Environment.IsDevelopment()
@@ -91,20 +68,95 @@ public static class CoreModule
         builder.Services.AddSingleton(new Cancellation(ct));
     }
 
+    private static void AddConfigFromOsSpecificDirs(IHostApplicationBuilder builder, ILogger logger)
+    {
+        var configDir = GetConfigDir(logger);
+        if (File.Exists(Path.Combine(configDir, Dmrc)))
+        {
+            builder.Configuration.AddIniFile(
+                new PhysicalFileProvider(configDir, ExclusionFilters.None),
+                Dmrc,
+                reloadOnChange: false,
+                optional: false
+            );
+        }
+    }
+
+    private static void AddConfigurationFromExecution(IHostApplicationBuilder builder)
+    {
+        var executionDir =
+            Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location)
+            ?? Directory.GetCurrentDirectory();
+        if (File.Exists(Path.Combine(executionDir, Dmrc)))
+        {
+            builder.Configuration.AddIniFile(
+                new PhysicalFileProvider(executionDir, ExclusionFilters.None),
+                Dmrc,
+                reloadOnChange: false,
+                optional: false
+            );
+        }
+    }
+
+    private static void AddConfigurationFromEnvOrDmrc(IHostApplicationBuilder builder)
+    {
+        var config = builder.Configuration.GetValue<string?>(ConfigOptions.ConfigFileKey);
+
+        if (string.IsNullOrWhiteSpace(config))
+        {
+            return;
+        }
+
+        if (!File.Exists(config))
+        {
+            throw new FileNotFoundException(
+                $"Configuration file '{Path.GetFullPath(config)}' does not exist."
+            );
+        }
+
+        builder.Configuration.AddIniFile(config, false, false);
+    }
+
     public static IHost UseCore(this IHost host)
     {
         host.UseDiscord();
         return host;
     }
 
-    private static string EvalDmrcPath()
+    private static string GetConfigDir(ILogger logger)
     {
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        var xdgConfigHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+        if (!string.IsNullOrWhiteSpace(xdgConfigHome))
         {
-            return Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")
-                ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            logger.LogDebug(
+                "Using XDG_CONFIG_HOME '{XDG_CONFIG_HOME}' as config location",
+                xdgConfigHome
+            );
+            var configDir = Path.Combine(xdgConfigHome, "bycrookie", "discord-music");
+            logger.LogDebug("Final XDG config location {Location}", configDir);
+            return configDir;
         }
 
-        return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (OperatingSystem.IsWindows())
+        {
+            logger.LogDebug("Using home as config location");
+            var windows = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "bycrookie",
+                "discord-music"
+            );
+            logger.LogDebug("Final windows location {Location}", windows);
+            return windows;
+        }
+
+        logger.LogDebug("Using unix home as config location");
+        var unix = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".config",
+            "bycrookie",
+            "discord-music"
+        );
+        logger.LogDebug("Final unix location {Location}", unix);
+        return unix;
     }
 }
