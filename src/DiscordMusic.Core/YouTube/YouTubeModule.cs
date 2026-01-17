@@ -39,7 +39,7 @@ public static class YouTubeModule
             if (ffmpeg.IsError)
             {
                 (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Ffmpeg)} {ffmpeg.ToPrint()}"
+                    $"{nameof(YouTubeOptions.Ffmpeg)} {ffmpeg.ToContent()}"
                 );
             }
 
@@ -48,7 +48,7 @@ public static class YouTubeModule
             if (deno.IsError)
             {
                 (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Deno)} {deno.ToPrint()}"
+                    $"{nameof(YouTubeOptions.Deno)} {deno.ToContent()}"
                 );
             }
 
@@ -57,7 +57,7 @@ public static class YouTubeModule
             if (ytdlp.IsError)
             {
                 (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Ytdlp)} {ytdlp.ToPrint()}"
+                    $"{nameof(YouTubeOptions.Ytdlp)} {ytdlp.ToContent()}"
                 );
             }
 

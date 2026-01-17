@@ -1,28 +1,25 @@
-using ErrorOr;
-using NetCord.Gateway;
+using DiscordMusic.Core.Utils;
+using Microsoft.Extensions.Logging;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class AudioBarAction(Replier replier) : IDiscordAction
+public class AudioBarAction(ILogger<AudioBarAction> logger, Cancellation cancellation)
+    : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "audiobar";
-
-    public string Short => "ab";
-
-    public string Help =>
-        """
-            Show the audio bar to control the audio
-            Usage: `audiobar`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("audiobar", "An audio bar with buttons to control the audio.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task AudioBar()
     {
-        await replier.Reply().To(message.ChannelId).WithAudioBar().SendAsync(ct);
+        logger.LogTrace("Audio bar");
 
-        return Result.Success;
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties { Components = [Interactions.AudioBar.Create()] }
+            ),
+            cancellationToken: cancellation.CancellationToken
+        );
     }
 }

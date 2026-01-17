@@ -1,79 +1,95 @@
 using System.Text;
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Utils;
-using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAction> logger)
-    : IDiscordAction
+[SlashCommand("queue", "Various queue commands.")]
+public class QueueAction(
+    IVoiceHost voiceHost,
+    ILogger<QueueAction> logger,
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
     private const int PageSize = 20;
 
-    public string Long => "queue";
-
-    public string Short => "q";
-
-    public string Help =>
-        $"""
-            Display the queue. {PageSize} tracks are displayed per page.
-            Usage: `queue | queue <page>`
-            <page> - The page number to display. Default is 1.
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
+    [SubSlashCommand("list", "List the tracks in the queue.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Queue(
+        [SlashCommandParameter(Description = "The page number to display. Default is 1.")]
+            int page = 1
     )
     {
         logger.LogTrace("Queue");
 
-        var page = ParsePage(args);
-
-        if (page.IsError)
+        if (page <= 0)
         {
-            return page.Errors;
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = "Invalid page number. Must be a positive number.",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
         }
 
-        var tracks = await voiceHost.QueueAsync(message, ct);
+        var tracks = await voiceHost.QueueAsync(Context, cancellation.CancellationToken);
 
         if (tracks.IsError)
         {
-            return tracks.Errors;
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = tracks.ToContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
         }
 
         if (tracks.Value.Count == 0)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Queue", "The queue is empty")
-                .WithDeletion()
-                .SendAsync(ct);
-
-            return Result.Success;
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = "The queue is empty",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
         }
 
         var pageCount = tracks.Value.Count / PageSize + 1;
-        if (page.Value > pageCount)
+        if (page > pageCount)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Queue", $"Queue has only {pageCount} pages")
-                .WithDeletion()
-                .SendAsync(ct);
-
-            return Result.Success;
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = $"Invalid page number. There are only {pageCount} pages.",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
         }
 
-        var pageTracks = tracks.Value.Skip((page.Value - 1) * PageSize).Take(PageSize).ToList();
+        var pageTracks = tracks.Value.Skip((page - 1) * PageSize).Take(PageSize).ToList();
 
         var queue = new StringBuilder();
-        queue.AppendLine($"Page {page.Value}/{pageCount}");
+        queue.AppendLine($"Page {page}/{pageCount}");
         queue.AppendLine();
         foreach (var (index, track) in pageTracks.Select((track, index) => (index, track)))
         {
@@ -90,28 +106,71 @@ public class QueueAction(IVoiceHost voiceHost, Replier replier, ILogger<QueueAct
             }
         }
 
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Queue", queue.ToString())
-            .WithDeletion(TimeSpan.FromMinutes(2))
-            .SendAsync(ct);
-
-        return Result.Success;
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = $"""
+                    ### Queue
+                    {queue}
+                    """,
+                    Flags = MessageFlags.Ephemeral,
+                }
+            )
+        );
     }
 
-    private static ErrorOr<int> ParsePage(string[] args)
+    [SubSlashCommand("clear", "Clear the queue.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Clear()
     {
-        if (args.Length == 0)
+        logger.LogTrace("Queue clear");
+        var clear = await voiceHost.QueueClearAsync(Context, cancellation.CancellationToken);
+
+        if (clear.IsError)
         {
-            return 1;
+            await RespondAsync(InteractionCallback.Message(clear.ToContent()));
+            return;
         }
 
-        if (int.TryParse(args[0], out var page) && page > 0)
+        await RespondAsync(InteractionCallback.Message("The queue has been cleared"));
+    }
+
+    [SubSlashCommand("shuffle", "Shuffle the queue.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Shuffle()
+    {
+        logger.LogTrace("Shuffle");
+        var shuffle = await voiceHost.ShuffleAsync(Context, cancellation.CancellationToken);
+
+        if (shuffle.IsError)
         {
-            return page;
+            await RespondAsync(
+                InteractionCallback.Message(shuffle.ToContent()),
+                cancellationToken: cancellation.CancellationToken
+            );
+            return;
         }
 
-        return Error.Validation(description: "Invalid page number. Must be a positive number.");
+        if (shuffle.Value.Track is null)
+        {
+            await RespondAsync(
+                InteractionCallback.Message("The queue is empty"),
+                cancellationToken: cancellation.CancellationToken
+            );
+            return;
+        }
+
+        await RespondAsync(
+            InteractionCallback.Message(
+                $"""
+                ### Next
+                **{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HumanizeSecond()})
+                """
+            ),
+            cancellationToken: cancellation.CancellationToken
+        );
     }
 }

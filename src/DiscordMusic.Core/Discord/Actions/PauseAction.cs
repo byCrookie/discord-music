@@ -1,49 +1,44 @@
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Utils;
-using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PauseAction(IVoiceHost voiceHost, Replier replier, ILogger<PauseAction> logger)
-    : IDiscordAction
+public class PauseAction(
+    IVoiceHost voiceHost,
+    ILogger<PauseAction> logger,
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "pause";
-    public string Short => "pa";
-
-    public string Help =>
-        """
-            Pause the current track
-            Usage: `pause`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("pause", "Pause the current track.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Pause()
     {
         logger.LogTrace("Pause");
-        var pause = await voiceHost.PauseAsync(message, ct);
+        var pause = await voiceHost.PauseAsync(Context, cancellation.CancellationToken);
+
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties { Content = "### Pausing..." }
+            ),
+            cancellationToken: cancellation.CancellationToken
+        );
 
         if (pause.IsError)
         {
-            return pause.Errors;
+            await ModifyResponseAsync(m => m.Content = pause.ToContent());
+            return;
         }
 
         var pausedMessage = $"""
+            ### Paused
             **{pause.Value.Track?.Name}** by **{pause.Value.Track?.Artists}**
             {pause.Value.AudioStatus.Position.HumanizeSecond()} / {pause.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Paused", pausedMessage)
-            .WithDeletion()
-            .SendAsync(ct);
-
-        return Result.Success;
+        await ModifyResponseAsync(m => m.Content = pausedMessage);
     }
 }

@@ -1,29 +1,35 @@
 using DiscordMusic.Core.Discord.Voice;
-using ErrorOr;
+using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class JoinAction(IVoiceHost voiceHost, ILogger<JoinAction> logger) : IDiscordAction
+public class JoinAction(IVoiceHost voiceHost, ILogger<JoinAction> logger, Cancellation cancellation)
+    : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "join";
-    public string Short => "j";
-
-    public string Help =>
-        """
-            The bot will join the voice channel you are in.
-            Usage: `join`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("join", "The bot will join the voice channel you are in.")]
+    [RequireBotPermissions<ApplicationCommandContext>(
+        Permissions.Connect | Permissions.PrioritySpeaker | Permissions.Speak
+    )]
+    [RequireUserPermissions<ApplicationCommandContext>(Permissions.Connect | Permissions.Speak)]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Join()
     {
         logger.LogTrace("Join");
-        var connection = await voiceHost.ConnectAsync(message, ct);
-        return connection.IsError ? connection : Result.Success;
+        await voiceHost.ConnectAsync(Context, cancellation.CancellationToken);
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = "### Joined your voice channel.",
+                    Flags = MessageFlags.Ephemeral,
+                }
+            )
+        );
     }
 }

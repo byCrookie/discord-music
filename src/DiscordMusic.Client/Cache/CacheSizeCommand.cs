@@ -33,7 +33,7 @@ public static class CacheSizeCommand
 
         if (size.IsError)
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync(size.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(size.ToContent());
             return;
         }
 

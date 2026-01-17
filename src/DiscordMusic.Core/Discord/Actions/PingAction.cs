@@ -1,33 +1,25 @@
-using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PingAction(Replier replier, ILogger<SeekAction> logger) : IDiscordAction
+public class PingAction(ILogger<SeekAction> logger)
+    : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "ping";
-    public string Short => "pi";
-
-    public string Help =>
-        """
-            Ping the bot. It will pong back.
-            Usage: `ping`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("ping", "Ping the bot. It will pong back.")]
+    public async Task Ping()
     {
         logger.LogTrace("Ping");
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Pong", "You pinged me!")
-            .WithDeletion()
-            .SendAsync(ct);
-        return Result.Success;
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = "Pong!",
+                    Flags = MessageFlags.Ephemeral,
+                }
+            )
+        );
     }
 }

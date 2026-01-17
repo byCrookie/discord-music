@@ -55,9 +55,7 @@ This bot is pretty minimal and intended for a single server only.
 
 To get a token, go to https://discord.com/developers/applications and add an application. Next, go
 to the tab `Bot` and reset Token to get a new token. Add this token to your [.env](.env.example) (
-docker)
-or [.dmrc](.dmrc.example) (manual). Still under `Bot` and `Privileged Gateway Intents`
-enable `Message Content Intent`. To invite the bot to your server
+docker) or [.dmrc](.dmrc.example) (manual). To invite the bot to your server
 go to `Installation` tab and select `Scopes & Permissions` like in the image below.
 
 ![oauth_scopes](docs/images/oauth_scopes.png)

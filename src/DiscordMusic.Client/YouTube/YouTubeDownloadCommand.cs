@@ -56,7 +56,7 @@ public static class YouTubeDownloadCommand
 
         if (download.IsError)
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync(download.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(download.ToContent());
             return;
         }
 
