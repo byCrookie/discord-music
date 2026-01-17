@@ -1,49 +1,43 @@
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Utils;
-using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class ResumeAction(IVoiceHost voiceHost, Replier replier, ILogger<ResumeAction> logger)
-    : IDiscordAction
+public class ResumeAction(
+    IVoiceHost voiceHost,
+    ILogger<ResumeAction> logger,
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "resume";
-    public string Short => "r";
-
-    public string Help =>
-        """
-            Resume the current track
-            Usage: `resume`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("resume", "Resume the current track.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Resume()
     {
         logger.LogTrace("Resume");
-        var resume = await voiceHost.ResumeAsync(message, ct);
+        var resume = await voiceHost.ResumeAsync(Context, cancellation.CancellationToken);
 
         if (resume.IsError)
         {
-            return resume.Errors;
+            await RespondAsync(
+                InteractionCallback.Message(resume.ToContent()),
+                cancellationToken: cancellation.CancellationToken
+            );
+            return;
         }
 
         var resumedMessage = $"""
+            ### Resumed
             **{resume.Value.Track?.Name}** by **{resume.Value.Track?.Artists}**
             {resume.Value.AudioStatus.Position.HumanizeSecond()} / {resume.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Resumed", resumedMessage)
-            .WithDeletion()
-            .SendAsync(ct);
-
-        return Result.Success;
+        await RespondAsync(
+            InteractionCallback.Message(resumedMessage),
+            cancellationToken: cancellation.CancellationToken
+        );
     }
 }

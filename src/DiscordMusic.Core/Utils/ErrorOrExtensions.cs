@@ -4,7 +4,7 @@ namespace DiscordMusic.Core.Utils;
 
 public static class ErrorOrExtensions
 {
-    public static string ToPrint<T>(this ErrorOr<T> value)
+    public static string ToContent<T>(this ErrorOr<T> value)
     {
         if (!value.IsError)
         {
@@ -12,12 +12,15 @@ public static class ErrorOrExtensions
         }
 
         return value.Errors.Count == 1
-            ? value.FirstError.ToPrint()
-            : string.Join(Environment.NewLine, value.Errors.Select(e => e.ToPrint()));
+            ? value.FirstError.ToContent()
+            : string.Join(Environment.NewLine, value.Errors.Select(e => e.ToContent()));
     }
 
-    private static string ToPrint(this Error error)
+    private static string ToContent(this Error error)
     {
-        return $"[{error.Code}] {error.Description}";
+        return $"""
+            ### **ERROR**: {error.Code}
+            ```{error.Description}```
+            """;
     }
 }

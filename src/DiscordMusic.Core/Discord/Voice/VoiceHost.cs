@@ -9,11 +9,12 @@ using ErrorOr;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Gateway.Voice;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Voice;
 
 public class VoiceHost(
-    Replier replier,
     IAudioPlayer audioPlayer,
     GatewayClient gatewayClient,
     ILogger<VoiceHost> logger,
@@ -28,18 +29,21 @@ public class VoiceHost(
     private VoiceConnection? _connection;
     private Track? _currentTrack;
 
-    public async Task<ErrorOr<Success>> ConnectAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<Success>> ConnectAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Connect");
         await using var _ = await _lock.AquireAsync(ct);
 
-        if (!message.GuildId.HasValue)
+        if (context.Guild is null)
         {
-            return Error.Validation(description: "Message does not have a guild id");
+            return Error.Validation(description: "Message does not have a guild");
         }
 
-        var guild = message.Guild!;
-        var userId = message.Author.Id;
+        var guild = context.Guild!;
+        var userId = context.User.Id;
 
         if (!guild.VoiceStates.TryGetValue(userId, out var userVoiceState))
         {
@@ -48,7 +52,7 @@ public class VoiceHost(
 
         var botId = gatewayClient.Cache.User!.Id;
         var channelId = userVoiceState.ChannelId!.Value;
-        var guildId = message.GuildId.Value;
+        var guildId = guild.Id;
 
         if (guild.VoiceStates.TryGetValue(botId, out var botVoiceState))
         {
@@ -87,7 +91,11 @@ public class VoiceHost(
         );
 
         _connection = new VoiceConnection(voiceClient, guildId, channelId, opusStream);
-        await audioPlayer.StartAsync(_connection!.Output, UpdateAsync, ct);
+        await audioPlayer.StartAsync(
+            _connection!.Output,
+            (@event, exception, cancel) => UpdateAsync(context, @event, exception, cancel),
+            ct
+        );
         return Result.Success;
     }
 
@@ -113,43 +121,46 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> PlayAsync(
-        Message message,
+        ApplicationCommandContext context,
         string query,
         CancellationToken ct
     )
     {
         logger.LogTrace("Play");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
             return connect.Errors;
         }
 
-        return await PlayFromQueryAsync(message, query, true, ct);
+        return await PlayFromQueryAsync(query, true, ct);
     }
 
     public async Task<ErrorOr<VoiceUpdate>> PlayNextAsync(
-        Message message,
+        ApplicationCommandContext context,
         string query,
         CancellationToken ct
     )
     {
         logger.LogTrace("Play");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
             return connect.Errors;
         }
 
-        return await PlayFromQueryAsync(message, query, false, ct);
+        return await PlayFromQueryAsync(query, false, ct);
     }
 
-    public async Task<ErrorOr<Success>> QueueClearAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<Success>> QueueClearAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Queue");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -161,14 +172,14 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> SeekAsync(
-        Message message,
+        ApplicationCommandContext context,
         TimeSpan time,
         AudioStream.SeekMode mode,
         CancellationToken ct
     )
     {
         logger.LogTrace("Seek {Mode}", mode);
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -185,10 +196,13 @@ public class VoiceHost(
         return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, seek.Value);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> ShuffleAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> ShuffleAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Shuffle");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -204,13 +218,13 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> SkipAsync(
-        Message message,
+        ApplicationCommandContext context,
         int toIndex,
         CancellationToken ct
     )
     {
         logger.LogTrace("Skip");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -221,10 +235,13 @@ public class VoiceHost(
         return await PlayNextTrackFromQueueAsync(true, ct);
     }
 
-    public async Task<ErrorOr<ICollection<Track>>> QueueAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<ICollection<Track>>> QueueAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Queue");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -234,10 +251,13 @@ public class VoiceHost(
         return ErrorOrFactory.From(musicQueue.Items());
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> PauseAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> PauseAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Pause");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -254,10 +274,13 @@ public class VoiceHost(
         return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, pause.Value);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> ResumeAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> ResumeAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Resume");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -274,10 +297,13 @@ public class VoiceHost(
         return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, resume.Value);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> NowPlayingAsync(Message message, CancellationToken ct)
+    public async Task<ErrorOr<VoiceUpdate>> NowPlayingAsync(
+        ApplicationCommandContext context,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Now Playing");
-        var connect = await ConnectAsync(message, ct);
+        var connect = await ConnectAsync(context, ct);
 
         if (connect.IsError)
         {
@@ -294,19 +320,11 @@ public class VoiceHost(
     }
 
     private async Task<ErrorOr<VoiceUpdate>> PlayFromQueryAsync(
-        Message message,
         string query,
         bool append,
         CancellationToken ct
     )
     {
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed($"Searching for {query}", "This may take a moment...")
-            .WithDeletion()
-            .SendAsync(ct);
-
         if (spotifySearch.IsSpotifyQuery(query))
         {
             var searchSpotify = await spotifySearch.SearchAsync(query, ct);
@@ -380,7 +398,12 @@ public class VoiceHost(
         return await PlayNextTrackFromQueueAsync(false, ct);
     }
 
-    private async Task UpdateAsync(AudioEvent item, Exception? exception, CancellationToken ct)
+    private async Task UpdateAsync(
+        ApplicationCommandContext context,
+        AudioEvent item,
+        Exception? exception,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Update {Item}", item);
 
@@ -388,34 +411,40 @@ public class VoiceHost(
         {
             case AudioEvent.Error:
                 logger.LogError(exception, "Error in audio stream");
-                await replier
-                    .Reply()
-                    .To(_connection!.ChannelId)
-                    .SendErrorAsync("Error in audio stream. Trying to play the next track.", ct);
+                await context.Channel.SendMessageAsync(
+                    new MessageProperties
+                    {
+                        Content = ExceptionToContent(
+                            "Error in audio stream. Trying to play the next track.",
+                            exception
+                        ),
+                    },
+                    cancellationToken: ct
+                );
                 _currentTrack = null;
 
                 var nextFromError = await PlayNextTrackFromQueueAsync(true, ct);
 
                 if (nextFromError.IsError)
                 {
-                    logger.LogError("Failed to play next track: {Error}", nextFromError.ToPrint());
-                    await replier
-                        .Reply()
-                        .To(_connection!.ChannelId)
-                        .SendErrorAsync(nextFromError.ToPrint(), ct);
+                    logger.LogError(
+                        "Failed to play next track: {Error}",
+                        nextFromError.ToContent()
+                    );
+                    await context.Channel.SendMessageAsync(
+                        new MessageProperties { Content = nextFromError.ToContent() },
+                        cancellationToken: ct
+                    );
                     return;
                 }
 
                 if (nextFromError.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-
-                    await replier
-                        .Reply()
-                        .To(_connection!.ChannelId)
-                        .WithEmbed("Queue empty", "No more tracks in queue")
-                        .WithDeletion()
-                        .SendAsync(ct);
+                    await context.Channel.SendMessageAsync(
+                        new MessageProperties { Content = "Queue empty. No more tracks in queue." },
+                        cancellationToken: ct
+                    );
                 }
 
                 return;
@@ -426,24 +455,21 @@ public class VoiceHost(
 
                 if (next.IsError)
                 {
-                    logger.LogError("Failed to play next track: {Error}", next.ToPrint());
-                    await replier
-                        .Reply()
-                        .To(_connection!.ChannelId)
-                        .SendErrorAsync(next.ToPrint(), ct);
+                    logger.LogError("Failed to play next track: {Error}", next.ToContent());
+                    await context.Channel.SendMessageAsync(
+                        new MessageProperties { Content = next.ToContent() },
+                        cancellationToken: ct
+                    );
                     return;
                 }
 
                 if (next.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-
-                    await replier
-                        .Reply()
-                        .To(_connection!.ChannelId)
-                        .WithEmbed("Queue empty", "No more tracks in queue")
-                        .WithDeletion()
-                        .SendAsync(ct);
+                    await context.Channel.SendMessageAsync(
+                        new MessageProperties { Content = "Queue empty. No more tracks in queue." },
+                        cancellationToken: ct
+                    );
                 }
 
                 break;
@@ -452,6 +478,18 @@ public class VoiceHost(
                 break;
             default:
                 throw new UnreachableException($"Unknown audio event: {item}");
+        }
+
+        return;
+
+        string ExceptionToContent(string message, Exception? ex)
+        {
+            return ex is null
+                ? message
+                : $"""
+                    ### **ERROR**: {message}
+                    ```{ex}```
+                    """;
         }
     }
 
@@ -606,7 +644,7 @@ public class VoiceHost(
                         {
                             logger.LogError(
                                 "Failed to download next track: {Error}",
-                                search.ToPrint()
+                                search.ToContent()
                             );
                             return;
                         }
@@ -635,7 +673,7 @@ public class VoiceHost(
                         {
                             logger.LogError(
                                 "Failed to update next track: {Error}",
-                                update.ToPrint()
+                                update.ToContent()
                             );
                             return;
                         }
@@ -653,7 +691,7 @@ public class VoiceHost(
                     {
                         logger.LogError(
                             "Failed to get or add next track to cache: {Error}",
-                            nextCache.ToPrint()
+                            nextCache.ToContent()
                         );
                         return;
                     }
@@ -670,7 +708,7 @@ public class VoiceHost(
                         {
                             logger.LogError(
                                 "Failed to download next track: {Error}",
-                                download.ToPrint()
+                                download.ToContent()
                             );
                             return;
                         }

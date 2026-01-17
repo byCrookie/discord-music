@@ -24,16 +24,16 @@ internal partial class YoutubeSearch(
 
         if (ytdlp.IsError)
         {
-            logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToPrint());
-            return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
+            logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToContent());
+            return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToContent()}");
         }
 
         var deno = binaryLocator.LocateAndValidate(youTubeOptions.Value.Deno, "deno");
 
         if (deno.IsError)
         {
-            logger.LogError("Failed to locate deno: {Error}", deno.ToPrint());
-            return Error.Unexpected(description: $"Failed to locate deno: {deno.ToPrint()}");
+            logger.LogError("Failed to locate deno: {Error}", deno.ToContent());
+            return Error.Unexpected(description: $"Failed to locate deno: {deno.ToContent()}");
         }
 
         var command = new StringBuilder();

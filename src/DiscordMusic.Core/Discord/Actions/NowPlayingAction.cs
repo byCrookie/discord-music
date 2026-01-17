@@ -1,66 +1,70 @@
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Utils;
-using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
 public class NowPlayingAction(
     IVoiceHost voiceHost,
-    Replier replier,
-    ILogger<NowPlayingAction> logger
-) : IDiscordAction
+    ILogger<NowPlayingAction> logger,
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "nowplaying";
-    public string Short => "np";
-
-    public string Help =>
-        """
-            Shows the currently playing track
-            Usage: `nowplaying`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("nowplaying", "Shows the currently playing track.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task NowPlaying()
     {
         logger.LogTrace("Nowplaying");
-        var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
+        var nowPlaying = await voiceHost.NowPlayingAsync(Context, cancellation.CancellationToken);
 
         if (nowPlaying.IsError)
         {
-            return nowPlaying.Errors;
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = nowPlaying.ToContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
         }
 
         if (nowPlaying.Value.Track is null)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Now playing", "No track is currently playing")
-                .WithDeletion()
-                .SendAsync(ct);
-
-            return Result.Success;
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = "No track is currently playing",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
         }
 
         var track = nowPlaying.Value.Track;
 
         var nowPlayingMessage = $"""
+            ### Now Playing
             **{track.Name}** by **{track.Artists}**
             {nowPlaying.Value.AudioStatus.Position.HumanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HumanizeSecond()}
             """;
 
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed("Now", nowPlayingMessage)
-            .WithDeletion()
-            .SendAsync(ct);
-
-        return Result.Success;
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = nowPlayingMessage,
+                    Flags = MessageFlags.Ephemeral,
+                }
+            )
+        );
     }
 }

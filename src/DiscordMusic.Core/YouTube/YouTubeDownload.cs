@@ -39,25 +39,27 @@ internal partial class YouTubeDownload(
 
             if (ytdlp.IsError)
             {
-                logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToPrint());
-                return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToPrint()}");
+                logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToContent());
+                return Error.Unexpected(
+                    description: $"Failed to locate yt-dlp: {ytdlp.ToContent()}"
+                );
             }
 
             var deno = binaryLocator.LocateAndValidate(options.Value.Deno, "deno");
 
             if (deno.IsError)
             {
-                logger.LogError("Failed to locate deno: {Error}", deno.ToPrint());
-                return Error.Unexpected(description: $"Failed to locate deno: {deno.ToPrint()}");
+                logger.LogError("Failed to locate deno: {Error}", deno.ToContent());
+                return Error.Unexpected(description: $"Failed to locate deno: {deno.ToContent()}");
             }
 
             var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
 
             if (ffmpeg.IsError)
             {
-                logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToPrint());
+                logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToContent());
                 return Error.Unexpected(
-                    description: $"Failed to locate ffmpeg: {ffmpeg.ToPrint()}"
+                    description: $"Failed to locate ffmpeg: {ffmpeg.ToContent()}"
                 );
             }
 

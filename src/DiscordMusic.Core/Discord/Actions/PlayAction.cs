@@ -1,68 +1,55 @@
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Utils;
-using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PlayAction(IVoiceHost voiceHost, Replier replier, ILogger<PlayAction> logger)
-    : IDiscordAction
+public class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Cancellation cancellation)
+    : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "play";
-
-    public string Short => "p";
-
-    public string Help =>
-        """
-            Play a track. It is appended to the queue.
-            Usage: `play <query>`
-            `<query>` - Can be a URL or a search term. Default search is YouTube. If URL is Spotify, it will search Spotify. Download is always from YouTube.
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("play", "Play a track. Direct link or search query. Appended to queue.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Play([SlashCommandParameter] string query)
     {
-        if (args.Length == 0)
-        {
-            return Error.Validation(description: "No arguments provided. Usage: play <query>");
-        }
-
         logger.LogTrace("Play");
-        var play = await voiceHost.PlayAsync(message, string.Join(" ", args), ct);
+
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = $"""
+                    ### Searching for **{query}**
+                    This may take a moment...
+                    """,
+                }
+            ),
+            cancellationToken: cancellation.CancellationToken
+        );
+
+        var play = await voiceHost.PlayAsync(Context, query, cancellation.CancellationToken);
 
         if (play.IsError)
         {
-            return play.Errors;
+            await ModifyResponseAsync(m => m.Content = play.ToContent());
+            return;
         }
 
         var messageTitle = play.Value.Type == VoiceUpdateType.Now ? "Now" : "Next";
 
         if (play.Value.Track is null)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed(messageTitle, "No track found")
-                .WithDeletion()
-                .SendAsync(ct);
-
-            return Result.Success;
+            await ModifyResponseAsync(m => m.Content = "No track found");
+            return;
         }
 
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed(
-                messageTitle,
-                $"**{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HumanizeSecond()})"
-            )
-            .WithDeletion()
-            .SendAsync(ct);
-
-        return Result.Success;
+        await ModifyResponseAsync(m =>
+            m.Content = $"""
+            ### {messageTitle}
+            **{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HumanizeSecond()})
+            """
+        );
     }
 }

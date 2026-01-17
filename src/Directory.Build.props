@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!--        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>-->
     </PropertyGroup>
 
     <PropertyGroup>

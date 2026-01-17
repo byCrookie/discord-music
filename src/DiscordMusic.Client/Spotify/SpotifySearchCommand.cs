@@ -34,7 +34,7 @@ public static class SpotifySearchCommand
 
         if (search.IsError)
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync(search.ToPrint());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(search.ToContent());
             return;
         }
 

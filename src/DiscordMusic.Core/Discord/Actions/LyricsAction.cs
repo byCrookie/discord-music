@@ -1,134 +1,126 @@
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Lyrics;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
 public class LyricsAction(
     IVoiceHost voiceHost,
-    Replier replier,
     ILogger<LyricsAction> logger,
-    ILyricsSearch lyricsSearch
-) : IDiscordAction
+    ILyricsSearch lyricsSearch,
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "lyrics";
-    public string Short => "ly";
-
-    public string Help =>
-        """
-            Displays the lyrics of the current track. It also possible to search for lyrics of a specific track.
-            Usage: `lyrics | lyrics <title> - <artists>`
-            - `<title>`: The title of the track
-            - `<artists>`: The artists of the track
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand(
+        "lyrics",
+        "Search lyrics for a specific track. Leave blank to get lyrics for the currently playing track."
+    )]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Lyrics(string? title = null, string? artists = null)
     {
+        var ct = cancellation.CancellationToken;
         logger.LogTrace("Lyrics");
 
-        var nowPlaying = await voiceHost.NowPlayingAsync(message, ct);
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = $"""
+                    ### Searching for lyrics of **{title} - {artists}**
+                    This may take a moment...
+                    """,
+                }
+            ),
+            cancellationToken: cancellation.CancellationToken
+        );
+
+        var nowPlaying = await voiceHost.NowPlayingAsync(Context, ct);
 
         if (nowPlaying.IsError)
         {
-            return nowPlaying.Errors;
+            await ModifyResponseAsync(
+                m => m.Content = nowPlaying.ToContent(),
+                cancellationToken: ct
+            );
+            return;
         }
 
-        if (args.Length != 0)
+        if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(artists))
         {
-            var title = string.Join(" ", args);
-            var split = title.Split("-", StringSplitOptions.RemoveEmptyEntries);
+            await ModifyResponseAsync(
+                m =>
+                    m.Content = $"""
+                    ### Searching for lyrics of **{title} - {artists}**
+                    This may take a moment...
+                    """,
+                cancellationToken: ct
+            );
 
-            if (split.Length != 2)
-            {
-                await replier
-                    .Reply()
-                    .To(message)
-                    .SendErrorAsync("Invalid format. Usage: `lyrics <title> - <artists>`", ct);
-
-                return Result.Success;
-            }
-
-            var specificLyrics = await lyricsSearch.SearchAsync(split[0], split[1], ct);
+            var specificLyrics = await lyricsSearch.SearchAsync(title, artists, ct);
 
             if (specificLyrics.IsError)
             {
-                await replier
-                    .Reply()
-                    .To(message)
-                    .WithEmbed("Lyrics", $"Lyrics not found for {split[0]} by {split[1]}")
-                    .WithDeletion()
-                    .SendAsync(ct);
-
-                return Result.Success;
+                await ModifyResponseAsync(
+                    m => m.Content = specificLyrics.ToContent(),
+                    cancellationToken: ct
+                );
+                return;
             }
 
-            var specificLyricsMessage = $"""
-                {specificLyrics.Value.Text}
-
-                {specificLyrics.Value.Url}
-                """;
-
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed(
-                    $"**{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**",
-                    specificLyricsMessage
-                )
-                .WithDeletion(TimeSpan.FromMinutes(5))
-                .SendAsync(ct);
-
-            return Result.Success;
+            await ModifyResponseAsync(
+                m =>
+                    m.Content = $"""
+                    ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
+                    {specificLyrics.Value.Text}
+                    -# {specificLyrics.Value.Url}
+                    """,
+                cancellationToken: ct
+            );
+            return;
         }
 
         if (nowPlaying.Value.Track is null)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Lyrics", "No track is currently playing")
-                .WithDeletion()
-                .SendAsync(ct);
-
-            return Result.Success;
+            await ModifyResponseAsync(
+                m => m.Content = "No track is currently playing",
+                cancellationToken: ct
+            );
+            return;
         }
 
         var track = nowPlaying.Value.Track;
+
+        await ModifyResponseAsync(
+            m =>
+                m.Content = $"""
+                ### Searching for lyrics of **{track.Name} - {track.Artists}**
+                This may take a moment...
+                """,
+            cancellationToken: ct
+        );
 
         var lyrics = await lyricsSearch.SearchAsync(track.Name, track.Artists, ct);
 
         if (lyrics.IsError)
         {
-            await replier
-                .Reply()
-                .To(message)
-                .WithEmbed("Lyrics", $"Lyrics not found for {track.Name} by {track.Artists}")
-                .WithDeletion()
-                .SendAsync(ct);
-
-            return Result.Success;
+            await ModifyResponseAsync(m => m.Content = lyrics.ToContent(), cancellationToken: ct);
+            return;
         }
 
-        var lyricsMessage = $"""
-            {lyrics.Value.Text}
-
-            {lyrics.Value.Url}
-            """;
-
-        await replier
-            .Reply()
-            .To(message)
-            .WithEmbed($"**{lyrics.Value.Title}** by **{lyrics.Value.Artist}**", lyricsMessage)
-            .WithDeletion(GetDeletionDelayFromNowPlaying(nowPlaying))
-            .SendAsync(ct);
-
-        return Result.Success;
+        await ModifyResponseAsync(
+            m =>
+                m.Content = $"""
+                ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
+                {lyrics.Value.Text}
+                -# {lyrics.Value.Url}
+                """,
+            cancellationToken: ct
+        );
     }
 
     private static TimeSpan GetDeletionDelayFromNowPlaying(ErrorOr<VoiceUpdate> nowPlaying)

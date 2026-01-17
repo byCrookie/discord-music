@@ -1,35 +1,33 @@
 using DiscordMusic.Core.Discord.Voice;
-using ErrorOr;
+using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class LeaveAction(IVoiceHost voiceHost, ILogger<LeaveAction> logger) : IDiscordAction
+public class LeaveAction(
+    IVoiceHost voiceHost,
+    ILogger<LeaveAction> logger,
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    public string Long => "leave";
-    public string Short => "l";
-
-    public string Help =>
-        """
-            The bot will not participate anymore. It will leave as soon as possible.
-            Usage: `leave`
-            """;
-
-    public async Task<ErrorOr<Success>> ExecuteAsync(
-        Message message,
-        string[] args,
-        CancellationToken ct
-    )
+    [SlashCommand("leave", "The bot will leave the voice channel.")]
+    [RequireChannelMusicAttribute<ApplicationCommandContext>]
+    [RequireRoleDj<ApplicationCommandContext>]
+    public async Task Leave()
     {
         logger.LogTrace("Leave");
-        var stop = await voiceHost.DisconnectAsync(ct);
-
-        if (stop.IsError)
-        {
-            return stop.Errors;
-        }
-
-        return Result.Success;
+        await voiceHost.DisconnectAsync(cancellation.CancellationToken);
+        await RespondAsync(
+            InteractionCallback.Message(
+                new InteractionMessageProperties
+                {
+                    Content = "### Left the voice channel.",
+                    Flags = MessageFlags.Ephemeral,
+                }
+            )
+        );
     }
 }
