@@ -8,24 +8,25 @@ using ErrorOr;
 using Humanizer;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Key = string;
 using ID = string;
+using Key = string;
 
-namespace DiscordMusic.Core.V4;
+namespace DiscordMusic.Core.FileCache;
 
 internal class DiskCache<T>(
     IFileSystem fileSystem,
     IJsonSerializer jsonSerializer,
     ILogger<DiskCache<T>> logger,
-    IOptions<CacheOptions> cacheOptions)
+    IOptions<CacheOptions> cacheOptions
+)
 {
     private IDirectoryInfo? _cacheDir;
     private readonly AsyncLock _lock = new();
     private bool _initialized;
     private ByteSize _cacheSize;
 
-    private const string MetadataExtension = ".metadata";
-    private const string DataExtension = ".data";
+    private const string MetadataExtension = ".json";
+    private const string BinExtension = ".bin";
 
     public async Task<ErrorOr<Success>> InitAsync(CancellationToken ct)
     {
@@ -45,15 +46,20 @@ internal class DiskCache<T>(
         _cacheDir = dir.Value;
 
         var cacheSize = new ByteSize();
-        foreach (var metadataFile in fileSystem.Directory.EnumerateFiles(dir.Value.FullName)
-                     .Where(file => file.EndsWith(MetadataExtension)))
+        foreach (
+            var metadataFile in fileSystem
+                .Directory.EnumerateFiles(dir.Value.FullName)
+                .Where(file => file.EndsWith(MetadataExtension))
+        )
         {
-            var dataFile = Path.Combine(Path.GetFileNameWithoutExtension(metadataFile),
-                DataExtension);
+            var dataFile = Path.Combine(
+                Path.GetFileNameWithoutExtension(metadataFile),
+                BinExtension
+            );
 
-            var metadata =
-                jsonSerializer.Deserialize<T>(
-                    await fileSystem.File.ReadAllTextAsync(metadataFile, ct));
+            var metadata = jsonSerializer.Deserialize<T>(
+                await fileSystem.File.ReadAllTextAsync(metadataFile, ct)
+            );
 
             if (metadata is null)
             {
@@ -63,7 +69,9 @@ internal class DiskCache<T>(
                 {
                     logger.LogDebug(
                         "Delete data file {DataFile} because of invalid metadata {MetadataFile}",
-                        dataFile, metadataFile);
+                        dataFile,
+                        metadataFile
+                    );
                     fileSystem.File.Delete(dataFile);
                 }
 
@@ -82,15 +90,17 @@ internal class DiskCache<T>(
         return Result.Success;
     }
 
-    public async Task<ErrorOr<Success>> SaveOrUpdateMetadataAsync(Key key, T metadata,
-        CancellationToken ct)
+    public async Task<ErrorOr<Success>> SaveOrUpdateMetadataAsync(
+        Key key,
+        T metadata,
+        CancellationToken ct
+    )
     {
         await using var _ = await _lock.AquireAsync(ct);
 
         if (!_initialized)
         {
-            return Error.Unexpected(
-                description: "DiskCache not initialized.");
+            return Error.Unexpected(description: "DiskCache not initialized.");
         }
 
         var id = KeyToId(key);
@@ -109,8 +119,7 @@ internal class DiskCache<T>(
 
         if (!_initialized)
         {
-            return Error.Unexpected(
-                description: "DiskCache not initialized.");
+            return Error.Unexpected(description: "DiskCache not initialized.");
         }
 
         var id = KeyToId(key);
@@ -119,7 +128,8 @@ internal class DiskCache<T>(
         if (!fileSystem.File.Exists(metadataFilePath))
         {
             return Error.NotFound(
-                description: $"No metadata found for id {id} at path {metadataFilePath}");
+                description: $"No metadata found for id {id} at path {metadataFilePath}"
+            );
         }
 
         var content = await fileSystem.File.ReadAllTextAsync(metadataFilePath, ct);
@@ -127,8 +137,8 @@ internal class DiskCache<T>(
         if (metadata is null)
         {
             return Error.Unexpected(
-                description:
-                $"Failed to deserialize metadata for id {id} at path {metadataFilePath}");
+                description: $"Failed to deserialize metadata for id {id} at path {metadataFilePath}"
+            );
         }
 
         return metadata;
@@ -140,12 +150,13 @@ internal class DiskCache<T>(
 
         if (!_initialized)
         {
-            return Error.Unexpected(
-                description: "DiskCache not initialized.");
+            return Error.Unexpected(description: "DiskCache not initialized.");
         }
 
         var id = KeyToId(key);
-        return ErrorOrFactory.From(fileSystem.FileInfo.New(Path.Combine(_cacheDir!.FullName, id, MetadataExtension)));
+        return ErrorOrFactory.From(
+            fileSystem.FileInfo.New(Path.Combine(_cacheDir!.FullName, id, MetadataExtension))
+        );
     }
 
     public async Task<ErrorOr<IFileInfo>> GetDataPathAsync(Key key, CancellationToken ct)
@@ -154,14 +165,60 @@ internal class DiskCache<T>(
 
         if (!_initialized)
         {
-            return Error.Unexpected(
-                description: "DiskCache not initialized.");
+            return Error.Unexpected(description: "DiskCache not initialized.");
         }
 
         var id = KeyToId(key);
-        return ErrorOrFactory.From(fileSystem.FileInfo.New(Path.Combine(_cacheDir!.FullName, id, DataExtension)));
+        return ErrorOrFactory.From(
+            fileSystem.FileInfo.New(Path.Combine(_cacheDir!.FullName, id, BinExtension))
+        );
     }
-    
+
+    public async Task<ErrorOr<ByteSize>> GetSizeAsync(CancellationToken ct)
+    {
+        await using var _ = await _lock.AquireAsync(ct);
+
+        if (!_initialized)
+        {
+            return Error.Unexpected(description: "DiskCache not initialized.");
+        }
+
+        return _cacheSize;
+    }
+
+    public async Task<ErrorOr<Success>> ClearAsync(CancellationToken ct)
+    {
+        await using var _ = await _lock.AquireAsync(ct);
+
+        if (!_initialized)
+        {
+            return Error.Unexpected(description: "DiskCache not initialized.");
+        }
+
+        foreach (
+            var metadataFile in fileSystem
+                .Directory.EnumerateFiles(_cacheDir!.FullName)
+                .Where(file => file.EndsWith(MetadataExtension))
+        )
+        {
+            var dataFile = Path.Combine(
+                Path.GetFileNameWithoutExtension(metadataFile),
+                BinExtension
+            );
+
+            logger.LogDebug(
+                "Delete metadata {MetaDataFile} and {DataFile} to clear cache.",
+                metadataFile,
+                dataFile
+            );
+            fileSystem.File.Delete(dataFile);
+            fileSystem.File.Delete(metadataFile);
+        }
+
+        _cacheSize = ByteSize.FromBytes(0);
+        return Result.Success;
+    }
+
     private static ID KeyToId(Key key)
     {
         var messageBytes = Encoding.UTF8.GetBytes(key);
@@ -178,22 +235,30 @@ internal class DiskCache<T>(
         {
             logger.LogWarning(
                 "Cache size {CacheSize} exceeds capacity {ByteSize}. Deleting old data.",
-                _cacheSize, ByteSize.Parse(cacheOptions.Value.MaxSize));
+                _cacheSize,
+                ByteSize.Parse(cacheOptions.Value.MaxSize)
+            );
             var diff = ByteSize.FromBytes(
-                Math.Abs((_cacheSize - ByteSize.Parse(cacheOptions.Value.MaxSize)).Bytes));
+                Math.Abs((_cacheSize - ByteSize.Parse(cacheOptions.Value.MaxSize)).Bytes)
+            );
 
             var deletedSize = ByteSize.FromBytes(0);
-            foreach (var metadataFile in
-                     fileSystem.Directory.EnumerateFiles(_cacheDir!.FullName)
-                         .Where(file => file.EndsWith(MetadataExtension))
-                         .OrderByDescending(file =>
-                             fileSystem.FileInfo.New(file).LastAccessTimeUtc))
+            foreach (
+                var metadataFile in fileSystem
+                    .Directory.EnumerateFiles(_cacheDir!.FullName)
+                    .Where(file => file.EndsWith(MetadataExtension))
+                    .OrderByDescending(file => fileSystem.FileInfo.New(file).LastAccessTimeUtc)
+            )
             {
-                var dataFile = Path.Combine(Path.GetFileNameWithoutExtension(metadataFile),
-                    DataExtension);
+                var dataFile = Path.Combine(
+                    Path.GetFileNameWithoutExtension(metadataFile),
+                    BinExtension
+                );
 
-                var entrySize = (fileSystem.FileInfo.New(metadataFile).Length +
-                                 fileSystem.FileInfo.New(dataFile).Length).Bytes();
+                var entrySize = (
+                    fileSystem.FileInfo.New(metadataFile).Length
+                    + fileSystem.FileInfo.New(dataFile).Length
+                ).Bytes();
                 deletedSize += entrySize;
 
                 if (deletedSize >= diff)
@@ -203,7 +268,10 @@ internal class DiskCache<T>(
 
                 logger.LogDebug(
                     "Delete metadata {MetaDataFile} and {DataFile} to reduce cache size by {EntrySize}.",
-                    metadataFile, dataFile, entrySize);
+                    metadataFile,
+                    dataFile,
+                    entrySize
+                );
                 fileSystem.File.Delete(dataFile);
                 fileSystem.File.Delete(metadataFile);
                 _cacheSize -= entrySize;
@@ -211,9 +279,11 @@ internal class DiskCache<T>(
         }
     }
 
-    private static ErrorOr<IDirectoryInfo> GetCacheDir(ILogger<DiskCache<T>> logger,
+    private static ErrorOr<IDirectoryInfo> GetCacheDir(
+        ILogger<DiskCache<T>> logger,
         IOptions<CacheOptions> cacheOptions,
-        IFileSystem fileSystem)
+        IFileSystem fileSystem
+    )
     {
         var cacheLocation = GetCacheDirBasedOnConfigOrOs(logger, cacheOptions, fileSystem);
 

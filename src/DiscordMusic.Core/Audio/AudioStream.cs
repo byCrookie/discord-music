@@ -1,38 +1,19 @@
-using System.Buffers;
 using System.IO.Abstractions;
-using DiscordMusic.Core.Utils;
+using System.IO.Pipelines;
 using ErrorOr;
 using Humanizer;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ValueOf;
 
 namespace DiscordMusic.Core.Audio;
 
 internal static partial class AudioStreamLogMessages
 {
-    [LoggerMessage(Message = "[{Id}] Streaming {Type} ({Bytes})", Level = LogLevel.Trace)]
-    internal static partial void LogStreaming(
-        this ILogger logger,
-        string id,
-        string type,
-        string bytes
-    );
-
     [LoggerMessage(Message = "[{Id}] Stream ended", Level = LogLevel.Trace)]
     internal static partial void LogStreamEnded(this ILogger logger, string id);
 
     [LoggerMessage(Message = "[{Id}] Stream failed", Level = LogLevel.Error)]
     internal static partial void LogStreamFailed(this ILogger logger, string id);
-
-    [LoggerMessage(Message = "[{Id}] Filled remaining buffer with silence", Level = LogLevel.Trace)]
-    internal static partial void LogFilled(this ILogger logger, string id);
-
-    [LoggerMessage(Message = "Audio {Position} / {Length}", Level = LogLevel.Trace)]
-    internal static partial void LogPosition(this ILogger logger, string position, string length);
-
-    [LoggerMessage(Message = "[{Id}] Still enough data in output stream", Level = LogLevel.Trace)]
-    internal static partial void LogStillEnough(this ILogger logger, string id);
 
     [LoggerMessage(Message = "[{Id}] Audio streaming was cancelled", Level = LogLevel.Trace)]
     internal static partial void LogStreamCancelled(this ILogger logger, string id);
@@ -60,24 +41,36 @@ public class AudioStream : IDisposable
     public const int BitsPerSample = 16;
     private const int BytesPerSample = BitsPerSample / 8;
 
-    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
+    // Send data to NetCord in small chunks.
+    // This allows to check for Cancellation (Seek/Stop) many times per second.
+    // If increased, the bot would feel "laggy" when skipping songs.
+    // 3840 bytes = 20ms of audio
+    private const int NetworkFrameSize = 3840 * 5;
 
-    private readonly byte[] _buffer;
-    private readonly string _bufferSizeHumanized;
-    private readonly TimeSpan _bufferTime;
-    private readonly CancellationTokenSource _cts;
+    // Read from disk in large 300ms chunks.
+    // This is efficient for the OS and reduces CPU overhead.
+    // 57600 bytes = 300ms of audio
+    private const int DiskReadSize = 57600;
+
+    // Pipe buffer size is double the disk read size to allow
+    // some leeway between reading from disk and sending to network.
+    private const int PipeBufferSize = DiskReadSize * 20;
+
     private readonly string _id;
-
     private readonly Stream _inputStream;
-    private readonly Lock _lock;
-    private readonly ILogger _logger;
     private readonly Stream _outputStream;
+    private readonly ILogger _logger;
+    private readonly CancellationTokenSource _cts;
+    private readonly Lock _lock;
+
+    private Pipe _pipe = null!;
+    private CancellationTokenSource _producerCts = null!;
+    private CancellationTokenSource _consumerCts;
 
     private AudioStream(
         Stream inputStream,
         Stream outputStream,
         ILogger logger,
-        IOptions<AudioOptions> options,
         CancellationToken ct
     )
     {
@@ -85,98 +78,89 @@ public class AudioStream : IDisposable
         _inputStream = inputStream;
         _outputStream = outputStream;
         _logger = logger;
-        _bufferTime = options.Value.BufferTime;
-        var bufferSize = Bytes.ToBytes(_bufferTime);
-        _bufferSizeHumanized = bufferSize.Value.Bytes().Humanize();
-        _buffer = Pool.Rent((int)bufferSize);
-        Array.Clear(_buffer, 0, _buffer.Length);
+
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _lock = new Lock();
+        _consumerCts = new CancellationTokenSource();
+
+        SetupPipeAndTasks();
 
         _ = Task.Factory.StartNew(
-            async () =>
-            {
-                try
-                {
-                    while (!_cts.IsCancellationRequested)
-                    {
-                        if (_logger.IsEnabled(LogLevel.Trace))
-                        {
-                            _logger.LogPosition(
-                                Position.HumanizeMillisecond(),
-                                Length.HumanizeMillisecond()
-                            );
-                        }
-
-                        switch (State)
-                        {
-                            case AudioState.Playing:
-                                await HandlePlayingAsync(_cts.Token);
-                                break;
-                            case AudioState.Silence:
-                                await HandleSilenceAsync(_cts.Token);
-                                break;
-                            case AudioState.Ended:
-                                await HandleEndedAsync(_cts.Token);
-                                break;
-                            case AudioState.Stopped:
-                                await HandleStoppedAsync(_cts.Token);
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException(
-                                    nameof(State),
-                                    State,
-                                    $"Unknown state {State}"
-                                );
-                        }
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogStreamCancelled(_id);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogStreamFailed(_id);
-                    State = AudioState.Stopped;
-
-                    if (StreamFailed is not null)
-                    {
-                        await StreamFailed(e, this, EventArgs.Empty);
-                    }
-                }
-            },
+            StateMachineLoop,
             _cts.Token,
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default
         );
     }
 
-    public AudioState State { get; private set; } = AudioState.Playing;
-    public TimeSpan Length => Bytes.From(_inputStream.Length).ToTimeSpan();
-    public TimeSpan Position => Bytes.From(_inputStream.Position).ToTimeSpan();
-
-    public void Dispose()
+    private void SetupPipeAndTasks()
     {
-        State = AudioState.Stopped;
-        _cts.Cancel();
-        StreamEnded = null;
-        StreamFailed = null;
-        _inputStream.Dispose();
-        Pool.Return(_buffer, true);
+        _pipe = new Pipe(
+            new PipeOptions(
+                pauseWriterThreshold: PipeBufferSize,
+                resumeWriterThreshold: PipeBufferSize / 2,
+                useSynchronizationContext: false
+            )
+        );
+
+        _producerCts = new CancellationTokenSource();
+        _ = FillPipeAsync(_producerCts.Token);
+
+        _consumerCts = new CancellationTokenSource();
     }
 
-    private async Task HandlePlayingAsync(CancellationToken ct)
+    private async Task FillPipeAsync(CancellationToken ct)
     {
+        var writer = _pipe.Writer;
+
+        while (!ct.IsCancellationRequested)
+        {
+            // Allocate a large buffer for efficient disk IO
+            var memory = writer.GetMemory(DiskReadSize);
+            try
+            {
+                // Read 0.3s worth of audio at once
+                var bytesRead = await _inputStream.ReadAsync(memory, ct);
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                writer.Advance(bytesRead);
+            }
+            catch (Exception ex)
+            {
+                await writer.CompleteAsync(ex);
+                return;
+            }
+
+            // FlushAsync will pause here if the pipe is full.
+            // This effectively throttles the disk reader to match the playback speed.
+            var result = await writer.FlushAsync(ct);
+            if (result.IsCompleted)
+            {
+                break;
+            }
+        }
+
+        await writer.CompleteAsync();
+    }
+
+    private async Task HandlePlayingAsync()
+    {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            _cts.Token,
+            // ReSharper disable once InconsistentlySynchronizedField
+            _consumerCts.Token
+        );
+
+        var token = linkedCts.Token;
+
+        var sourceStream = _pipe.Reader.AsStream(true);
+
         try
         {
-            await _inputStream.ReadExactlyAsync(_buffer, ct);
-            _logger.LogStreaming(_id, "audio", _bufferSizeHumanized);
-            await _outputStream.WriteAsync(_buffer, ct);
-        }
-        catch (EndOfStreamException)
-        {
-            await _outputStream.WriteAsync(_buffer, ct);
+            await sourceStream.CopyToAsync(_outputStream, NetworkFrameSize, token);
 
             State = AudioState.Ended;
             _logger.LogStreamEnded(_id);
@@ -185,34 +169,62 @@ public class AudioStream : IDisposable
                 await StreamEnded(this, EventArgs.Empty);
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Expected during Seek or Stop
+        }
     }
 
-    private async Task HandleSilenceAsync(CancellationToken ct)
+    private async Task StateMachineLoop()
     {
-        _logger.LogStreaming(_id, "silence", _bufferSizeHumanized);
-        await Task.Delay(_bufferTime, ct);
+        try
+        {
+            while (!_cts.IsCancellationRequested)
+            {
+                switch (State)
+                {
+                    case AudioState.Playing:
+                        await HandlePlayingAsync();
+                        break;
+                    case AudioState.Silence:
+                    case AudioState.Ended:
+                    case AudioState.Stopped:
+                        await Task.Delay(100);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(State), State, null);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogStreamCancelled(_id);
+        }
+        catch (Exception e)
+        {
+            _logger.LogStreamFailed(_id);
+            State = AudioState.Stopped;
+            if (StreamFailed is not null)
+            {
+                await StreamFailed(e, this, EventArgs.Empty);
+            }
+        }
     }
-
-    private async Task HandleStoppedAsync(CancellationToken ct)
-    {
-        _logger.LogStreaming(_id, "stopped", _bufferSizeHumanized);
-        await Task.Delay(_bufferTime, ct);
-    }
-
-    private async Task HandleEndedAsync(CancellationToken ct)
-    {
-        _logger.LogStreaming(_id, "ended", _bufferSizeHumanized);
-        await Task.Delay(_bufferTime, ct);
-    }
-
-    public event Func<Exception, object, EventArgs, Task>? StreamFailed;
-    public event Func<object, EventArgs, Task>? StreamEnded;
 
     public void Pause()
     {
         lock (_lock)
         {
+            if (State == AudioState.Silence)
+            {
+                return;
+            }
+
             State = AudioState.Silence;
+
+            // Cancel the current token to force HandlePlayingAsync
+            // to stop executing 'CopyToAsync' immediately.
+            _consumerCts.Cancel();
         }
     }
 
@@ -220,6 +232,20 @@ public class AudioStream : IDisposable
     {
         lock (_lock)
         {
+            if (State == AudioState.Playing)
+            {
+                return;
+            }
+
+            // Since Pause() cancelled the token, create a new one
+            // before trying to play again, otherwise HandlePlayingAsync will
+            // cancel immediately.
+            if (_consumerCts.IsCancellationRequested)
+            {
+                _consumerCts.Dispose();
+                _consumerCts = new CancellationTokenSource();
+            }
+
             State = AudioState.Playing;
         }
     }
@@ -229,7 +255,6 @@ public class AudioStream : IDisposable
         lock (_lock)
         {
             var seekBytes = Bytes.ToBytes(time);
-
             var seekPosition = seekMode switch
             {
                 SeekMode.Position => seekBytes,
@@ -248,19 +273,45 @@ public class AudioStream : IDisposable
                 seekPosition = Bytes.From(0);
             }
 
-            State = AudioState.Playing;
+            _consumerCts.Cancel();
+            _consumerCts.Dispose();
+
+            _producerCts.Cancel();
+            _producerCts.Dispose();
 
             _inputStream.Position = seekPosition;
+            State = AudioState.Playing;
+
+            SetupPipeAndTasks();
+
             return seekPosition.ToTimeSpan();
         }
     }
+
+    public AudioState State { get; private set; } = AudioState.Playing;
+    public TimeSpan Length => Bytes.From(_inputStream.Length).ToTimeSpan();
+    public TimeSpan Position => Bytes.From(_inputStream.Position).ToTimeSpan();
+
+    public void Dispose()
+    {
+        State = AudioState.Stopped;
+        _cts.Cancel();
+        _producerCts.Cancel();
+        _consumerCts.Cancel();
+        StreamEnded = null;
+        StreamFailed = null;
+        _inputStream.Dispose();
+        _cts.Dispose();
+    }
+
+    public event Func<Exception, object, EventArgs, Task>? StreamFailed;
+    public event Func<object, EventArgs, Task>? StreamEnded;
 
     public static ErrorOr<AudioStream> Load(
         IFileInfo audioFile,
         Stream outputStream,
         IFileSystem fileSystem,
         ILogger logger,
-        IOptions<AudioOptions> options,
         CancellationToken ct
     )
     {
@@ -270,15 +321,8 @@ public class AudioStream : IDisposable
         }
 
         var stream = new FileStream(audioFile.FullName, FileMode.Open, FileAccess.Read);
-
-        logger.LogDebug(
-            "Audio stream loaded from {AudioFile} with {Length} bytes and duration {Duration}",
-            audioFile.FullName,
-            stream.Length.Bytes(),
-            Bytes.From(stream.Length).ToTimeSpan().HumanizeMillisecond()
-        );
-
-        return new AudioStream(stream, outputStream, logger, options, ct);
+        logger.LogDebug("Audio stream loaded from {AudioFile}", audioFile.FullName);
+        return new AudioStream(stream, outputStream, logger, ct);
     }
 
     public static ByteSize ApproxSize(TimeSpan time)
@@ -288,41 +332,22 @@ public class AudioStream : IDisposable
 
     private class Bytes : ValueOf<long, Bytes>
     {
-        public TimeSpan ToTimeSpan()
-        {
-            return TimeSpan.FromSeconds(1d * Value / (SampleRate * Channels * BytesPerSample));
-        }
+        public TimeSpan ToTimeSpan() =>
+            TimeSpan.FromSeconds(1d * Value / (SampleRate * Channels * BytesPerSample));
 
-        public static Bytes ToBytes(TimeSpan time)
-        {
-            return From(
+        public static Bytes ToBytes(TimeSpan time) =>
+            From(
                 (long)Math.Ceiling(1d * time.TotalSeconds * SampleRate * Channels * BytesPerSample)
             );
-        }
 
-        public static Bytes operator +(Bytes a, Bytes b)
-        {
-            return From(a.Value + b.Value);
-        }
+        public static Bytes operator +(Bytes a, Bytes b) => From(a.Value + b.Value);
 
-        public static Bytes operator -(Bytes a, Bytes b)
-        {
-            return From(a.Value - b.Value);
-        }
+        public static Bytes operator -(Bytes a, Bytes b) => From(a.Value - b.Value);
 
-        public static bool operator >(Bytes a, long b)
-        {
-            return a.Value > b;
-        }
+        public static bool operator >(Bytes a, long b) => a.Value > b;
 
-        public static bool operator <(Bytes a, long b)
-        {
-            return a.Value < b;
-        }
+        public static bool operator <(Bytes a, long b) => a.Value < b;
 
-        public static implicit operator long(Bytes bytes)
-        {
-            return bytes.Value;
-        }
+        public static implicit operator long(Bytes bytes) => bytes.Value;
     }
 }
