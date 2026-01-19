@@ -2,14 +2,12 @@ using System.IO.Abstractions;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.Audio;
 
 public class AudioPlayer(
     ILogger<AudioPlayer> logger,
     ILogger<AudioStream> audioStreamlogger,
-    IOptions<AudioOptions> options,
     IFileSystem fileSystem
 ) : IAudioPlayer
 {
@@ -124,14 +122,7 @@ public class AudioPlayer(
             return Error.Unexpected(description: "Audio not started");
         }
 
-        var audioStream = AudioStream.Load(
-            file,
-            _output,
-            fileSystem,
-            audioStreamlogger,
-            options,
-            ct
-        );
+        var audioStream = AudioStream.Load(file, _output, fileSystem, audioStreamlogger, ct);
 
         if (audioStream.IsError)
         {

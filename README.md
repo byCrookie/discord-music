@@ -1,6 +1,6 @@
 # discord-music
 
-Another music bot for Discord with playback controls, song lyrics and advanced queue management.
+Another music bot for Discord with playback controls, song lyrics and queue management.
 
 **Libraries & APIs**:
 
@@ -20,31 +20,20 @@ Another music bot for Discord with playback controls, song lyrics and advanced q
 
 ## Features
 
-This bot is pretty minimal and intended for a single server only.
-
-### **Music Functions**
+This bot designed to be minimal and intended for a single server / single channel use case.
 
 - **Join & Leave**: Auto-connect and disconnect from voice channels.
 - **Play Music**:
     - Stream audio from YouTube (URLs or search queries).
     - Play from Spotify (search on Spotify and stream via YouTube).
 - **Playback Control**: Pause, resume, and seek to specific timestamps.
-
-### **Queue Management**
-
 - **Queue System**:
     - Add, remove, clear, and skip tracks.
-
-### **Extra Features**
-
 - **Lyrics Fetching**: Fetch lyrics for the currently playing song.
 - **Audio Controls**: Interactive audio controls with buttons.
 - **Audio Caching**: Cache tracks to reduce load times and enhance performance.
 - **Auto Disconnect**: Automatically disconnect from the voice channel when empty.
-
-### **Bot Management**
-
-- **Docker Support**: Easily deploy the bot in a containerized environment.
+- **Container Support**: Easily deploy the bot in a containerized environment.
 - **Permission System**: Role-based access control for commands.
 
 ## Installation
@@ -143,7 +132,8 @@ The bot first looks for the `.dmrc` INI file in the executable directory. If itâ
 checks platform-specific paths. [XDG](https://specifications.freedesktop.org/basedir/latest/) is
 supported. If no source matches, last location for context is used.
 
-> Note: If multiple sources exist, values of higher priority sources override values of lower priority sources.
+> Note: If multiple sources exist, values of higher priority sources override values of lower
+> priority sources.
 
 | Priority (top-down) | Path / Source                                                              | Context                                                       | 
 |---------------------|----------------------------------------------------------------------------|---------------------------------------------------------------|
