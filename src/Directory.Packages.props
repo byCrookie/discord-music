@@ -19,7 +19,7 @@
         <PackageVersion Include="SpotifyAPI.Web" Version="7.2.1" />
         <PackageVersion Include="System.CommandLine" Version="2.0.2" />
         <PackageVersion Include="Testably.Abstractions" Version="10.0.0" />
-        <PackageVersion Include="TUnit" Version="1.11.28" />
+        <PackageVersion Include="TUnit" Version="1.12.15" />
         <PackageVersion Include="ValueOf" Version="2.0.31" />
     </ItemGroup>
 </Project>
