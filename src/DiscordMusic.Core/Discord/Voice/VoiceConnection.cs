@@ -6,8 +6,9 @@ public record VoiceConnection(
     VoiceClient VoiceClient,
     ulong GuildId,
     ulong ChannelId,
-    Stream Output
-) : IAsyncDisposable
+    ulong TextChannelId,
+    Stream Output,
+    Stream VoiceOutStream) : IAsyncDisposable
 {
     public async ValueTask DisposeAsync()
     {
@@ -17,6 +18,7 @@ public record VoiceConnection(
     public async Task CloseAsync(CancellationToken ct)
     {
         await Output.DisposeAsync();
+        await VoiceOutStream.DisposeAsync();
         await VoiceClient.CloseAsync(cancellationToken: ct);
     }
 }

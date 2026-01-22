@@ -72,7 +72,7 @@ public static class CacheGetOrAddCommand
         var musicCache = host.Services.GetRequiredService<IMusicCache>();
         var file = await musicCache.GetOrAddTrackAsync(
             new Track(title, artist, url, duration),
-            AudioStream.ApproxSize(duration),
+            Pcm16Bytes.ToBytes(duration).Humanize(),
             ct
         );
 

@@ -41,7 +41,7 @@ public class QueueAction(
             return;
         }
 
-        var tracks = await voiceHost.QueueAsync(Context, cancellation.CancellationToken);
+        var tracks = await voiceHost.QueueAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
 
         if (tracks.IsError)
         {
@@ -126,7 +126,7 @@ public class QueueAction(
     public async Task Clear()
     {
         logger.LogTrace("Queue clear");
-        var clear = await voiceHost.QueueClearAsync(Context, cancellation.CancellationToken);
+        var clear = await voiceHost.QueueClearAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
 
         if (clear.IsError)
         {
@@ -143,7 +143,7 @@ public class QueueAction(
     public async Task Shuffle()
     {
         logger.LogTrace("Shuffle");
-        var shuffle = await voiceHost.ShuffleAsync(Context, cancellation.CancellationToken);
+        var shuffle = await voiceHost.ShuffleAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
 
         if (shuffle.IsError)
         {

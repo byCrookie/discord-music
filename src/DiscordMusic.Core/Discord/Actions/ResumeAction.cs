@@ -18,7 +18,7 @@ public class ResumeAction(
     public async Task Resume()
     {
         logger.LogTrace("Resume");
-        var resume = await voiceHost.ResumeAsync(Context, cancellation.CancellationToken);
+        var resume = await voiceHost.ResumeAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
 
         if (resume.IsError)
         {

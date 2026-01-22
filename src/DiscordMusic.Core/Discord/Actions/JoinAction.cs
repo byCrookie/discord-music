@@ -21,7 +21,7 @@ public class JoinAction(IVoiceHost voiceHost, ILogger<JoinAction> logger, Cancel
     public async Task Join()
     {
         logger.LogTrace("Join");
-        await voiceHost.ConnectAsync(Context, cancellation.CancellationToken);
+        await voiceHost.ConnectAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties

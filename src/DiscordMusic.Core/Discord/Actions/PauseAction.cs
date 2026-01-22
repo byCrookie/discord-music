@@ -18,7 +18,7 @@ public class PauseAction(
     public async Task Pause()
     {
         logger.LogTrace("Pause");
-        var pause = await voiceHost.PauseAsync(Context, cancellation.CancellationToken);
+        var pause = await voiceHost.PauseAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
 
         await RespondAsync(
             InteractionCallback.Message(

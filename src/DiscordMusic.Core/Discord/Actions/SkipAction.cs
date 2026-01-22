@@ -53,7 +53,7 @@ public class SkipAction(IVoiceHost voiceHost, ILogger<SkipAction> logger, Cancel
             cancellationToken: cancellation.CancellationToken
         );
 
-        var skip = await voiceHost.SkipAsync(Context, skipCount, cancellation.CancellationToken);
+        var skip = await voiceHost.SkipAsync(VoiceHostContext.FromApplicationCommandContext(Context), skipCount, cancellation.CancellationToken);
 
         if (skip.IsError)
         {

@@ -19,7 +19,7 @@ public class NowPlayingAction(
     public async Task NowPlaying()
     {
         logger.LogTrace("Nowplaying");
-        var nowPlaying = await voiceHost.NowPlayingAsync(Context, cancellation.CancellationToken);
+        var nowPlaying = await voiceHost.NowPlayingAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
 
         if (nowPlaying.IsError)
         {

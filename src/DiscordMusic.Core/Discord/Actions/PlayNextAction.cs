@@ -37,7 +37,7 @@ public class PlayNextAction(
             cancellationToken: cancellation.CancellationToken
         );
 
-        var play = await voiceHost.PlayNextAsync(Context, query, cancellation.CancellationToken);
+        var play = await voiceHost.PlayNextAsync(VoiceHostContext.FromApplicationCommandContext(Context), query, cancellation.CancellationToken);
 
         if (play.IsError)
         {

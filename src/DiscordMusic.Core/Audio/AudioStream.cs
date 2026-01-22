@@ -36,11 +36,6 @@ public class AudioStream : IDisposable
         Backward,
     }
 
-    public const int SampleRate = 48000;
-    public const int Channels = 2;
-    public const int BitsPerSample = 16;
-    private const int BytesPerSample = BitsPerSample / 8;
-
     // Send data to NetCord in small chunks.
     // This allows to check for Cancellation (Seek/Stop) many times per second.
     // If increased, the bot would feel "laggy" when skipping songs.
@@ -254,23 +249,23 @@ public class AudioStream : IDisposable
     {
         lock (_lock)
         {
-            var seekBytes = Bytes.ToBytes(time);
+            var seekBytes = Pcm16Bytes.ToBytes(time);
             var seekPosition = seekMode switch
             {
                 SeekMode.Position => seekBytes,
-                SeekMode.Forward => Bytes.From(_inputStream.Position) + seekBytes,
-                SeekMode.Backward => Bytes.From(_inputStream.Position) - seekBytes,
+                SeekMode.Forward => Pcm16Bytes.From(_inputStream.Position) + seekBytes,
+                SeekMode.Backward => Pcm16Bytes.From(_inputStream.Position) - seekBytes,
                 _ => throw new ArgumentOutOfRangeException(nameof(seekMode), seekMode, null),
             };
 
             if (seekPosition > _inputStream.Length)
             {
-                seekPosition = Bytes.From(_inputStream.Length);
+                seekPosition = Pcm16Bytes.From(_inputStream.Length);
             }
 
             if (seekPosition < 0)
             {
-                seekPosition = Bytes.From(0);
+                seekPosition = Pcm16Bytes.From(0);
             }
 
             _consumerCts.Cancel();
@@ -284,13 +279,13 @@ public class AudioStream : IDisposable
 
             SetupPipeAndTasks();
 
-            return seekPosition.ToTimeSpan();
+            return seekPosition.ToTime();
         }
     }
 
     public AudioState State { get; private set; } = AudioState.Playing;
-    public TimeSpan Length => Bytes.From(_inputStream.Length).ToTimeSpan();
-    public TimeSpan Position => Bytes.From(_inputStream.Position).ToTimeSpan();
+    public TimeSpan Length => Pcm16Bytes.From(_inputStream.Length).ToTime();
+    public TimeSpan Position => Pcm16Bytes.From(_inputStream.Position).ToTime();
 
     public void Dispose()
     {
@@ -323,31 +318,5 @@ public class AudioStream : IDisposable
         var stream = new FileStream(audioFile.FullName, FileMode.Open, FileAccess.Read);
         logger.LogDebug("Audio stream loaded from {AudioFile}", audioFile.FullName);
         return new AudioStream(stream, outputStream, logger, ct);
-    }
-
-    public static ByteSize ApproxSize(TimeSpan time)
-    {
-        return ByteSize.FromBytes(Bytes.ToBytes(time));
-    }
-
-    private class Bytes : ValueOf<long, Bytes>
-    {
-        public TimeSpan ToTimeSpan() =>
-            TimeSpan.FromSeconds(1d * Value / (SampleRate * Channels * BytesPerSample));
-
-        public static Bytes ToBytes(TimeSpan time) =>
-            From(
-                (long)Math.Ceiling(1d * time.TotalSeconds * SampleRate * Channels * BytesPerSample)
-            );
-
-        public static Bytes operator +(Bytes a, Bytes b) => From(a.Value + b.Value);
-
-        public static Bytes operator -(Bytes a, Bytes b) => From(a.Value - b.Value);
-
-        public static bool operator >(Bytes a, long b) => a.Value > b;
-
-        public static bool operator <(Bytes a, long b) => a.Value < b;
-
-        public static implicit operator long(Bytes bytes) => bytes.Value;
     }
 }

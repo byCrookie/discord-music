@@ -1,48 +1,52 @@
 using DiscordMusic.Core.Audio;
 using ErrorOr;
+using NetCord.Gateway.Voice;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Voice;
 
 public interface IVoiceHost
 {
-    Task<ErrorOr<Success>> ConnectAsync(ApplicationCommandContext context, CancellationToken ct);
+    event Func<VoiceReceiveEventArgs, ValueTask>? VoiceReceive;
+    VoiceClient? VoiceClient { get; }
+    VoiceConnection? VoiceConnection { get; }
+    Task<ErrorOr<Success>> ConnectAsync(VoiceHostContext voiceHostContext, CancellationToken ct);
     Task<ErrorOr<Success>> DisconnectAsync(CancellationToken ct);
     Task<ErrorOr<VoiceUpdate>> PlayAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         string query,
         CancellationToken ct
     );
     Task<ErrorOr<VoiceUpdate>> PlayNextAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         string query,
         CancellationToken ct
     );
-    Task<ErrorOr<VoiceUpdate>> PauseAsync(ApplicationCommandContext context, CancellationToken ct);
-    Task<ErrorOr<VoiceUpdate>> ResumeAsync(ApplicationCommandContext context, CancellationToken ct);
+    Task<ErrorOr<VoiceUpdate>> PauseAsync(VoiceHostContext voiceHostContext, CancellationToken ct);
+    Task<ErrorOr<VoiceUpdate>> ResumeAsync(VoiceHostContext voiceHostContext, CancellationToken ct);
     Task<ErrorOr<VoiceUpdate>> NowPlayingAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     );
     Task<ErrorOr<ICollection<Track>>> QueueAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     );
-    Task<ErrorOr<Success>> QueueClearAsync(ApplicationCommandContext context, CancellationToken ct);
+    Task<ErrorOr<Success>> QueueClearAsync(VoiceHostContext voiceHostContext, CancellationToken ct);
 
     Task<ErrorOr<VoiceUpdate>> SeekAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         TimeSpan time,
         AudioStream.SeekMode mode,
         CancellationToken ct
     );
 
     Task<ErrorOr<VoiceUpdate>> ShuffleAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     );
     Task<ErrorOr<VoiceUpdate>> SkipAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         int toIndex,
         CancellationToken ct
     );

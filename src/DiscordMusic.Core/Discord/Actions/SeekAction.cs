@@ -46,7 +46,7 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         );
 
         var seek = await voiceHost.SeekAsync(
-            Context,
+            VoiceHostContext.FromApplicationCommandContext(Context),
             positionTs,
             AudioStream.SeekMode.Position,
             cancellation.CancellationToken
@@ -106,7 +106,7 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         );
 
         var seek = await voiceHost.SeekAsync(
-            Context,
+            VoiceHostContext.FromApplicationCommandContext(Context),
             durationTs,
             AudioStream.SeekMode.Backward,
             cancellation.CancellationToken
@@ -169,7 +169,7 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         );
 
         var seek = await voiceHost.SeekAsync(
-            Context,
+            VoiceHostContext.FromApplicationCommandContext(Context),
             durationTs,
             AudioStream.SeekMode.Forward,
             cancellation.CancellationToken

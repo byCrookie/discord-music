@@ -9,6 +9,7 @@ using DiscordMusic.Core.Queue;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube;
+using DiscordMusic.Core.VoiceCommands;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -64,8 +65,12 @@ public static class CoreModule
         builder.AddDiscord();
         builder.AddAudio();
 
+        builder.Services.AddVoiceCommands();
+
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
         builder.Services.AddSingleton(new Cancellation(ct));
+
+        builder.Services.AddHostedService<VoiceCommandService>();
     }
 
     private static void AddConfigFromOsSpecificDirs(IHostApplicationBuilder builder, ILogger logger)

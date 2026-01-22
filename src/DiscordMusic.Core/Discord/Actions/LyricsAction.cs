@@ -39,7 +39,7 @@ public class LyricsAction(
             cancellationToken: cancellation.CancellationToken
         );
 
-        var nowPlaying = await voiceHost.NowPlayingAsync(Context, ct);
+        var nowPlaying = await voiceHost.NowPlayingAsync(VoiceHostContext.FromApplicationCommandContext(Context), ct);
 
         if (nowPlaying.IsError)
         {

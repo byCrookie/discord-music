@@ -29,7 +29,7 @@ public class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Cancel
             cancellationToken: cancellation.CancellationToken
         );
 
-        var play = await voiceHost.PlayAsync(Context, query, cancellation.CancellationToken);
+        var play = await voiceHost.PlayAsync(VoiceHostContext.FromApplicationCommandContext(Context), query, cancellation.CancellationToken);
 
         if (play.IsError)
         {

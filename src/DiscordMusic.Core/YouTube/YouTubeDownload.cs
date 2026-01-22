@@ -141,7 +141,7 @@ internal partial class YouTubeDownload(
             );
 
             var ffmpegArgs =
-                $"-y -i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} \"{output.FullName}\"";
+                $"-y -i \"{opusTempFile}\" -f s{Pcm16Bytes.BitsPerSample}le -ar {Pcm16Bytes.SampleRate} -ac {Pcm16Bytes.Channels} \"{output.FullName}\"";
             logger.LogTrace(
                 "Calling {Ffmpeg} with arguments {FfmpegArgs}",
                 ffmpeg.Value.PathToFile,

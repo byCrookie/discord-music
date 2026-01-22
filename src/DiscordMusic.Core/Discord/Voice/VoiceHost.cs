@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Gateway.Voice;
 using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Voice;
 
@@ -29,34 +28,50 @@ public class VoiceHost(
     private VoiceConnection? _connection;
     private Track? _currentTrack;
 
+    public event Func<VoiceReceiveEventArgs, ValueTask>? VoiceReceive;
+
+    public VoiceClient? VoiceClient => _connection?.VoiceClient;
+    public VoiceConnection? VoiceConnection => _connection;
+    
+    private async Task<ErrorOr<VoiceState>> TryGetGuildUserVoiceStateAsync(ulong guildId, ulong userId, CancellationToken ct)
+    {
+        try 
+        {
+            return await gatewayClient.Rest.GetGuildUserVoiceStateAsync(guildId, userId, cancellationToken: ct);
+        }
+        catch (Exception ex)
+        {
+            return Error.NotFound(description: $"Could not get voice state for user {userId} in guild {guildId}: {ex.Message}");
+        }
+    }
+
     public async Task<ErrorOr<Success>> ConnectAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Connect");
         await using var _ = await _lock.AquireAsync(ct);
 
-        if (context.Guild is null)
+        if (voiceHostContext.GuildId is null)
         {
             return Error.Validation(description: "Message does not have a guild");
         }
 
-        var guild = context.Guild!;
-        var userId = context.User.Id;
-
-        if (!guild.VoiceStates.TryGetValue(userId, out var userVoiceState))
+        var userVoiceState = await TryGetGuildUserVoiceStateAsync(voiceHostContext.GuildId.Value, voiceHostContext.UserId, ct);
+        
+        if (userVoiceState.IsError)
         {
-            return Error.Validation(description: "You are not in a voice channel");
+            return userVoiceState.Errors;
         }
-
+        
         var botId = gatewayClient.Cache.User!.Id;
-        var channelId = userVoiceState.ChannelId!.Value;
-        var guildId = guild.Id;
-
-        if (guild.VoiceStates.TryGetValue(botId, out var botVoiceState))
+        
+        var botVoiceState = await TryGetGuildUserVoiceStateAsync(voiceHostContext.GuildId.Value, botId, ct);
+        
+        if (!botVoiceState.IsError)
         {
-            if (botVoiceState.ChannelId == userVoiceState.ChannelId && _connection is not null)
+            if (botVoiceState.Value.ChannelId == userVoiceState.Value.ChannelId && _connection is not null)
             {
                 logger.LogTrace("Bot is already in the same voice channel");
                 return Result.Success;
@@ -72,10 +87,14 @@ public class VoiceHost(
             _currentTrack = null;
         }
 
-        logger.LogInformation("Joining voice channel {ChannelId}", channelId);
+        logger.LogInformation("Joining voice channel {ChannelId}", userVoiceState.Value.ChannelId);
         var voiceClient = await gatewayClient.JoinVoiceChannelAsync(
-            guildId,
-            channelId,
+            voiceHostContext.GuildId.Value,
+            userVoiceState.Value.ChannelId!.Value,
+            new VoiceClientConfiguration
+            {
+                ReceiveHandler = new VoiceReceiveHandler()
+            },
             cancellationToken: ct
         );
         await voiceClient.StartAsync(ct);
@@ -83,6 +102,11 @@ public class VoiceHost(
             new SpeakingProperties(SpeakingFlags.Priority),
             cancellationToken: ct
         );
+
+        voiceClient.VoiceReceive += VoiceReceive;
+        
+        var voiceOutStream = voiceClient.CreateOutputStream(normalizeSpeed: false);
+        
         var opusStream = new OpusEncodeStream(
             voiceClient.CreateOutputStream(),
             PcmFormat.Short,
@@ -90,12 +114,13 @@ public class VoiceHost(
             OpusApplication.Audio
         );
 
-        _connection = new VoiceConnection(voiceClient, guildId, channelId, opusStream);
+        _connection = new VoiceConnection(voiceClient, voiceHostContext.GuildId.Value, userVoiceState.Value.ChannelId!.Value, voiceHostContext.ChannelId, opusStream, voiceOutStream);
         await audioPlayer.StartAsync(
             _connection!.Output,
-            (@event, exception, cancel) => UpdateAsync(context, @event, exception, cancel),
+            UpdateAsync,
             ct
         );
+        
         return Result.Success;
     }
 
@@ -121,13 +146,13 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> PlayAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         string query,
         CancellationToken ct
     )
     {
         logger.LogTrace("Play");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -138,13 +163,13 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> PlayNextAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         string query,
         CancellationToken ct
     )
     {
         logger.LogTrace("Play");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -155,12 +180,12 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<Success>> QueueClearAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Queue");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -172,14 +197,14 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> SeekAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         TimeSpan time,
         AudioStream.SeekMode mode,
         CancellationToken ct
     )
     {
         logger.LogTrace("Seek {Mode}", mode);
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -197,12 +222,12 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> ShuffleAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Shuffle");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -218,13 +243,13 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> SkipAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         int toIndex,
         CancellationToken ct
     )
     {
         logger.LogTrace("Skip");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -236,12 +261,12 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<ICollection<Track>>> QueueAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Queue");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -252,12 +277,12 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> PauseAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Pause");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -275,12 +300,12 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> ResumeAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Resume");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -298,12 +323,12 @@ public class VoiceHost(
     }
 
     public async Task<ErrorOr<VoiceUpdate>> NowPlayingAsync(
-        ApplicationCommandContext context,
+        VoiceHostContext voiceHostContext,
         CancellationToken ct
     )
     {
         logger.LogTrace("Now Playing");
-        var connect = await ConnectAsync(context, ct);
+        var connect = await ConnectAsync(voiceHostContext, ct);
 
         if (connect.IsError)
         {
@@ -399,7 +424,6 @@ public class VoiceHost(
     }
 
     private async Task UpdateAsync(
-        ApplicationCommandContext context,
         AudioEvent item,
         Exception? exception,
         CancellationToken ct
@@ -411,7 +435,8 @@ public class VoiceHost(
         {
             case AudioEvent.Error:
                 logger.LogError(exception, "Error in audio stream");
-                await context.Channel.SendMessageAsync(
+                await gatewayClient.Rest.SendMessageAsync(
+                    _connection!.ChannelId,
                     new MessageProperties
                     {
                         Content = ExceptionToContent(
@@ -431,7 +456,8 @@ public class VoiceHost(
                         "Failed to play next track: {Error}",
                         nextFromError.ToContent()
                     );
-                    await context.Channel.SendMessageAsync(
+                    await gatewayClient.Rest.SendMessageAsync(
+                        _connection!.ChannelId,
                         new MessageProperties { Content = nextFromError.ToContent() },
                         cancellationToken: ct
                     );
@@ -441,7 +467,8 @@ public class VoiceHost(
                 if (nextFromError.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-                    await context.Channel.SendMessageAsync(
+                    await gatewayClient.Rest.SendMessageAsync(
+                        _connection!.ChannelId,
                         new MessageProperties { Content = "Queue empty. No more tracks in queue." },
                         cancellationToken: ct
                     );
@@ -456,7 +483,8 @@ public class VoiceHost(
                 if (next.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", next.ToContent());
-                    await context.Channel.SendMessageAsync(
+                    await gatewayClient.Rest.SendMessageAsync(
+                        _connection!.ChannelId,
                         new MessageProperties { Content = next.ToContent() },
                         cancellationToken: ct
                     );
@@ -466,7 +494,8 @@ public class VoiceHost(
                 if (next.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-                    await context.Channel.SendMessageAsync(
+                    await gatewayClient.Rest.SendMessageAsync(
+                        _connection!.ChannelId,
                         new MessageProperties { Content = "Queue empty. No more tracks in queue." },
                         cancellationToken: ct
                     );
@@ -546,7 +575,7 @@ public class VoiceHost(
             var update = await musicCache.AddOrUpdateTrackAsync(
                 firstTrack,
                 track,
-                AudioStream.ApproxSize(track.Duration * (5d / 4d)),
+                Pcm16Bytes.ToBytes(track.Duration * (5d / 4d)).Humanize(),
                 ct
             );
 
@@ -560,7 +589,7 @@ public class VoiceHost(
 
         var cache = await musicCache.GetOrAddTrackAsync(
             firstTrack,
-            AudioStream.ApproxSize(firstTrack.Duration * (5d / 4d)),
+            Pcm16Bytes.ToBytes(firstTrack.Duration * (5d / 4d)).Humanize(),
             ct
         );
 
@@ -665,7 +694,7 @@ public class VoiceHost(
                         var update = await musicCache.AddOrUpdateTrackAsync(
                             nextTrack,
                             track,
-                            AudioStream.ApproxSize(track.Duration * (5d / 4d)),
+                            Pcm16Bytes.ToBytes(track.Duration * (5d / 4d)).Humanize(),
                             ct
                         );
 
@@ -683,7 +712,7 @@ public class VoiceHost(
 
                     var nextCache = await musicCache.GetOrAddTrackAsync(
                         nextTrack,
-                        AudioStream.ApproxSize(nextTrack.Duration * (5d / 4d)),
+                        Pcm16Bytes.ToBytes(nextTrack.Duration * (5d / 4d)).Humanize(),
                         ct
                     );
 
