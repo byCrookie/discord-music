@@ -1,13 +1,14 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PauseAction(
-    IVoiceHost voiceHost,
+internal class PauseAction(
+    GuildSessionManager guildSessionManager,
     ILogger<PauseAction> logger,
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
@@ -18,27 +19,39 @@ public class PauseAction(
     public async Task Pause()
     {
         logger.LogTrace("Pause");
-        var pause = await voiceHost.PauseAsync(Context, cancellation.CancellationToken);
 
-        await RespondAsync(
-            InteractionCallback.Message(
-                new InteractionMessageProperties { Content = "### Pausing..." }
-            ),
-            cancellationToken: cancellation.CancellationToken
-        );
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
 
-        if (pause.IsError)
+        if (session.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = pause.ToContent());
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
             return;
         }
 
-        var pausedMessage = $"""
-            ### Paused
-            **{pause.Value.Track?.Name}** by **{pause.Value.Track?.Artists}**
-            {pause.Value.AudioStatus.Position.HumanizeSecond()} / {pause.Value.AudioStatus.Length.HumanizeSecond()}
-            """;
+        var pause = await session.Value.PauseAsync(cancellation.CancellationToken);
 
-        await ModifyResponseAsync(m => m.Content = pausedMessage);
+        if (pause.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(pause.ToErrorContent()),
+                cancellationToken: cancellation.CancellationToken
+            );
+            return;
+        }
+
+        await RespondAsync(
+            InteractionCallback.Message(pause.Value.ToValueContent()),
+            cancellationToken: cancellation.CancellationToken
+        );
     }
 }

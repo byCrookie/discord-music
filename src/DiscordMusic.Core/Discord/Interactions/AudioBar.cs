@@ -22,7 +22,7 @@ public static class AudioBar
             "⏯️",
             ButtonStyle.Secondary
         );
-        var forward = new ButtonProperties(AudioBarModule.FowardButton, "⏩", ButtonStyle.Secondary);
+        var forward = new ButtonProperties(AudioBarModule.ForwardButton, "⏩", ButtonStyle.Secondary);
         var fastForward = new ButtonProperties(
             AudioBarModule.FastForwardButton,
             "⏭️",

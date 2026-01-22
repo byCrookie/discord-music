@@ -39,9 +39,9 @@ internal partial class YouTubeDownload(
 
             if (ytdlp.IsError)
             {
-                logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToContent());
+                logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToErrorContent());
                 return Error.Unexpected(
-                    description: $"Failed to locate yt-dlp: {ytdlp.ToContent()}"
+                    description: $"Failed to locate yt-dlp: {ytdlp.ToErrorContent()}"
                 );
             }
 
@@ -49,17 +49,17 @@ internal partial class YouTubeDownload(
 
             if (deno.IsError)
             {
-                logger.LogError("Failed to locate deno: {Error}", deno.ToContent());
-                return Error.Unexpected(description: $"Failed to locate deno: {deno.ToContent()}");
+                logger.LogError("Failed to locate deno: {Error}", deno.ToErrorContent());
+                return Error.Unexpected(description: $"Failed to locate deno: {deno.ToErrorContent()}");
             }
 
             var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
 
             if (ffmpeg.IsError)
             {
-                logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToContent());
+                logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToErrorContent());
                 return Error.Unexpected(
-                    description: $"Failed to locate ffmpeg: {ffmpeg.ToContent()}"
+                    description: $"Failed to locate ffmpeg: {ffmpeg.ToErrorContent()}"
                 );
             }
 
@@ -141,7 +141,7 @@ internal partial class YouTubeDownload(
             );
 
             var ffmpegArgs =
-                $"-y -i \"{opusTempFile}\" -f s{AudioStream.BitsPerSample}le -ar {AudioStream.SampleRate} -ac {AudioStream.Channels} \"{output.FullName}\"";
+                $"-y -i \"{opusTempFile}\" -f s{Pcm16Bytes.BitsPerSample}le -ar {Pcm16Bytes.SampleRate} -ac {Pcm16Bytes.Channels} \"{output.FullName}\"";
             logger.LogTrace(
                 "Calling {Ffmpeg} with arguments {FfmpegArgs}",
                 ffmpeg.Value.PathToFile,

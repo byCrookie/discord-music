@@ -4,6 +4,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Testably.Abstractions.Testing" />
         <PackageReference Include="TUnit" />
         <PackageReference Update="Nerdbank.GitVersioning">
             <PrivateAssets>all</PrivateAssets>

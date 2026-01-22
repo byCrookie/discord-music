@@ -114,12 +114,12 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
         }
     }
 
-    public ICollection<T> Items()
+    public IReadOnlyList<T> Items()
     {
         lock (_lock)
         {
             logger.LogTrace("Get all items");
-            return _queue;
+            return _queue.ToList();
         }
     }
 }

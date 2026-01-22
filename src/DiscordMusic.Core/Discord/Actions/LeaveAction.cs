@@ -1,4 +1,4 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -7,8 +7,8 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class LeaveAction(
-    IVoiceHost voiceHost,
+internal class LeaveAction(
+    GuildSessionManager guildSessionManager,
     ILogger<LeaveAction> logger,
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
@@ -19,7 +19,23 @@ public class LeaveAction(
     public async Task Leave()
     {
         logger.LogTrace("Leave");
-        await voiceHost.DisconnectAsync(cancellation.CancellationToken);
+        
+        var leave = await guildSessionManager.LeaveAsync(Context.Guild!.Id, cancellation.CancellationToken);
+        
+        if (leave.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = leave.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+        
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties

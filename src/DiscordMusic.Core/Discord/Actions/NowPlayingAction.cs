@@ -1,4 +1,4 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -7,8 +7,8 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class NowPlayingAction(
-    IVoiceHost voiceHost,
+internal class NowPlayingAction(
+    GuildSessionManager guildSessionManager,
     ILogger<NowPlayingAction> logger,
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
@@ -19,7 +19,26 @@ public class NowPlayingAction(
     public async Task NowPlaying()
     {
         logger.LogTrace("Nowplaying");
-        var nowPlaying = await voiceHost.NowPlayingAsync(Context, cancellation.CancellationToken);
+        
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+        
+        var nowPlaying = await session.Value.NowPlayingAsync(cancellation.CancellationToken);
 
         if (nowPlaying.IsError)
         {
@@ -27,41 +46,19 @@ public class NowPlayingAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = nowPlaying.ToContent(),
+                        Content = nowPlaying.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
                 )
             );
             return;
         }
-
-        if (nowPlaying.Value.Track is null)
-        {
-            await RespondAsync(
-                InteractionCallback.Message(
-                    new InteractionMessageProperties
-                    {
-                        Content = "No track is currently playing",
-                        Flags = MessageFlags.Ephemeral,
-                    }
-                )
-            );
-            return;
-        }
-
-        var track = nowPlaying.Value.Track;
-
-        var nowPlayingMessage = $"""
-            ### Now Playing
-            **{track.Name}** by **{track.Artists}**
-            {nowPlaying.Value.AudioStatus.Position.HumanizeSecond()} / {nowPlaying.Value.AudioStatus.Length.HumanizeSecond()}
-            """;
 
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
-                    Content = nowPlayingMessage,
+                    Content = nowPlaying.Value.ToValueContent(),
                     Flags = MessageFlags.Ephemeral,
                 }
             )

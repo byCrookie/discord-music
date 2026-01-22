@@ -5,7 +5,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class AudioBarAction(ILogger<AudioBarAction> logger, Cancellation cancellation)
+internal class AudioBarAction(ILogger<AudioBarAction> logger, Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("audiobar", "An audio bar with buttons to control the audio.")]

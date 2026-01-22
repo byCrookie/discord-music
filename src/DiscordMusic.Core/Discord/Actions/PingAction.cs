@@ -5,7 +5,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PingAction(ILogger<SeekAction> logger)
+internal class PingAction(ILogger<SeekAction> logger)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("ping", "Ping the bot. It will pong back.")]
