@@ -1,15 +1,15 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Lyrics;
 using DiscordMusic.Core.Utils;
-using ErrorOr;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class LyricsAction(
-    IVoiceHost voiceHost,
+internal class LyricsAction(
+    GuildSessionManager guildSessionManager,
     ILogger<LyricsAction> logger,
     ILyricsSearch lyricsSearch,
     Cancellation cancellation
@@ -26,25 +26,42 @@ public class LyricsAction(
         var ct = cancellation.CancellationToken;
         logger.LogTrace("Lyrics");
 
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral
+                    }
+                ), cancellationToken: ct);
+            return;
+        }
+
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Searching for lyrics of **{title} - {artists}**
-                    This may take a moment...
-                    """,
+                               ### Searching for lyrics of **{title} - {artists}**
+                               This may take a moment...
+                               """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
-        var nowPlaying = await voiceHost.NowPlayingAsync(Context, ct);
+        var nowPlaying = await session.Value.NowPlayingAsync(ct);
 
         if (nowPlaying.IsError)
         {
             await ModifyResponseAsync(
-                m => m.Content = nowPlaying.ToContent(),
+                m => m.Content = nowPlaying.ToErrorContent(),
                 cancellationToken: ct
             );
             return;
@@ -55,9 +72,9 @@ public class LyricsAction(
             await ModifyResponseAsync(
                 m =>
                     m.Content = $"""
-                    ### Searching for lyrics of **{title} - {artists}**
-                    This may take a moment...
-                    """,
+                                 ### Searching for lyrics of **{title} - {artists}**
+                                 This may take a moment...
+                                 """,
                 cancellationToken: ct
             );
 
@@ -66,7 +83,7 @@ public class LyricsAction(
             if (specificLyrics.IsError)
             {
                 await ModifyResponseAsync(
-                    m => m.Content = specificLyrics.ToContent(),
+                    m => m.Content = specificLyrics.ToErrorContent(),
                     cancellationToken: ct
                 );
                 return;
@@ -75,10 +92,10 @@ public class LyricsAction(
             await ModifyResponseAsync(
                 m =>
                     m.Content = $"""
-                    ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
-                    {specificLyrics.Value.Text}
-                    -# {specificLyrics.Value.Url}
-                    """,
+                                 ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
+                                 {specificLyrics.Value.Text}
+                                 -# {specificLyrics.Value.Url}
+                                 """,
                 cancellationToken: ct
             );
             return;
@@ -98,9 +115,9 @@ public class LyricsAction(
         await ModifyResponseAsync(
             m =>
                 m.Content = $"""
-                ### Searching for lyrics of **{track.Name} - {track.Artists}**
-                This may take a moment...
-                """,
+                             ### Searching for lyrics of **{track.Name} - {track.Artists}**
+                             This may take a moment...
+                             """,
             cancellationToken: ct
         );
 
@@ -108,24 +125,19 @@ public class LyricsAction(
 
         if (lyrics.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = lyrics.ToContent(), cancellationToken: ct);
+            await ModifyResponseAsync(m => m.Content = lyrics.ToErrorContent(),
+                cancellationToken: ct);
             return;
         }
 
         await ModifyResponseAsync(
             m =>
                 m.Content = $"""
-                ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
-                {lyrics.Value.Text}
-                -# {lyrics.Value.Url}
-                """,
+                             ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
+                             {lyrics.Value.Text}
+                             -# {lyrics.Value.Url}
+                             """,
             cancellationToken: ct
         );
-    }
-
-    private static TimeSpan GetDeletionDelayFromNowPlaying(ErrorOr<VoiceUpdate> nowPlaying)
-    {
-        var remaining = nowPlaying.Value.AudioStatus.Length - nowPlaying.Value.AudioStatus.Position;
-        return remaining < TimeSpan.Zero ? TimeSpan.FromMinutes(10) : remaining;
     }
 }

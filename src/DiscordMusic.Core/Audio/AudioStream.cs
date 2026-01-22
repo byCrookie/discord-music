@@ -1,9 +1,7 @@
 using System.IO.Abstractions;
 using System.IO.Pipelines;
 using ErrorOr;
-using Humanizer;
 using Microsoft.Extensions.Logging;
-using ValueOf;
 
 namespace DiscordMusic.Core.Audio;
 
@@ -36,11 +34,6 @@ public class AudioStream : IDisposable
         Backward,
     }
 
-    public const int SampleRate = 48000;
-    public const int Channels = 2;
-    public const int BitsPerSample = 16;
-    private const int BytesPerSample = BitsPerSample / 8;
-
     // Send data to NetCord in small chunks.
     // This allows to check for Cancellation (Seek/Stop) many times per second.
     // If increased, the bot would feel "laggy" when skipping songs.
@@ -66,14 +59,21 @@ public class AudioStream : IDisposable
     private Pipe _pipe = null!;
     private CancellationTokenSource _producerCts = null!;
     private CancellationTokenSource _consumerCts;
+    private bool _disposed;
+
+    private long _playbackGeneration;
+
+    public AudioState State { get; private set; }
 
     private AudioStream(
+        AudioState initialState,
         Stream inputStream,
         Stream outputStream,
         ILogger logger,
         CancellationToken ct
     )
     {
+        State = initialState;
         _id = Guid.NewGuid().ToString("N");
         _inputStream = inputStream;
         _outputStream = outputStream;
@@ -107,6 +107,9 @@ public class AudioStream : IDisposable
         _ = FillPipeAsync(_producerCts.Token);
 
         _consumerCts = new CancellationTokenSource();
+
+        // New pipe => new generation.
+        Interlocked.Increment(ref _playbackGeneration);
     }
 
     private async Task FillPipeAsync(CancellationToken ct)
@@ -121,7 +124,7 @@ public class AudioStream : IDisposable
             {
                 // Read 0.3s worth of audio at once
                 var bytesRead = await _inputStream.ReadAsync(memory, ct);
-                if (bytesRead == 0)
+                if (bytesRead == 0 || ct.IsCancellationRequested)
                 {
                     break;
                 }
@@ -148,19 +151,32 @@ public class AudioStream : IDisposable
 
     private async Task HandlePlayingAsync()
     {
+        var generation = Volatile.Read(ref _playbackGeneration);
+
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             _cts.Token,
-            // ReSharper disable once InconsistentlySynchronizedField
             _consumerCts.Token
         );
 
         var token = linkedCts.Token;
 
-        var sourceStream = _pipe.Reader.AsStream(true);
-
         try
         {
+            // If the pipe has already been completed due to a Seek/Dispose, trying to read will throw.
+            // Fast-fail instead and let the state machine loop decide what to do next.
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            var sourceStream = _pipe.Reader.AsStream(true);
             await sourceStream.CopyToAsync(_outputStream, NetworkFrameSize, token);
+
+            // If a Seek happened while we were copying, we must not transition to Ended.
+            if (generation != Volatile.Read(ref _playbackGeneration))
+            {
+                return;
+            }
 
             State = AudioState.Ended;
             _logger.LogStreamEnded(_id);
@@ -168,6 +184,11 @@ public class AudioStream : IDisposable
             {
                 await StreamEnded(this, EventArgs.Empty);
             }
+        }
+        catch (InvalidOperationException)
+        {
+            // Can happen if a Seek/Dispose completed the reader while we're (re)entering playback.
+            // Treat as a normal control-flow interruption.
         }
         catch (OperationCanceledException)
         {
@@ -215,7 +236,7 @@ public class AudioStream : IDisposable
     {
         lock (_lock)
         {
-            if (State == AudioState.Silence)
+            if (_disposed || State == AudioState.Silence)
             {
                 return;
             }
@@ -232,7 +253,7 @@ public class AudioStream : IDisposable
     {
         lock (_lock)
         {
-            if (State == AudioState.Playing)
+            if (_disposed || State == AudioState.Playing)
             {
                 return;
             }
@@ -254,60 +275,118 @@ public class AudioStream : IDisposable
     {
         lock (_lock)
         {
-            var seekBytes = Bytes.ToBytes(time);
+            if (_disposed)
+            {
+                return Error.Unexpected(description: "Audio stream is disposed");
+            }
+
+            var seekBytes = Pcm16Bytes.ToBytes(time);
             var seekPosition = seekMode switch
             {
                 SeekMode.Position => seekBytes,
-                SeekMode.Forward => Bytes.From(_inputStream.Position) + seekBytes,
-                SeekMode.Backward => Bytes.From(_inputStream.Position) - seekBytes,
+                SeekMode.Forward => Pcm16Bytes.From(_inputStream.Position) + seekBytes,
+                SeekMode.Backward => Pcm16Bytes.From(_inputStream.Position) - seekBytes,
                 _ => throw new ArgumentOutOfRangeException(nameof(seekMode), seekMode, null),
             };
 
             if (seekPosition > _inputStream.Length)
             {
-                seekPosition = Bytes.From(_inputStream.Length);
+                seekPosition = Pcm16Bytes.From(_inputStream.Length);
             }
 
             if (seekPosition < 0)
             {
-                seekPosition = Bytes.From(0);
+                seekPosition = Pcm16Bytes.From(0);
             }
 
             _consumerCts.Cancel();
-            _consumerCts.Dispose();
-
             _producerCts.Cancel();
-            _producerCts.Dispose();
+
+            try
+            {
+                _pipe.Writer.Complete();
+                _pipe.Reader.Complete();
+            }
+            catch
+            {
+                // ignored
+            }
 
             _inputStream.Position = seekPosition;
-            State = AudioState.Playing;
+
+            _consumerCts.Dispose();
+            _producerCts.Dispose();
 
             SetupPipeAndTasks();
 
-            return seekPosition.ToTimeSpan();
+            return seekPosition.ToTime();
         }
     }
 
-    public AudioState State { get; private set; } = AudioState.Playing;
-    public TimeSpan Length => Bytes.From(_inputStream.Length).ToTimeSpan();
-    public TimeSpan Position => Bytes.From(_inputStream.Position).ToTimeSpan();
+    public TimeSpan Length
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return Pcm16Bytes.From(_inputStream.Length).ToTime();
+            }
+        }
+    }
+
+    public TimeSpan Position
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return Pcm16Bytes.From(_inputStream.Position).ToTime();
+            }
+        }
+    }
 
     public void Dispose()
     {
-        State = AudioState.Stopped;
-        _cts.Cancel();
-        _producerCts.Cancel();
-        _consumerCts.Cancel();
-        StreamEnded = null;
-        StreamFailed = null;
-        _inputStream.Dispose();
-        _cts.Dispose();
+        lock (_lock)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            State = AudioState.Stopped;
+            StreamEnded = null;
+            StreamFailed = null;
+
+            Interlocked.Increment(ref _playbackGeneration);
+
+            _cts.Cancel();
+            _producerCts.Cancel();
+            _consumerCts.Cancel();
+
+            try
+            {
+                _pipe.Writer.Complete();
+                _pipe.Reader.Complete();
+            }
+            catch
+            {
+                // ignored
+            }
+
+            _inputStream.Dispose();
+            _consumerCts.Dispose();
+            _producerCts.Dispose();
+            _cts.Dispose();
+        }
     }
 
     public event Func<Exception, object, EventArgs, Task>? StreamFailed;
     public event Func<object, EventArgs, Task>? StreamEnded;
 
     public static ErrorOr<AudioStream> Load(
+        AudioState initialState,
         IFileInfo audioFile,
         Stream outputStream,
         IFileSystem fileSystem,
@@ -320,34 +399,8 @@ public class AudioStream : IDisposable
             return Error.NotFound(description: $"Audio file '{audioFile.FullName}' does not exist");
         }
 
-        var stream = new FileStream(audioFile.FullName, FileMode.Open, FileAccess.Read);
+        var stream = fileSystem.FileStream.New(audioFile.FullName, FileMode.Open, FileAccess.Read);
         logger.LogDebug("Audio stream loaded from {AudioFile}", audioFile.FullName);
-        return new AudioStream(stream, outputStream, logger, ct);
-    }
-
-    public static ByteSize ApproxSize(TimeSpan time)
-    {
-        return ByteSize.FromBytes(Bytes.ToBytes(time));
-    }
-
-    private class Bytes : ValueOf<long, Bytes>
-    {
-        public TimeSpan ToTimeSpan() =>
-            TimeSpan.FromSeconds(1d * Value / (SampleRate * Channels * BytesPerSample));
-
-        public static Bytes ToBytes(TimeSpan time) =>
-            From(
-                (long)Math.Ceiling(1d * time.TotalSeconds * SampleRate * Channels * BytesPerSample)
-            );
-
-        public static Bytes operator +(Bytes a, Bytes b) => From(a.Value + b.Value);
-
-        public static Bytes operator -(Bytes a, Bytes b) => From(a.Value - b.Value);
-
-        public static bool operator >(Bytes a, long b) => a.Value > b;
-
-        public static bool operator <(Bytes a, long b) => a.Value < b;
-
-        public static implicit operator long(Bytes bytes) => bytes.Value;
+        return new AudioStream(initialState, stream, outputStream, logger, ct);
     }
 }

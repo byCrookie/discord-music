@@ -1,6 +1,6 @@
 # discord-music
 
-Another music bot for Discord with playback controls, song lyrics and queue management.
+Another music bot for Discord with playback/voice controls, song lyrics and queue management.
 
 **Libraries & APIs**:
 
@@ -20,13 +20,14 @@ Another music bot for Discord with playback controls, song lyrics and queue mana
 
 ## Features
 
-This bot designed to be minimal and intended for a single server / single channel use case.
+Supports single channel per guild with the following features:
 
 - **Join & Leave**: Auto-connect and disconnect from voice channels.
 - **Play Music**:
     - Stream audio from YouTube (URLs or search queries).
     - Play from Spotify (search on Spotify and stream via YouTube).
 - **Playback Control**: Pause, resume, and seek to specific timestamps.
+- **Voice Commands**: Control playback using voice commands.
 - **Queue System**:
     - Add, remove, clear, and skip tracks.
 - **Lyrics Fetching**: Fetch lyrics for the currently playing song.

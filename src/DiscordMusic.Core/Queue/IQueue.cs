@@ -9,7 +9,7 @@ public interface IQueue<T>
     void EnqueueFirst(T item);
     bool TryDequeue([MaybeNullWhen(false)] out T item);
     bool TryPeek([MaybeNullWhen(false)] out T item);
-    ICollection<T> Items();
+    IReadOnlyList<T> Items();
     void Clear();
     void SkipTo(int index);
     int Count();

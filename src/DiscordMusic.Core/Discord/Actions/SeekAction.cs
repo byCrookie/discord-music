@@ -1,14 +1,18 @@
 using DiscordMusic.Core.Audio;
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
 [SlashCommand("seek", "Seek within the current track.")]
-public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancellation cancellation)
+internal class SeekAction(
+    GuildSessionManager guildSessionManager,
+    ILogger<SeekAction> logger,
+    Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SubSlashCommand("position", "Seek to a specific time in the current track.")]
@@ -18,7 +22,7 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         [SlashCommandParameter(
             Description = "The position to seek to (e.g. hh:mm:ss). Precision is in seconds."
         )]
-            string position
+        string position
     )
     {
         if (!TimeSpanParser.TryParse(position, out var positionTs))
@@ -32,21 +36,38 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
 
         logger.LogTrace("Seeking to {Position}", positionTs);
 
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Seeking to {positionTs.HumanizeSecond()}
-                    This may take a moment...
-                    """,
+                               ### Seeking to {positionTs.HumanizeSecond()}
+                               This may take a moment...
+                               """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
-        var seek = await voiceHost.SeekAsync(
-            Context,
+        var seek = await session.Value.SeekAsync(
             positionTs,
             AudioStream.SeekMode.Position,
             cancellation.CancellationToken
@@ -55,22 +76,19 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         if (seek.IsError)
         {
             await ModifyResponseAsync(
-                m => m.Content = seek.ToContent(),
+                m => m.Content = seek.ToErrorContent(),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
         }
 
         var seekedMessage = $"""
-            **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-            {seek.Value.AudioStatus.Position.HumanizeSecond()} / {seek.Value.AudioStatus.Length.HumanizeSecond()}
-            """;
+                             Seeked to {positionTs.HumanizeSecond()}
+                             {seek.Value.ToValueContent()}
+                             """;
 
         await ModifyResponseAsync(m =>
-            m.Content = $"""
-            Seeked to {positionTs.HumanizeSecond()}
-            {seekedMessage}
-            """
+            m.Content = seekedMessage
         );
     }
 
@@ -79,7 +97,7 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task SeekBackward(
         [SlashCommandParameter(Description = "The duration to seek backward (e.g. 00:00:10).")]
-            string duration
+        string duration
     )
     {
         if (!TimeSpanParser.TryParse(duration, out var durationTs))
@@ -92,21 +110,38 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
 
         logger.LogTrace("Seeking backward by {Duration}", durationTs);
 
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Seeking backward by {durationTs.HumanizeSecond()}...
-                    This may take a moment...
-                    """,
+                               ### Seeking backward by {durationTs.HumanizeSecond()}...
+                               This may take a moment...
+                               """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
-        var seek = await voiceHost.SeekAsync(
-            Context,
+        var seek = await session.Value.SeekAsync(
             durationTs,
             AudioStream.SeekMode.Backward,
             cancellation.CancellationToken
@@ -115,23 +150,19 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         if (seek.IsError)
         {
             await ModifyResponseAsync(
-                m => m.Content = seek.ToContent(),
+                m => m.Content = seek.ToErrorContent(),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
         }
 
         var seekedMessage = $"""
-            **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-            {seek.Value.AudioStatus.Position.HumanizeSecond()} / {seek.Value.AudioStatus.Length.HumanizeSecond()}
-            """;
+                             Seeked backward by {durationTs.HumanizeSecond()}
+                             {seek.Value.ToValueContent()}
+                             """;
 
         await ModifyResponseAsync(
-            m =>
-                m.Content = $"""
-                Seeked backward by {durationTs.HumanizeSecond()}
-                {seekedMessage}
-                """,
+            m => m.Content = seekedMessage,
             cancellationToken: cancellation.CancellationToken
         );
     }
@@ -141,7 +172,7 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task SeekForward(
         [SlashCommandParameter(Description = "The duration to seek forward (e.g. 00:00:10).")]
-            string duration
+        string duration
     )
     {
         if (!TimeSpanParser.TryParse(duration, out var durationTs))
@@ -154,22 +185,39 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         }
 
         logger.LogTrace("Seeking foward by {Duration}", durationTs);
+        
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
 
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Seeking forward by {durationTs.HumanizeSecond()}...
-                    This may take a moment...
-                    """,
+                               ### Seeking forward by {durationTs.HumanizeSecond()}...
+                               This may take a moment...
+                               """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
-        var seek = await voiceHost.SeekAsync(
-            Context,
+        var seek = await session.Value.SeekAsync(
             durationTs,
             AudioStream.SeekMode.Forward,
             cancellation.CancellationToken
@@ -178,23 +226,20 @@ public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancel
         if (seek.IsError)
         {
             await ModifyResponseAsync(
-                m => m.Content = seek.ToContent(),
+                m => m.Content = seek.ToErrorContent(),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
         }
 
         var seekedMessage = $"""
-            **{seek.Value.Track?.Name}** by **{seek.Value.Track?.Artists}**
-            {seek.Value.AudioStatus.Position.HumanizeSecond()} / {seek.Value.AudioStatus.Length.HumanizeSecond()}
-            """;
+                             Seeked forward by {durationTs.HumanizeSecond()}
+                             {seek.Value.ToValueContent()}
+                             """;
 
         await ModifyResponseAsync(
             m =>
-                m.Content = $"""
-                Seeked forward by {durationTs.HumanizeSecond()}
-                {seekedMessage}
-                """,
+                m.Content = seekedMessage,
             cancellationToken: cancellation.CancellationToken
         );
     }

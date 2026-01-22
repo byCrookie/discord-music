@@ -1,12 +1,16 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SkipAction(IVoiceHost voiceHost, ILogger<SkipAction> logger, Cancellation cancellation)
+internal class SkipAction(
+    GuildSessionManager guildSessionManager,
+    ILogger<SkipAction> logger,
+    Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -19,7 +23,7 @@ public class SkipAction(IVoiceHost voiceHost, ILogger<SkipAction> logger, Cancel
         [SlashCommandParameter(
             Description = "The position of the track to skip to (1-based). Omit to skip to next."
         )]
-            int? position = null
+        int? position = null
     )
     {
         logger.LogTrace("Skip");
@@ -40,48 +44,51 @@ public class SkipAction(IVoiceHost voiceHost, ILogger<SkipAction> logger, Cancel
             skipCount = position.Value - 1;
         }
 
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Skip by {skipCount} track(s)
-                    This may take a moment...
-                    """,
+                               ### Skip by {skipCount} track(s)
+                               This may take a moment...
+                               """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
-        var skip = await voiceHost.SkipAsync(Context, skipCount, cancellation.CancellationToken);
+        var skip = await session.Value.SkipAsync(skipCount, cancellation.CancellationToken);
 
         if (skip.IsError)
         {
             await ModifyResponseAsync(
-                m => m.Content = skip.ToContent(),
+                m => m.Content = skip.ToErrorContent(),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
         }
-
-        if (skip.Value.Track is null)
-        {
-            await ModifyResponseAsync(
-                m => m.Content = "Queue is empty. Can not skip.",
-                cancellationToken: cancellation.CancellationToken
-            );
-            return;
-        }
-
-        var skipMessage =
-            $"**{skip.Value.Track!.Name}** by **{skip.Value.Track!.Artists}** ({skip.Value.Track!.Duration.HumanizeSecond()})";
 
         await ModifyResponseAsync(
             m =>
-                m.Content = $"""
-                ### Now
-                {skipMessage}
-                """,
+                m.Content = skip.Value.ToValueContent(),
             cancellationToken: cancellation.CancellationToken
         );
     }

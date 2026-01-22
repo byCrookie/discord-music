@@ -1,11 +1,10 @@
 using System.IO.Abstractions;
 using System.Reflection;
-using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Config;
 using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Discord.Cache;
+using DiscordMusic.Core.Discord.VoiceCommands;
 using DiscordMusic.Core.Lyrics;
-using DiscordMusic.Core.Queue;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube;
@@ -60,12 +59,16 @@ public static class CoreModule
         builder.AddSpotify();
         builder.AddLyrics();
         builder.AddCache();
-        builder.AddQueue();
         builder.AddDiscord();
-        builder.AddAudio();
+
+        builder.Services.AddVoiceCommands();
 
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
         builder.Services.AddSingleton(new Cancellation(ct));
+
+        builder.Services.AddSingleton<VoiceCommandManager>();
+        builder.Services.AddSingleton<IVoiceCommandSubscriptions, VoiceCommandSubscriptions>();
+        builder.Services.AddHostedService<VoiceCommandService>();
     }
 
     private static void AddConfigFromOsSpecificDirs(IHostApplicationBuilder builder, ILogger logger)

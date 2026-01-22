@@ -34,7 +34,7 @@ public static class CacheClearCommand
 
         if (clear.IsError)
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync(clear.ToContent());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(clear.ToErrorContent());
             return;
         }
 

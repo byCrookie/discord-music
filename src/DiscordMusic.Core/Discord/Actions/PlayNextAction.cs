@@ -1,13 +1,14 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PlayNextAction(
-    IVoiceHost voiceHost,
+internal class PlayNextAction(
+    GuildSessionManager guildSessionManager,
     ILogger<PlayNextAction> logger,
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
@@ -23,6 +24,24 @@ public class PlayNextAction(
     )
     {
         logger.LogTrace("Playnext");
+        
+        var session =
+            await guildSessionManager.JoinAsync(Context, null,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
 
         await RespondAsync(
             InteractionCallback.Message(
@@ -37,27 +56,16 @@ public class PlayNextAction(
             cancellationToken: cancellation.CancellationToken
         );
 
-        var play = await voiceHost.PlayNextAsync(Context, query, cancellation.CancellationToken);
+        var play = await session.Value.PlayNextAsync(query, cancellation.CancellationToken);
 
         if (play.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = play.ToContent());
-            return;
-        }
-
-        var messageTitle = play.Value.Type == VoiceUpdateType.Now ? "Now" : "Next";
-
-        if (play.Value.Track is null)
-        {
-            await ModifyResponseAsync(m => m.Content = "No track found");
+            await ModifyResponseAsync(m => m.Content = play.ToErrorContent());
             return;
         }
 
         await ModifyResponseAsync(m =>
-            m.Content = $"""
-            ### {messageTitle}
-            **{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HumanizeSecond()})"
-            """
+            m.Content = play.Value.ToValueContent()
         );
     }
 }

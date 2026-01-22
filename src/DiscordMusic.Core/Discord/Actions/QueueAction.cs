@@ -1,5 +1,5 @@
 using System.Text;
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -9,8 +9,8 @@ using NetCord.Services.ApplicationCommands;
 namespace DiscordMusic.Core.Discord.Actions;
 
 [SlashCommand("queue", "Various queue commands.")]
-public class QueueAction(
-    IVoiceHost voiceHost,
+internal class QueueAction(
+    GuildSessionManager guildSessionManager,
     ILogger<QueueAction> logger,
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
@@ -40,8 +40,26 @@ public class QueueAction(
             );
             return;
         }
+        
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
 
-        var tracks = await voiceHost.QueueAsync(Context, cancellation.CancellationToken);
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+
+        var tracks = await session.Value.QueueAsync(cancellation.CancellationToken);
 
         if (tracks.IsError)
         {
@@ -49,7 +67,7 @@ public class QueueAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = tracks.ToContent(),
+                        Content = tracks.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
                 )
@@ -126,11 +144,30 @@ public class QueueAction(
     public async Task Clear()
     {
         logger.LogTrace("Queue clear");
-        var clear = await voiceHost.QueueClearAsync(Context, cancellation.CancellationToken);
+        
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+        
+        var clear = await session.Value.QueueClearAsync(cancellation.CancellationToken);
 
         if (clear.IsError)
         {
-            await RespondAsync(InteractionCallback.Message(clear.ToContent()));
+            await RespondAsync(InteractionCallback.Message(clear.ToErrorContent()));
             return;
         }
 
@@ -143,12 +180,31 @@ public class QueueAction(
     public async Task Shuffle()
     {
         logger.LogTrace("Shuffle");
-        var shuffle = await voiceHost.ShuffleAsync(Context, cancellation.CancellationToken);
+        
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+        
+        var shuffle = await session.Value.ShuffleAsync(cancellation.CancellationToken);
 
         if (shuffle.IsError)
         {
             await RespondAsync(
-                InteractionCallback.Message(shuffle.ToContent()),
+                InteractionCallback.Message(shuffle.ToErrorContent()),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
