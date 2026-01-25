@@ -37,7 +37,7 @@ internal class JoinAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = session.ToContent(),
+                        Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral
                     }
                 )

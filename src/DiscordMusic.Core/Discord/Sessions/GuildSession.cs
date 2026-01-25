@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord.Cache;
-using DiscordMusic.Core.Queue;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube;
@@ -102,11 +101,11 @@ internal class GuildSession(
         return await PlayNextTrackFromQueueAsync(true, ct);
     }
 
-    public async Task<ICollection<Track>> QueueAsync(CancellationToken ct)
+    public async Task<ErrorOr<ICollection<Track>>> QueueAsync(CancellationToken ct)
     {
         logger.LogTrace("Queue");
         await using var _ = await _commandLock.AquireAsync(ct);
-        return _queue.Items();
+        return ErrorOrFactory.From(_queue.Items());
     }
 
     public async Task<ErrorOr<AudioUpdate>> PauseAsync(CancellationToken ct)
@@ -255,10 +254,10 @@ internal class GuildSession(
                 {
                     logger.LogError(
                         "Failed to play next track: {Error}",
-                        nextFromError.ToContent()
+                        nextFromError.ToErrorContent()
                     );
                     await textChannel.SendMessageAsync(
-                        new MessageProperties { Content = nextFromError.ToContent() },
+                        new MessageProperties { Content = nextFromError.ToErrorContent() },
                         cancellationToken: ct
                     );
                     return;
@@ -282,9 +281,9 @@ internal class GuildSession(
 
                 if (next.IsError)
                 {
-                    logger.LogError("Failed to play next track: {Error}", next.ToContent());
+                    logger.LogError("Failed to play next track: {Error}", next.ToErrorContent());
                     await textChannel.SendMessageAsync(
-                        new MessageProperties { Content = next.ToContent() },
+                        new MessageProperties { Content = next.ToErrorContent() },
                         cancellationToken: ct
                     );
                     return;
@@ -474,7 +473,7 @@ internal class GuildSession(
                         {
                             logger.LogError(
                                 "Failed to download next track: {Error}",
-                                search.ToContent()
+                                search.ToErrorContent()
                             );
                             return;
                         }
@@ -503,7 +502,7 @@ internal class GuildSession(
                         {
                             logger.LogError(
                                 "Failed to update next track: {Error}",
-                                update.ToContent()
+                                update.ToErrorContent()
                             );
                             return;
                         }
@@ -521,7 +520,7 @@ internal class GuildSession(
                     {
                         logger.LogError(
                             "Failed to get or add next track to cache: {Error}",
-                            nextCache.ToContent()
+                            nextCache.ToErrorContent()
                         );
                         return;
                     }
@@ -538,7 +537,7 @@ internal class GuildSession(
                         {
                             logger.LogError(
                                 "Failed to download next track: {Error}",
-                                download.ToContent()
+                                download.ToErrorContent()
                             );
                             return;
                         }

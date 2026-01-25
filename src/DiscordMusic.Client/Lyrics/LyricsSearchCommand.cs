@@ -55,7 +55,7 @@ public static class LyricsSearchCommand
 
         if (search.IsError)
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync(search.ToContent());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(search.ToErrorContent());
             return;
         }
 

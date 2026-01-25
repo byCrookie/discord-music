@@ -1,9 +1,7 @@
 using System.IO.Abstractions;
 using System.IO.Pipelines;
 using ErrorOr;
-using Humanizer;
 using Microsoft.Extensions.Logging;
-using ValueOf;
 
 namespace DiscordMusic.Core.Audio;
 

@@ -78,7 +78,7 @@ public static class CacheGetOrAddCommand
 
         if (file.IsError)
         {
-            await parseResult.InvocationConfiguration.Error.WriteLineAsync(file.ToContent());
+            await parseResult.InvocationConfiguration.Error.WriteLineAsync(file.ToErrorContent());
             return;
         }
 

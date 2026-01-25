@@ -25,7 +25,7 @@ public class AudioBarModule(AudioPlayer audioPlayer)
         );
 
         return action.IsError
-            ? action.ToContent()
+            ? action.ToErrorContent()
             : $"Seeked backward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
@@ -41,7 +41,7 @@ public class AudioBarModule(AudioPlayer audioPlayer)
         );
 
         return action.IsError
-            ? action.ToContent()
+            ? action.ToErrorContent()
             : $"Seeked backward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
@@ -54,13 +54,13 @@ public class AudioBarModule(AudioPlayer audioPlayer)
         {
             var pause = await audioPlayer.PauseAsync(CancellationToken.None);
             return pause.IsError
-                ? pause.ToContent()
+                ? pause.ToErrorContent()
                 : $"Paused. Now at {StatusHumanReadable(pause.Value)}";
         }
 
         var resume = await audioPlayer.ResumeAsync(CancellationToken.None);
         return resume.IsError
-            ? resume.ToContent()
+            ? resume.ToErrorContent()
             : $"Resumed. Now at {StatusHumanReadable(resume.Value)}";
     }
 
@@ -76,7 +76,7 @@ public class AudioBarModule(AudioPlayer audioPlayer)
         );
 
         return action.IsError
-            ? action.ToContent()
+            ? action.ToErrorContent()
             : $"Seeked forward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 
@@ -92,7 +92,7 @@ public class AudioBarModule(AudioPlayer audioPlayer)
         );
 
         return action.IsError
-            ? action.ToContent()
+            ? action.ToErrorContent()
             : $"Seeked forward by {duration.HumanizeSecond()}. Now at {StatusHumanReadable(action.Value)}";
     }
 

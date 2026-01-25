@@ -1,13 +1,14 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
 internal class PauseAction(
-    IVoiceHost voiceHost,
+    GuildSessionManager guildSessionManager,
     ILogger<PauseAction> logger,
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
@@ -18,27 +19,41 @@ internal class PauseAction(
     public async Task Pause()
     {
         logger.LogTrace("Pause");
-        var pause = await voiceHost.PauseAsync(VoiceHostContext.FromApplicationCommandContext(Context), cancellation.CancellationToken);
+
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToErrorContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
 
         await RespondAsync(
             InteractionCallback.Message(
-                new InteractionMessageProperties { Content = "### Pausing..." }
+                new InteractionMessageProperties
+                    { Content = "### Pausing..." }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
+        var pause = await session.Value.PauseAsync(cancellation.CancellationToken);
+
         if (pause.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = pause.ToContent());
+            await ModifyResponseAsync(m => m.Content = pause.ToErrorContent());
             return;
         }
 
-        var pausedMessage = $"""
-            ### Paused
-            **{pause.Value.Track?.Name}** by **{pause.Value.Track?.Artists}**
-            {pause.Value.AudioStatus.Position.HumanizeSecond()} / {pause.Value.AudioStatus.Length.HumanizeSecond()}
-            """;
-
-        await ModifyResponseAsync(m => m.Content = pausedMessage);
+        await ModifyResponseAsync(m => m.Content = pause.Value.ToValueContent());
     }
 }

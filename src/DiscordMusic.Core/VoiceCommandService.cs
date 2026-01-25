@@ -1,11 +1,9 @@
 ﻿using System.Runtime.InteropServices;
-using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.VoiceCommands;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Gateway.Voice;
-using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core;
 

@@ -1,5 +1,4 @@
 ﻿using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Whisper.net;
 using Whisper.net.Ggml;

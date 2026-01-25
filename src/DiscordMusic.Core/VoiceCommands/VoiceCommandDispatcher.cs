@@ -1,10 +1,10 @@
-﻿using DiscordMusic.Core.Discord.Voice;
+﻿using DiscordMusic.Core.Discord.Sessions;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.VoiceCommands;
 
-public sealed class VoiceCommandDispatcher(
-    IVoiceHost voiceHost,
+internal sealed class VoiceCommandDispatcher(
+    GuildSessionManager guildSessionManager,
     ILogger<VoiceCommandDispatcher> logger)
 {
     public async ValueTask DispatchAsync(

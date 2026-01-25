@@ -28,7 +28,7 @@ internal class LeaveAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = leave.ToContent(),
+                        Content = leave.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
                 )

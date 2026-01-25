@@ -5,7 +5,6 @@ using DiscordMusic.Core.Config;
 using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Lyrics;
-using DiscordMusic.Core.Queue;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.VoiceCommands;

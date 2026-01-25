@@ -30,7 +30,7 @@ internal class PlayAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = session.ToContent(),
+                        Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
                 )
@@ -55,12 +55,12 @@ internal class PlayAction(
 
         if (play.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = play.ToContent());
+            await ModifyResponseAsync(m => m.Content = play.ToErrorContent());
             return;
         }
 
         await ModifyResponseAsync(m =>
-            m.Content = play.Value.ToContent()
+            m.Content = play.Value.ToValueContent()
         );
     }
 }
