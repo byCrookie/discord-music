@@ -6,7 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Cancellation cancellation)
+internal class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("play", "Play a track. Direct link or search query. Appended to queue.")]

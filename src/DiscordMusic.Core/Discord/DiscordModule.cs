@@ -1,6 +1,6 @@
 using DiscordMusic.Core.Discord.Actions;
 using DiscordMusic.Core.Discord.Interactions;
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,7 +34,7 @@ public static class DiscordModule
         builder.Services.AddApplicationCommands();
         builder.Services.AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
-        builder.Services.AddSingleton<IVoiceHost, VoiceHost>();
+        builder.Services.AddSingleton<GuildSessionManager>();
     }
 
     public static void UseDiscord(this IHost host)

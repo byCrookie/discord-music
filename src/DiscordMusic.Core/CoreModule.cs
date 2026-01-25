@@ -6,7 +6,6 @@ using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Lyrics;
 using DiscordMusic.Core.Queue;
-using DiscordMusic.Core.Rewrite;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.VoiceCommands;
@@ -62,17 +61,15 @@ public static class CoreModule
         builder.AddSpotify();
         builder.AddLyrics();
         builder.AddCache();
-        builder.AddQueue();
-        // builder.AddDiscord();
-        builder.AddRewrite();
+        builder.AddDiscord();
         builder.AddAudio();
 
-        // builder.Services.AddVoiceCommands();
+        builder.Services.AddVoiceCommands();
 
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
         builder.Services.AddSingleton(new Cancellation(ct));
 
-        // builder.Services.AddHostedService<VoiceCommandService>();
+        builder.Services.AddHostedService<VoiceCommandService>();
     }
 
     private static void AddConfigFromOsSpecificDirs(IHostApplicationBuilder builder, ILogger logger)
@@ -126,8 +123,7 @@ public static class CoreModule
 
     public static IHost UseCore(this IHost host)
     {
-        // host.UseDiscord();
-        host.UseRewrite();
+        host.UseDiscord();
         return host;
     }
 

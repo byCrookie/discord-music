@@ -6,7 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class ResumeAction(
+internal class ResumeAction(
     IVoiceHost voiceHost,
     ILogger<ResumeAction> logger,
     Cancellation cancellation

@@ -9,7 +9,7 @@ using NetCord.Services.ApplicationCommands;
 namespace DiscordMusic.Core.Discord.Actions;
 
 [SlashCommand("queue", "Various queue commands.")]
-public class QueueAction(
+internal class QueueAction(
     IVoiceHost voiceHost,
     ILogger<QueueAction> logger,
     Cancellation cancellation

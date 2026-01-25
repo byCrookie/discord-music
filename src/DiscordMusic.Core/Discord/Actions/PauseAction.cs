@@ -6,7 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class PauseAction(
+internal class PauseAction(
     IVoiceHost voiceHost,
     ILogger<PauseAction> logger,
     Cancellation cancellation

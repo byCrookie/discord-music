@@ -7,14 +7,13 @@ namespace DiscordMusic.Core.Audio;
 
 public class AudioPlayer(
     ILogger<AudioPlayer> logger,
-    ILogger<AudioStream> audioStreamlogger,
-    IFileSystem fileSystem
-) : IAudioPlayer
+    ILogger<AudioStream> audioStreamLogger,
+    IFileSystem fileSystem,
+    Stream output
+) : IDisposable
 {
     private readonly AsyncLock _lock = new();
     private AudioStream? _audioStream;
-    private Stream? _output;
-    private Func<AudioEvent, Exception?, CancellationToken, Task>? _updateAsync;
 
     public async Task<ErrorOr<AudioStatus>> ResumeAsync(CancellationToken ct)
     {
@@ -100,29 +99,12 @@ public class AudioPlayer(
         );
     }
 
-    public async Task StartAsync(
-        Stream output,
-        Func<AudioEvent, Exception?, CancellationToken, Task> updateAsync,
-        CancellationToken ct
-    )
-    {
-        logger.LogTrace("Start audio");
-        await using var l = await _lock.AquireAsync(ct);
-        _output = output;
-        _updateAsync = updateAsync;
-    }
-
-    public async Task<ErrorOr<AudioStatus>> PlayAsync(IFileInfo file, CancellationToken ct)
+    public async Task<ErrorOr<AudioStatus>> PlayAsync(IFileInfo file, Func<AudioEvent, Exception?, CancellationToken, Task> updateAsync, CancellationToken ct)
     {
         logger.LogTrace("Play audio from file");
         await using var _ = await _lock.AquireAsync(ct);
 
-        if (_output is null || _updateAsync is null)
-        {
-            return Error.Unexpected(description: "Audio not started");
-        }
-
-        var audioStream = AudioStream.Load(file, _output, fileSystem, audioStreamlogger, ct);
+        var audioStream = AudioStream.Load(file, output, fileSystem, audioStreamLogger, ct);
 
         if (audioStream.IsError)
         {
@@ -134,14 +116,14 @@ public class AudioPlayer(
 
         _audioStream.StreamEnded += async (_, _) =>
         {
-            await _output.FlushAsync(ct);
-            _updateAsync(AudioEvent.Ended, null, ct).FireAndForget(logger, ct);
+            await output.FlushAsync(ct);
+            updateAsync(AudioEvent.Ended, null, ct).FireAndForget(logger, ct);
         };
 
         _audioStream.StreamFailed += async (e, _, _) =>
         {
-            await _output.FlushAsync(ct);
-            _updateAsync(AudioEvent.Error, e, ct).FireAndForget(logger, ct);
+            await output.FlushAsync(ct);
+            updateAsync(AudioEvent.Error, e, ct).FireAndForget(logger, ct);
         };
 
         return new AudioStatus(
@@ -149,16 +131,6 @@ public class AudioPlayer(
             _audioStream.Position,
             _audioStream.Length
         );
-    }
-
-    public async Task StopAsync(CancellationToken ct)
-    {
-        logger.LogTrace("Stop audio");
-        await using var _ = await _lock.AquireAsync(ct);
-        _audioStream?.Dispose();
-        _audioStream = null;
-        _output = null;
-        _updateAsync = null;
     }
 
     private static AudioState ToAudioState(AudioStream.AudioState state)
@@ -170,5 +142,10 @@ public class AudioPlayer(
             AudioStream.AudioState.Ended => AudioState.Ended,
             _ => AudioState.Stopped,
         };
+    }
+
+    public void Dispose()
+    {
+        _audioStream?.Dispose();
     }
 }

@@ -1,15 +1,17 @@
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Lyrics;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class LyricsAction(
-    IVoiceHost voiceHost,
+internal class LyricsAction(
+    GuildSessionManager guildSessionManager,
     ILogger<LyricsAction> logger,
     ILyricsSearch lyricsSearch,
     Cancellation cancellation
@@ -25,6 +27,22 @@ public class LyricsAction(
     {
         var ct = cancellation.CancellationToken;
         logger.LogTrace("Lyrics");
+        
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id, cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToContent(),
+                        Flags = MessageFlags.Ephemeral
+                    }
+                ), cancellationToken: ct);
+            return;
+        }
 
         await RespondAsync(
             InteractionCallback.Message(
@@ -39,7 +57,7 @@ public class LyricsAction(
             cancellationToken: cancellation.CancellationToken
         );
 
-        var nowPlaying = await voiceHost.NowPlayingAsync(VoiceHostContext.FromApplicationCommandContext(Context), ct);
+        var nowPlaying = await session.
 
         if (nowPlaying.IsError)
         {
@@ -123,7 +141,7 @@ public class LyricsAction(
         );
     }
 
-    private static TimeSpan GetDeletionDelayFromNowPlaying(ErrorOr<VoiceUpdate> nowPlaying)
+    private static TimeSpan GetDeletionDelayFromNowPlaying(ErrorOr<AudioUpdate> nowPlaying)
     {
         var remaining = nowPlaying.Value.AudioStatus.Length - nowPlaying.Value.AudioStatus.Position;
         return remaining < TimeSpan.Zero ? TimeSpan.FromMinutes(10) : remaining;

@@ -1,22 +1,25 @@
-﻿using DiscordMusic.Core.Utils;
+﻿using DiscordMusic.Core.Audio;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Gateway;
 using NetCord.Gateway.Voice;
+using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
-namespace DiscordMusic.Core.Rewrite;
+namespace DiscordMusic.Core.Discord.Sessions;
 
-public class MusicSessionManager(
+internal class GuildSessionManager(
     IServiceProvider serviceProvider,
-    ILogger<MusicSessionManager> logger)
+    ILogger<GuildSessionManager> logger,
+    RestClient restClient)
 {
     private readonly AsyncLock _lock = new();
-    private readonly Dictionary<ulong, MusicSession> _sessions = new();
+    private readonly Dictionary<ulong, GuildSession> _sessions = new();
 
-    public async Task<ErrorOr<MusicSession>> JoinAsync(ApplicationCommandContext context,
+    public async Task<ErrorOr<GuildSession>> JoinAsync(ApplicationCommandContext context,
         bool listen,
         CancellationToken ct)
     {
@@ -47,30 +50,42 @@ public class MusicSessionManager(
         return session.Value;
     }
 
-    private async Task<ErrorOr<MusicSession>> GetOrCreateSessionAsync(GatewayClient client,
+    public async Task<ErrorOr<Success>> LeaveAsync(ulong guildId, CancellationToken ct)
+    {
+        await using var _ = await _lock.AquireAsync(ct);
+
+        if (_sessions.TryGetValue(guildId, out var existingSession))
+        {
+            logger.LogDebug("Leaving voice channel {VoiceChannel} in guild {Guild}",
+                existingSession.GuildVoiceSession.VoiceChannel.Name,
+                existingSession.Guild.Name);
+            await existingSession.GuildVoiceSession.DisposeAsync();
+            return Result.Success;
+        }
+
+        logger.LogDebug("No existing session for guild {Guild}", guildId);
+        return Error.NotFound($"No existing session for guild {guildId}");
+    }
+
+    private async Task<ErrorOr<GuildSession>> GetOrCreateSessionAsync(GatewayClient client,
         Guild guild, TextChannel textChannel, VoiceGuildChannel voiceChannel, bool listen,
         CancellationToken ct)
     {
         await using var _ = await _lock.AquireAsync(ct);
 
-        var sessionLogger = serviceProvider.GetRequiredService<ILogger<MusicSession>>();
-        var queueLogger = serviceProvider.GetRequiredService<ILogger<Queue.Queue<AudioMetadata>>>();
-
-        var queue = new Queue.Queue<AudioMetadata>(queueLogger);
-
         if (_sessions.TryGetValue(guild.Id, out var existingSession))
         {
-            if (existingSession.VoiceSession.VoiceChannel.Id == voiceChannel.Id)
+            if (existingSession.GuildVoiceSession.VoiceChannel.Id == voiceChannel.Id)
             {
                 logger.LogDebug(
                     "Guild {Guild} already has a music session in voice channel {VoiceChannel}, reusing existing session",
                     guild.Name, voiceChannel.Name);
 
-                if (existingSession.VoiceSession.VoiceClient.Status != WebSocketStatus.Ready)
+                if (existingSession.GuildVoiceSession.VoiceClient.Status != WebSocketStatus.Ready)
                 {
                     logger.LogDebug("Voice client for guild {Guild} is not ready, starting it",
                         guild.Name);
-                    await existingSession.VoiceSession.VoiceClient.StartAsync(ct);
+                    await existingSession.GuildVoiceSession.VoiceClient.StartAsync(ct);
                 }
 
                 return existingSession;
@@ -78,13 +93,13 @@ public class MusicSessionManager(
 
             logger.LogDebug(
                 "Guild {Guild} already has a music session in voice channel {OldVoiceChannel}, moving to new voice channel {NewVoiceChannel}",
-                guild.Name, existingSession.VoiceSession.VoiceChannel.Name, voiceChannel.Name);
+                guild.Name, existingSession.GuildVoiceSession.VoiceChannel.Name, voiceChannel.Name);
             logger.LogDebug("Closing existing voice client for guild {Guild}", guild.Name);
-            await existingSession.VoiceSession.DisposeAsync();
+            await existingSession.GuildVoiceSession.DisposeAsync();
 
             logger.LogDebug("Joining voice channel {VoiceChannel} in guild {Guild}",
                 guild.Name, voiceChannel.Name);
-            var newVoiceClientForExisting = await client.JoinVoiceChannelAsync(guild.Id,
+            var voiceClientForExisting = await client.JoinVoiceChannelAsync(guild.Id,
                 voiceChannel.Id, new VoiceClientConfiguration
                 {
                     ReceiveHandler = listen ? new VoiceReceiveHandler() : null,
@@ -92,21 +107,26 @@ public class MusicSessionManager(
             logger.LogDebug(
                 "Starting voice client for guild {Guild} and voice channel {VoiceChannel}",
                 guild.Name, voiceChannel.Name);
-            await newVoiceClientForExisting.StartAsync(ct);
+            await voiceClientForExisting.StartAsync(ct);
 
             logger.LogDebug(
                 "Updating voice client and voice channel for existing session in guild {Guild} to new voice channel {VoiceChannel}",
                 guild.Name, voiceChannel.Name);
 
-            var newOpusStreamForExisting = new OpusEncodeStream(
-                newVoiceClientForExisting.CreateOutputStream(),
+            var opusStreamForExisting = new OpusEncodeStream(
+                voiceClientForExisting.CreateOutputStream(),
                 PcmFormat.Short,
                 VoiceChannels.Stereo,
                 OpusApplication.Audio
             );
 
-            existingSession.VoiceSession =
-                new VoiceSession(newVoiceClientForExisting, voiceChannel, newOpusStreamForExisting);
+            var audioPlayerForExisting =
+                ActivatorUtilities.CreateInstance<AudioPlayer>(serviceProvider,
+                    opusStreamForExisting);
+
+            existingSession.GuildVoiceSession =
+                new GuildVoiceSession(voiceClientForExisting, voiceChannel, opusStreamForExisting,
+                    audioPlayerForExisting);
             return existingSession;
         }
 
@@ -128,22 +148,26 @@ public class MusicSessionManager(
             OpusApplication.Audio
         );
 
-        var session = new MusicSession(sessionLogger, queue, guild, textChannel,
-            new VoiceSession(voiceClient, voiceChannel, opusStream));
+        var audioPlayer =
+            ActivatorUtilities.CreateInstance<AudioPlayer>(serviceProvider, opusStream);
+        var session = ActivatorUtilities.CreateInstance<GuildSession>(serviceProvider, guild,
+            textChannel,
+            new GuildVoiceSession(voiceClient, voiceChannel, opusStream, audioPlayer));
         _sessions.Add(guild.Id, session);
         return session;
     }
 
-    public async Task<ErrorOr<MusicSession>> GetSessionAsync(Guild guild, CancellationToken ct)
+    public async Task<ErrorOr<GuildSession>> GetSessionAsync(ulong guildId, CancellationToken ct)
     {
         await using var _ = await _lock.AquireAsync(ct);
 
-        if (_sessions.TryGetValue(guild.Id, out var session))
+        if (_sessions.TryGetValue(guildId, out var session))
         {
             return session;
         }
 
-        return Error.NotFound($"Music session for guild {guild.Name} not found.");
+        var guild = await restClient.GetGuildAsync(guildId, cancellationToken: ct);
+        return Error.NotFound($"No session found for guild {guild.Name} ({guild.Id}). Join first.");
     }
 
     private static async Task<ErrorOr<VoiceState>> TryGetGuildUserVoiceStateAsync(

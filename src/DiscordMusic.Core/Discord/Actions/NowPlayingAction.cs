@@ -7,7 +7,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class NowPlayingAction(
+internal class NowPlayingAction(
     IVoiceHost voiceHost,
     ILogger<NowPlayingAction> logger,
     Cancellation cancellation

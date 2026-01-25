@@ -6,7 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-public class SkipAction(IVoiceHost voiceHost, ILogger<SkipAction> logger, Cancellation cancellation)
+internal class SkipAction(IVoiceHost voiceHost, ILogger<SkipAction> logger, Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(

@@ -7,7 +7,7 @@ public static class AudioModule
 {
     public static IHostApplicationBuilder AddAudio(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddSingleton<IAudioPlayer, AudioPlayer>();
+        builder.Services.AddSingleton<AudioPlayer>();
 
         return builder;
     }

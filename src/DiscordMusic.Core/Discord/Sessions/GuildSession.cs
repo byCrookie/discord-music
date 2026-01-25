@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Queue;
@@ -7,344 +7,138 @@ using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Gateway;
 using NetCord.Gateway.Voice;
 using NetCord.Rest;
 
-namespace DiscordMusic.Core.Discord.Voice;
+namespace DiscordMusic.Core.Discord.Sessions;
 
-public class VoiceHost(
-    IAudioPlayer audioPlayer,
-    GatewayClient gatewayClient,
-    ILogger<VoiceHost> logger,
+internal class GuildSession(
+    ILogger<GuildSession> logger,
     IYoutubeSearch youtubeSearch,
     IYouTubeDownload youTubeDownload,
     IMusicCache musicCache,
-    IQueue<Track> musicQueue,
-    ISpotifySearch spotifySearch
-) : IVoiceHost
+    ISpotifySearch spotifySearch,
+    ILogger<Queue.Queue<Track>> queueLogger,
+    Guild guild,
+    TextChannel textChannel,
+    GuildVoiceSession guildVoiceSession)
 {
-    private readonly AsyncLock _lock = new();
-    private VoiceConnection? _connection;
+    private readonly AsyncLock _commandLock = new();
+    private readonly Queue.Queue<Track> _queue = new(queueLogger);
     private Track? _currentTrack;
+    
+    public Guild Guild { get; } = guild;
+    public GuildVoiceSession GuildVoiceSession { get; set; } = guildVoiceSession;
 
     public event Func<VoiceReceiveEventArgs, ValueTask>? VoiceReceive;
 
-    public VoiceClient? VoiceClient => _connection?.VoiceClient;
-    public VoiceConnection? VoiceConnection => _connection;
-    
-    private async Task<ErrorOr<VoiceState>> TryGetGuildUserVoiceStateAsync(ulong guildId, ulong userId, CancellationToken ct)
-    {
-        try 
-        {
-            return await gatewayClient.Rest.GetGuildUserVoiceStateAsync(guildId, userId, cancellationToken: ct);
-        }
-        catch (Exception ex)
-        {
-            return Error.NotFound(description: $"Could not get voice state for user {userId} in guild {guildId}: {ex.Message}");
-        }
-    }
-
-    public async Task<ErrorOr<Success>> ConnectAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
-    {
-        logger.LogTrace("Connect");
-        await using var _ = await _lock.AquireAsync(ct);
-
-        if (voiceHostContext.GuildId is null)
-        {
-            return Error.Validation(description: "Message does not have a guild");
-        }
-
-        var userVoiceState = await TryGetGuildUserVoiceStateAsync(voiceHostContext.GuildId.Value, voiceHostContext.UserId, ct);
-        
-        if (userVoiceState.IsError)
-        {
-            return userVoiceState.Errors;
-        }
-        
-        var botId = gatewayClient.Cache.User!.Id;
-        
-        var botVoiceState = await TryGetGuildUserVoiceStateAsync(voiceHostContext.GuildId.Value, botId, ct);
-        
-        if (!botVoiceState.IsError)
-        {
-            if (botVoiceState.Value.ChannelId == userVoiceState.Value.ChannelId && _connection is not null)
-            {
-                logger.LogTrace("Bot is already in the same voice channel");
-                return Result.Success;
-            }
-        }
-
-        if (_connection is not null)
-        {
-            logger.LogTrace("Disconnecting from voice channel {ChannelId}", _connection.ChannelId);
-            await audioPlayer.StopAsync(ct);
-            await _connection.CloseAsync(ct);
-            _connection = null;
-            _currentTrack = null;
-        }
-
-        logger.LogInformation("Joining voice channel {ChannelId}", userVoiceState.Value.ChannelId);
-        var voiceClient = await gatewayClient.JoinVoiceChannelAsync(
-            voiceHostContext.GuildId.Value,
-            userVoiceState.Value.ChannelId!.Value,
-            new VoiceClientConfiguration
-            {
-                ReceiveHandler = new VoiceReceiveHandler()
-            },
-            cancellationToken: ct
-        );
-        await voiceClient.StartAsync(ct);
-        await voiceClient.EnterSpeakingStateAsync(
-            new SpeakingProperties(SpeakingFlags.Priority),
-            cancellationToken: ct
-        );
-
-        voiceClient.VoiceReceive += VoiceReceive;
-        
-        var voiceOutStream = voiceClient.CreateOutputStream(normalizeSpeed: false);
-        
-        var opusStream = new OpusEncodeStream(
-            voiceClient.CreateOutputStream(),
-            PcmFormat.Short,
-            VoiceChannels.Stereo,
-            OpusApplication.Audio
-        );
-
-        _connection = new VoiceConnection(voiceClient, voiceHostContext.GuildId.Value, userVoiceState.Value.ChannelId!.Value, voiceHostContext.ChannelId, opusStream, voiceOutStream);
-        await audioPlayer.StartAsync(
-            _connection!.Output,
-            UpdateAsync,
-            ct
-        );
-        
-        return Result.Success;
-    }
-
-    public async Task<ErrorOr<Success>> DisconnectAsync(CancellationToken ct)
-    {
-        logger.LogTrace("Disconnect");
-        await using var _ = await _lock.AquireAsync(ct);
-
-        if (_connection is null)
-        {
-            return Result.Success;
-        }
-
-        logger.LogTrace("Disconnecting from voice channel {ChannelId}", _connection.ChannelId);
-        await audioPlayer.StopAsync(ct);
-        await _connection.CloseAsync(ct);
-        _connection = null;
-        _currentTrack = null;
-
-        await gatewayClient.CloseAsync(cancellationToken: ct);
-        await gatewayClient.StartAsync(cancellationToken: ct);
-        return Result.Success;
-    }
-
-    public async Task<ErrorOr<VoiceUpdate>> PlayAsync(
-        VoiceHostContext voiceHostContext,
-        string query,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> PlayAsync(string query, CancellationToken ct)
     {
         logger.LogTrace("Play");
-        var connect = await ConnectAsync(voiceHostContext, ct);
-
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
+        await using var _ = await _commandLock.AquireAsync(ct);
         return await PlayFromQueryAsync(query, true, ct);
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> PlayNextAsync(
-        VoiceHostContext voiceHostContext,
-        string query,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> PlayNextAsync(string query, CancellationToken ct)
     {
         logger.LogTrace("Play");
-        var connect = await ConnectAsync(voiceHostContext, ct);
-
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
+        await using var _ = await _commandLock.AquireAsync(ct);
         return await PlayFromQueryAsync(query, false, ct);
     }
 
-    public async Task<ErrorOr<Success>> QueueClearAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<Success>> QueueClearAsync(CancellationToken ct)
     {
         logger.LogTrace("Queue");
-        var connect = await ConnectAsync(voiceHostContext, ct);
-
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        musicQueue.Clear();
+        await using var _ = await _commandLock.AquireAsync(ct);
+        _queue.Clear();
         return Result.Success;
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> SeekAsync(
-        VoiceHostContext voiceHostContext,
+    public async Task<ErrorOr<AudioUpdate>> SeekAsync(
         TimeSpan time,
         AudioStream.SeekMode mode,
         CancellationToken ct
     )
     {
         logger.LogTrace("Seek {Mode}", mode);
-        var connect = await ConnectAsync(voiceHostContext, ct);
+        await using var _ = await _commandLock.AquireAsync(ct);
 
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        var seek = await audioPlayer.SeekAsync(time, mode, ct);
+        var seek = await guildVoiceSession.AudioPlayer.SeekAsync(time, mode, ct);
 
         if (seek.IsError)
         {
             return seek.Errors;
         }
 
-        return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, seek.Value);
+        return await BuildAudioUpdateAsync();
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> ShuffleAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> ShuffleAsync(CancellationToken ct)
     {
         logger.LogTrace("Shuffle");
-        var connect = await ConnectAsync(voiceHostContext, ct);
+        await using var _ = await _commandLock.AquireAsync(ct);
 
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
+        _queue.Shuffle();
+        DownloadNextTrackInBackground(ct);
 
-        musicQueue.Shuffle();
-        DownloadNextTrackInBackgroud(ct);
-
-        return musicQueue.TryPeek(out var track)
-            ? new VoiceUpdate(VoiceUpdateType.Next, track, await audioPlayer.StatusAsync(ct))
-            : VoiceUpdate.None(VoiceUpdateType.Next);
+        return await BuildAudioUpdateAsync();
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> SkipAsync(
-        VoiceHostContext voiceHostContext,
-        int toIndex,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> SkipAsync(int toIndex, CancellationToken ct)
     {
         logger.LogTrace("Skip");
-        var connect = await ConnectAsync(voiceHostContext, ct);
-
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        musicQueue.SkipTo(toIndex);
+        await using var _ = await _commandLock.AquireAsync(ct);
+        _queue.SkipTo(toIndex);
         return await PlayNextTrackFromQueueAsync(true, ct);
     }
 
-    public async Task<ErrorOr<ICollection<Track>>> QueueAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
+    public async Task<ICollection<Track>> QueueAsync(CancellationToken ct)
     {
         logger.LogTrace("Queue");
-        var connect = await ConnectAsync(voiceHostContext, ct);
-
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        return ErrorOrFactory.From(musicQueue.Items());
+        await using var _ = await _commandLock.AquireAsync(ct);
+        return _queue.Items();
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> PauseAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> PauseAsync(CancellationToken ct)
     {
         logger.LogTrace("Pause");
-        var connect = await ConnectAsync(voiceHostContext, ct);
+        await using var _ = await _commandLock.AquireAsync(ct);
 
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        var pause = await audioPlayer.PauseAsync(ct);
+        var pause = await GuildVoiceSession.AudioPlayer.PauseAsync(ct);
 
         if (pause.IsError)
         {
             return pause.Errors;
         }
 
-        return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, pause.Value);
+        return await BuildAudioUpdateAsync();
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> ResumeAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> ResumeAsync(CancellationToken ct)
     {
         logger.LogTrace("Resume");
-        var connect = await ConnectAsync(voiceHostContext, ct);
+        await using var _ = await _commandLock.AquireAsync(ct);
 
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        var resume = await audioPlayer.ResumeAsync(ct);
+        var resume = await GuildVoiceSession.AudioPlayer.ResumeAsync(ct);
 
         if (resume.IsError)
         {
             return resume.Errors;
         }
 
-        return new VoiceUpdate(VoiceUpdateType.Now, _currentTrack, resume.Value);
+        return await BuildAudioUpdateAsync();
     }
 
-    public async Task<ErrorOr<VoiceUpdate>> NowPlayingAsync(
-        VoiceHostContext voiceHostContext,
-        CancellationToken ct
-    )
+    public async Task<ErrorOr<AudioUpdate>> NowPlayingAsync(CancellationToken ct)
     {
         logger.LogTrace("Now Playing");
-        var connect = await ConnectAsync(voiceHostContext, ct);
-
-        if (connect.IsError)
-        {
-            return connect.Errors;
-        }
-
-        return _currentTrack is null
-            ? VoiceUpdate.None(VoiceUpdateType.Now)
-            : new VoiceUpdate(
-                VoiceUpdateType.Now,
-                _currentTrack,
-                await audioPlayer.StatusAsync(ct)
-            );
+        await using var _ = await _commandLock.AquireAsync(ct);
+        return await BuildAudioUpdateAsync();
     }
 
-    private async Task<ErrorOr<VoiceUpdate>> PlayFromQueryAsync(
+    private async Task<ErrorOr<AudioUpdate>> PlayFromQueryAsync(
         string query,
         bool append,
         CancellationToken ct
@@ -377,11 +171,11 @@ public class VoiceHost(
             {
                 if (append)
                 {
-                    musicQueue.EnqueueLast(track);
+                    _queue.EnqueueLast(track);
                 }
                 else
                 {
-                    musicQueue.EnqueueFirst(track);
+                    _queue.EnqueueFirst(track);
                 }
             }
 
@@ -412,11 +206,11 @@ public class VoiceHost(
         {
             if (append)
             {
-                musicQueue.EnqueueLast(track);
+                _queue.EnqueueLast(track);
             }
             else
             {
-                musicQueue.EnqueueFirst(track);
+                _queue.EnqueueFirst(track);
             }
         }
 
@@ -435,8 +229,7 @@ public class VoiceHost(
         {
             case AudioEvent.Error:
                 logger.LogError(exception, "Error in audio stream");
-                await gatewayClient.Rest.SendMessageAsync(
-                    _connection!.ChannelId,
+                await textChannel.SendMessageAsync(
                     new MessageProperties
                     {
                         Content = ExceptionToContent(
@@ -456,8 +249,7 @@ public class VoiceHost(
                         "Failed to play next track: {Error}",
                         nextFromError.ToContent()
                     );
-                    await gatewayClient.Rest.SendMessageAsync(
-                        _connection!.ChannelId,
+                    await textChannel.SendMessageAsync(
                         new MessageProperties { Content = nextFromError.ToContent() },
                         cancellationToken: ct
                     );
@@ -467,9 +259,8 @@ public class VoiceHost(
                 if (nextFromError.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-                    await gatewayClient.Rest.SendMessageAsync(
-                        _connection!.ChannelId,
-                        new MessageProperties { Content = "Queue empty. No more tracks in queue." },
+                    await textChannel.SendMessageAsync(
+                        new MessageProperties { Content = "Queue empty. No more tracks in _queue." },
                         cancellationToken: ct
                     );
                 }
@@ -483,8 +274,7 @@ public class VoiceHost(
                 if (next.IsError)
                 {
                     logger.LogError("Failed to play next track: {Error}", next.ToContent());
-                    await gatewayClient.Rest.SendMessageAsync(
-                        _connection!.ChannelId,
+                    await textChannel.SendMessageAsync(
                         new MessageProperties { Content = next.ToContent() },
                         cancellationToken: ct
                     );
@@ -494,9 +284,8 @@ public class VoiceHost(
                 if (next.Value.Track is null)
                 {
                     logger.LogTrace("No more tracks in queue");
-                    await gatewayClient.Rest.SendMessageAsync(
-                        _connection!.ChannelId,
-                        new MessageProperties { Content = "Queue empty. No more tracks in queue." },
+                    await textChannel.SendMessageAsync(
+                        new MessageProperties { Content = "Queue empty. No more tracks in _queue." },
                         cancellationToken: ct
                     );
                 }
@@ -516,30 +305,28 @@ public class VoiceHost(
             return ex is null
                 ? message
                 : $"""
-                    ### **ERROR**: {message}
-                    ```{ex}```
-                    """;
+                   ### **ERROR**: {message}
+                   ```{ex}```
+                   """;
         }
     }
 
-    private async Task<ErrorOr<VoiceUpdate>> PlayNextTrackFromQueueAsync(
+    private async Task<ErrorOr<AudioUpdate>> PlayNextTrackFromQueueAsync(
         bool now,
         CancellationToken ct
     )
     {
-        var status = await audioPlayer.StatusAsync(ct);
+        var status = await GuildVoiceSession.AudioPlayer.StatusAsync(ct);
 
         if (_currentTrack is not null && !now && status.State != AudioState.Ended)
         {
-            DownloadNextTrackInBackgroud(ct);
-            return musicQueue.TryPeek(out var nextTrack)
-                ? new VoiceUpdate(VoiceUpdateType.Next, nextTrack, status)
-                : VoiceUpdate.None(VoiceUpdateType.Next);
+            DownloadNextTrackInBackground(ct);
+            return await BuildAudioUpdateAsync();
         }
 
-        if (!musicQueue.TryDequeue(out var firstTrack))
+        if (!_queue.TryDequeue(out var firstTrack))
         {
-            return VoiceUpdate.None(VoiceUpdateType.Next);
+            return await BuildAudioUpdateAsync();
         }
 
         if (spotifySearch.IsSpotifyQuery(firstTrack.Url))
@@ -606,7 +393,8 @@ public class VoiceHost(
                 firstTrack.Artists
             );
 
-            var playExisting = await audioPlayer.PlayAsync(cache.Value, ct);
+            var playExisting =
+                await GuildVoiceSession.AudioPlayer.PlayAsync(cache.Value, UpdateAsync, ct);
 
             if (playExisting.IsError)
             {
@@ -614,12 +402,8 @@ public class VoiceHost(
             }
 
             _currentTrack = firstTrack;
-            DownloadNextTrackInBackgroud(ct);
-            return new VoiceUpdate(
-                VoiceUpdateType.Now,
-                _currentTrack,
-                await audioPlayer.StatusAsync(ct)
-            );
+            DownloadNextTrackInBackground(ct);
+            return await BuildAudioUpdateAsync();
         }
 
         var download = await youTubeDownload.DownloadAsync(
@@ -633,7 +417,7 @@ public class VoiceHost(
             return download.Errors;
         }
 
-        var play = await audioPlayer.PlayAsync(cache.Value, ct);
+        var play = await GuildVoiceSession.AudioPlayer.PlayAsync(cache.Value, UpdateAsync, ct);
 
         if (play.IsError)
         {
@@ -641,20 +425,27 @@ public class VoiceHost(
         }
 
         _currentTrack = firstTrack;
-        DownloadNextTrackInBackgroud(ct);
-        return new VoiceUpdate(
-            VoiceUpdateType.Now,
+        DownloadNextTrackInBackground(ct);
+        return await BuildAudioUpdateAsync();
+    }
+
+    private async Task<AudioUpdate> BuildAudioUpdateAsync()
+    {
+        var status = await GuildVoiceSession.AudioPlayer.StatusAsync(CancellationToken.None);
+        var nextTrack = _queue.TryPeek(out var next) ? next : null;
+        return new AudioUpdate(
             _currentTrack,
-            await audioPlayer.StatusAsync(ct)
+            nextTrack,
+            status
         );
     }
 
-    private void DownloadNextTrackInBackgroud(CancellationToken ct)
+    private void DownloadNextTrackInBackground(CancellationToken ct)
     {
         _ = Task.Run(
             async () =>
             {
-                if (musicQueue.TryPeek(out var nextTrack))
+                if (_queue.TryPeek(out var nextTrack))
                 {
                     logger.LogDebug(
                         "Downloading next track {Name} {Artists} in the background",

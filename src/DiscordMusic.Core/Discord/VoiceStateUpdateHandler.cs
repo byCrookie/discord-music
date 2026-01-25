@@ -1,4 +1,4 @@
-﻿using DiscordMusic.Core.Discord.Voice;
+﻿using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
@@ -7,12 +7,11 @@ using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 
-public class VoiceStateUpdateHandler(
+internal class VoiceStateUpdateHandler(
     ILogger<VoiceStateUpdateHandler> logger,
     Cancellation cancellation,
     RestClient restClient,
-    GatewayClient gatewayClient,
-    IVoiceHost voiceHost
+    GuildSessionManager guildSessionManager
 ) : IVoiceStateUpdateGatewayHandler
 {
     public async ValueTask HandleAsync(VoiceState voiceState)
@@ -45,36 +44,38 @@ public class VoiceStateUpdateHandler(
             logger.LogInformation("User {UserId} left voice channel", voiceState.UserId);
         }
 
-        if (gatewayClient.Cache.Guilds.TryGetValue(voiceState.GuildId, out var guild))
+        var session = await guildSessionManager.GetSessionAsync(voiceState.GuildId, ct);
+
+        if (session.IsError)
         {
-            if (!guild.VoiceStates.TryGetValue(bot.Id, out var voiceStateBot))
-            {
-                logger.LogInformation("Bot is not in a voice channel.");
-                return;
-            }
-
-            var voiceStatesInChannel = guild
-                .VoiceStates.Where(vs =>
-                    vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id
-                )
-                .ToList();
-
-            if (voiceStatesInChannel.Count != 0)
-            {
-                logger.LogInformation(
-                    "Channel {ChannelId} is still active. {Count} members are still in the channel. Active: {Members}",
-                    voiceStateBot.ChannelId,
-                    voiceStatesInChannel.Count,
-                    string.Join(", ", voiceStatesInChannel.Select(vs => vs.Value.UserId))
-                );
-                return;
-            }
-
-            logger.LogInformation("Bot is alone in the voice channel. Disconnecting.");
-            await voiceHost.DisconnectAsync(ct);
+            logger.LogInformation("No active session for guild {GuildId}", voiceState.GuildId);
             return;
         }
 
-        logger.LogInformation("Bot is not in a guild.");
+        if (!session.Value.Guild.VoiceStates.TryGetValue(bot.Id, out var voiceStateBot))
+        {
+            logger.LogInformation("Bot is not in a voice channel.");
+            return;
+        }
+
+        var voiceStatesInChannel = session.Value.Guild
+            .VoiceStates.Where(vs =>
+                vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id
+            )
+            .ToList();
+
+        if (voiceStatesInChannel.Count != 0)
+        {
+            logger.LogInformation(
+                "Channel {ChannelId} is still active. {Count} members are still in the channel. Active: {Members}",
+                voiceStateBot.ChannelId,
+                voiceStatesInChannel.Count,
+                string.Join(", ", voiceStatesInChannel.Select(vs => vs.Value.UserId))
+            );
+            return;
+        }
+
+        logger.LogInformation("Bot is alone in the voice channel. Disconnecting.");
+        await guildSessionManager.LeaveAsync(voiceState.GuildId, ct);
     }
 }

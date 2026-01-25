@@ -8,7 +8,7 @@ using NetCord.Services.ApplicationCommands;
 namespace DiscordMusic.Core.Discord.Actions;
 
 [SlashCommand("seek", "Seek within the current track.")]
-public class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancellation cancellation)
+internal class SeekAction(IVoiceHost voiceHost, ILogger<SeekAction> logger, Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SubSlashCommand("position", "Seek to a specific time in the current track.")]

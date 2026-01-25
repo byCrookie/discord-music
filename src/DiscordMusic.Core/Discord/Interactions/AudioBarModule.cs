@@ -4,7 +4,7 @@ using NetCord.Services.ComponentInteractions;
 
 namespace DiscordMusic.Core.Discord.Interactions;
 
-public class AudioBarModule(IAudioPlayer audioPlayer)
+public class AudioBarModule(AudioPlayer audioPlayer)
     : ComponentInteractionModule<ButtonInteractionContext>
 {
     public const string FastBackwardButton = "fastBackward";
