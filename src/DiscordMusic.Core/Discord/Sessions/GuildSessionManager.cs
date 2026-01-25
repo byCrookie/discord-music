@@ -14,7 +14,8 @@ namespace DiscordMusic.Core.Discord.Sessions;
 internal class GuildSessionManager(
     IServiceProvider serviceProvider,
     ILogger<GuildSessionManager> logger,
-    RestClient restClient)
+    RestClient restClient,
+    VoiceCommandService voiceCommandService)
 {
     private readonly AsyncLock _lock = new();
     private readonly Dictionary<ulong, GuildSession> _sessions = new();
@@ -72,9 +73,12 @@ internal class GuildSessionManager(
         CancellationToken ct)
     {
         await using var _ = await _lock.AquireAsync(ct);
-
+        
         if (_sessions.TryGetValue(guild.Id, out var existingSession))
         {
+            if (listen)
+                voiceCommandService.Subscribe(existingSession);
+
             if (existingSession.GuildVoiceSession.VoiceChannel.Id == voiceChannel.Id)
             {
                 logger.LogDebug(
@@ -127,16 +131,22 @@ internal class GuildSessionManager(
             await existingSession.UpdateGuildVoiceSessionAsync(new GuildVoiceSession(
                 voiceClientForExisting, voiceChannel, opusStreamForExisting,
                 audioPlayerForExisting), ct);
+            
+            if (listen)
+                voiceCommandService.Subscribe(existingSession);
+            
             return existingSession;
         }
 
         logger.LogDebug("Joining voice channel {VoiceChannel} in guild {Guild}",
             guild.Name, voiceChannel.Name);
+
         var voiceClient = await client.JoinVoiceChannelAsync(guild.Id, voiceChannel.Id,
             new VoiceClientConfiguration
             {
                 ReceiveHandler = listen ? new VoiceReceiveHandler() : null,
             }, ct);
+
         logger.LogDebug("Starting voice client for guild {Guild} and voice channel {VoiceChannel}",
             guild.Name, voiceChannel.Name);
         await voiceClient.StartAsync(ct);
@@ -153,6 +163,10 @@ internal class GuildSessionManager(
         var session = ActivatorUtilities.CreateInstance<GuildSession>(serviceProvider, guild,
             textChannel,
             new GuildVoiceSession(voiceClient, voiceChannel, opusStream, audioPlayer));
+        
+        if (listen)
+            voiceCommandService.Subscribe(session);
+        
         _sessions.Add(guild.Id, session);
         return session;
     }

@@ -8,7 +8,6 @@ using ErrorOr;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Gateway;
-using NetCord.Gateway.Voice;
 using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord.Sessions;
@@ -30,8 +29,6 @@ internal class GuildSession(
 
     public Guild Guild { get; } = guild;
     public GuildVoiceSession GuildVoiceSession { get; private set; } = guildVoiceSession;
-
-    public event Func<VoiceReceiveEventArgs, ValueTask>? VoiceReceive;
 
     public async Task UpdateGuildVoiceSessionAsync(GuildVoiceSession newSession,
         CancellationToken ct)

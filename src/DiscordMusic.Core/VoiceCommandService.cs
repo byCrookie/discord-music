@@ -1,84 +1,78 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.VoiceCommands;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NetCord.Gateway;
 using NetCord.Gateway.Voice;
 
 namespace DiscordMusic.Core;
 
-public sealed class VoiceCommandService(
+internal sealed class VoiceCommandService(
     ILogger<VoiceCommandService> logger,
-    IVoiceHost voiceHost,
     IVoiceTranscriber transcriber,
     IVoiceCommandParser parser,
     VoiceCommandDispatcher dispatcher
 ) : BackgroundService
 {
-    private readonly VoiceCommandBuffer _buffer = new();
-    
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    private sealed record Key(ulong GuildId, uint Ssrc);
+
+    private sealed class PerKey
     {
-        // Decoder: Discord voice is Opus at 48kHz.
-        // We'll decode Opus -> PCM s16 @48k stereo, downmix to mono, then resample to 16k mono for Whisper.
-        using var opusDecoder = new OpusDecoder(VoiceChannels.Stereo);
+        public VoiceCommandBuffer Buffer { get; } = new();
+    }
 
-        var pcm48kStereoFrameBytes = Opus.GetFrameSize(PcmFormat.Short, VoiceChannels.Stereo); // 20ms
-        var pcm48kStereo = new byte[pcm48kStereoFrameBytes];
+    private readonly ConcurrentDictionary<Key, PerKey> _buffers = new();
+    private readonly ConcurrentDictionary<ulong, byte> _subscribedGuilds = new();
 
-        // 48kHz -> 16kHz decimation by 3
-        // 20ms @48k => 960 samples/channel. Stereo => 1920 samples total.
-        // After downmix mono => 960 mono samples. After /3 => 320 mono samples @16k.
-        var mono48kSamples = new short[Opus.SamplesPerChannel];
-        var mono16kSamples = new short[Opus.SamplesPerChannel / 3];
+    private readonly Lock _decodeLock = new();
+    private readonly OpusDecoder _opusDecoder = new(VoiceChannels.Stereo);
+    private readonly byte[] _pcm48KStereo = new byte[Opus.GetFrameSize(PcmFormat.Short, VoiceChannels.Stereo)];
+    private readonly short[] _mono48KSamples = new short[Opus.SamplesPerChannel];
+    private readonly short[] _mono16KSamples = new short[Opus.SamplesPerChannel / 3];
 
-        // Receive frames and append them for later transcription.
-        voiceHost.VoiceReceive += args =>
+    internal void Subscribe(GuildSession session)
+    {
+        if (!_subscribedGuilds.TryAdd(session.Guild.Id, 0))
+            return;
+
+        session.GuildVoiceSession.VoiceClient.VoiceReceive += args =>
         {
-            // if (voiceHost.VoiceClient?.Status == WebSocketStatus.Ready)
-            // {
-            //     voiceHost.VoiceConnection?.VoiceOutStream.Write(args.Frame);
-            // }
-
             try
             {
-                // args.Frame is an Opus packet. Decode to PCM first.
-                // NetCord's decoder decodes a single Opus packet into a fixed 20ms PCM buffer.
-                opusDecoder.Decode(args.Frame, pcm48kStereo);
+                lock (_decodeLock)
+                {
+                    _opusDecoder.Decode(args.Frame, _pcm48KStereo);
 
-                // Downmix the decoded stereo PCM to mono @48k.
-                DownmixStereoS16ToMono(
-                    MemoryMarshal.Cast<byte, short>(pcm48kStereo.AsSpan()),
-                    mono48kSamples
-                );
+                    DownmixStereoS16ToMono(
+                        MemoryMarshal.Cast<byte, short>(_pcm48KStereo.AsSpan()),
+                        _mono48KSamples
+                    );
 
-                // Resample 48k -> 16k by simple decimation (every 3rd sample).
-                Resample48kTo16kBy3(mono48kSamples, mono16kSamples);
+                    Resample48KTo16KBy3(_mono48KSamples, _mono16KSamples);
 
-                // Append PCM 16k mono s16 to per-user buffer.
-                _buffer.Append(args.Ssrc, MemoryMarshal.AsBytes(mono16kSamples.AsSpan()));
+                    var key = new Key(session.Guild.Id, args.Ssrc);
+                    var entry = _buffers.GetOrAdd(key, _ => new PerKey());
+                    entry.Buffer.Append(args.Ssrc, MemoryMarshal.AsBytes(_mono16KSamples.AsSpan()));
+                }
             }
             catch (Exception ex)
             {
                 logger.LogDebug(ex, "Failed decoding/buffering voice frame");
             }
 
-            return default;
+            return ValueTask.CompletedTask;
         };
+    }
 
-        // Per-SSRC utterance detector:
-        // - keep buffering while frames keep arriving
-        // - flush/transcribe only after >= 2s without any new frames for that SSRC
-        // - safety cap to avoid unbounded buffers if silence is never detected
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
         var pollInterval = TimeSpan.FromMilliseconds(250);
 
-        // Now we buffer 16kHz mono s16.
         var bytesPerSecond = 16000 * 2;
-
         var flushAfterSilence = TimeSpan.FromSeconds(1);
         var minTranscribeBytes = bytesPerSecond; // ~1s
 
-        // Safety cap: force flush at ~30s worth of audio even if we don't see a silence gap.
         var maxUtteranceSeconds = 30;
         var maxUtteranceBytes = bytesPerSecond * maxUtteranceSeconds;
 
@@ -88,17 +82,16 @@ public sealed class VoiceCommandService(
             {
                 await Task.Delay(pollInterval, stoppingToken);
 
-                if (voiceHost.VoiceClient?.Status != WebSocketStatus.Ready)
-                    continue;
-
-                // We buffer by SSRC, so enumerate the SSRCs we actually have audio for.
-                foreach (var ssrc in _buffer.GetSsrcs())
+                foreach (var pair in _buffers)
                 {
-                    var buffered = _buffer.PeekLength(ssrc);
+                    var key = pair.Key;
+                    var buffer = pair.Value.Buffer;
+
+                    var buffered = buffer.PeekLength(key.Ssrc);
                     if (buffered == 0)
                         continue;
 
-                    var lastAppendUtc = _buffer.GetLastAppendUtc(ssrc);
+                    var lastAppendUtc = buffer.GetLastAppendUtc(key.Ssrc);
                     var silentFor =
                         lastAppendUtc is null
                             ? TimeSpan.Zero
@@ -108,13 +101,14 @@ public sealed class VoiceCommandService(
                     if (!shouldFlush)
                         continue;
 
-                    var data = _buffer.SnapshotAndClear(ssrc);
+                    var data = buffer.SnapshotAndClear(key.Ssrc);
                     if (data.Length < minTranscribeBytes)
                         continue;
 
                     logger.LogInformation(
-                        "Transcribing voice command from SSRC {Ssrc} ({Length} bytes, ~{Seconds:0.0}s, silent {SilentFor:0.0}s)...",
-                        ssrc,
+                        "Transcribing voice command from Guild {GuildId} SSRC {Ssrc} ({Length} bytes, ~{Seconds:0.0}s, silent {SilentFor:0.0}s)...",
+                        key.GuildId,
+                        key.Ssrc,
                         data.Length,
                         (double)data.Length / bytesPerSecond,
                         silentFor.TotalSeconds
@@ -123,11 +117,11 @@ public sealed class VoiceCommandService(
                     var transcript = await transcriber.TranscribeAsync(data, stoppingToken);
                     if (string.IsNullOrWhiteSpace(transcript))
                     {
-                        logger.LogInformation("Transcribed no speech from SSRC {Ssrc}", ssrc);
+                        logger.LogInformation("Transcribed no speech from Guild {GuildId} SSRC {Ssrc}", key.GuildId, key.Ssrc);
                         continue;
                     }
 
-                    logger.LogInformation("Voice transcript ({Ssrc}): {Transcript}", ssrc, transcript);
+                    logger.LogInformation("Voice transcript (Guild {GuildId} SSRC {Ssrc}): {Transcript}", key.GuildId, key.Ssrc, transcript);
 
                     var command = parser.Parse(transcript);
                     if (command.Intent == VoiceCommandIntent.None)
@@ -137,15 +131,14 @@ public sealed class VoiceCommandService(
                     }
 
                     logger.LogInformation(
-                        "Voice command ({Ssrc}): {Intent} {Arg}",
-                        ssrc,
+                        "Voice command (Guild {GuildId} SSRC {Ssrc}): {Intent} {Arg}",
+                        key.GuildId,
+                        key.Ssrc,
                         command.Intent,
                         command.Argument
                     );
 
-                    await dispatcher.DispatchAsync(command, new VoiceHostContext(voiceHost
-                        .VoiceClient.UserId, voiceHost
-                        .VoiceClient.GuildId, voiceHost.VoiceConnection!.ChannelId), stoppingToken);
+                    await dispatcher.DispatchAsync(command, key.GuildId, stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -161,7 +154,6 @@ public sealed class VoiceCommandService(
 
     private static void DownmixStereoS16ToMono(ReadOnlySpan<short> stereoInterleaved, Span<short> monoOut)
     {
-        // stereoInterleaved length should be monoOut.Length * 2
         var samples = monoOut.Length;
         for (var i = 0; i < samples; i++)
         {
@@ -171,14 +163,18 @@ public sealed class VoiceCommandService(
         }
     }
 
-    private static void Resample48kTo16kBy3(ReadOnlySpan<short> mono48k, Span<short> mono16kOut)
+    private static void Resample48KTo16KBy3(ReadOnlySpan<short> mono48K, Span<short> mono16KOut)
     {
-        // Simple decimation: take every 3rd sample.
-        // NOTE: This is not a high-quality resampler; it’s a pragmatic baseline.
-        var outSamples = Math.Min(mono16kOut.Length, mono48k.Length / 3);
+        var outSamples = Math.Min(mono16KOut.Length, mono48K.Length / 3);
         for (var i = 0; i < outSamples; i++)
         {
-            mono16kOut[i] = mono48k[i * 3];
+            mono16KOut[i] = mono48K[i * 3];
         }
+    }
+
+    public override void Dispose()
+    {
+        _opusDecoder.Dispose();
+        base.Dispose();
     }
 }
