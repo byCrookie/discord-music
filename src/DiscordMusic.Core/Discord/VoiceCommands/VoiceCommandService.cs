@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 internal sealed class VoiceCommandService(
     ILogger<VoiceCommandService> logger,

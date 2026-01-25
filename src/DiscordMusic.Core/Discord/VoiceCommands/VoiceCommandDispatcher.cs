@@ -2,7 +2,7 @@
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 internal sealed class VoiceCommandDispatcher(
     GuildSessionManager guildSessionManager,

@@ -1,4 +1,4 @@
-﻿namespace DiscordMusic.Core.VoiceCommands;
+﻿namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 public interface IVoiceCommandParser
 {

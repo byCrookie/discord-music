@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Whisper.net;
 using Whisper.net.Ggml;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 public sealed class WhisperVoiceTranscriber : IVoiceTranscriber, IDisposable
 {

@@ -1,6 +1,6 @@
 ﻿using DiscordMusic.Core.Audio;
+using DiscordMusic.Core.Discord.VoiceCommands;
 using DiscordMusic.Core.Utils;
-using DiscordMusic.Core.VoiceCommands;
 using ErrorOr;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

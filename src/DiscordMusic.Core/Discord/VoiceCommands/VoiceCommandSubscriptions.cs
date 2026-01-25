@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using NetCord.Gateway.Voice;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 /// <summary>
 /// Thread-safe holder for per-guild voice command subscriptions.

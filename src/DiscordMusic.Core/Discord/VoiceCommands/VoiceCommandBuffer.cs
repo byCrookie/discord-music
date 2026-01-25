@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 /// <summary>
 /// Super simple per-SSRC audio buffer.

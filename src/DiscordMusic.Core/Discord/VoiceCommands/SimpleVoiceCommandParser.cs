@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 /// <summary>
 /// Very small English parser intended for Whisper transcripts.

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway.Voice;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 /// <summary>
 /// Injectable, non-hosted component that owns per-guild voice buffers and subscription wiring.

@@ -1,6 +1,6 @@
 ﻿using NetCord.Gateway.Voice;
 
-namespace DiscordMusic.Core.VoiceCommands;
+namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 /// <summary>
 /// Holds the active per-guild voice-receive subscriptions used by the voice command system.
