@@ -61,13 +61,14 @@ public static class CoreModule
         builder.AddLyrics();
         builder.AddCache();
         builder.AddDiscord();
-        builder.AddAudio();
 
         builder.Services.AddVoiceCommands();
 
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
         builder.Services.AddSingleton(new Cancellation(ct));
 
+        builder.Services.AddSingleton<VoiceCommandManager>();
+        builder.Services.AddSingleton<IVoiceCommandSubscriptions, VoiceCommandSubscriptions>();
         builder.Services.AddHostedService<VoiceCommandService>();
     }
 

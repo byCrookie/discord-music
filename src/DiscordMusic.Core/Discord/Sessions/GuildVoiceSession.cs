@@ -4,7 +4,12 @@ using NetCord.Gateway.Voice;
 
 namespace DiscordMusic.Core.Discord.Sessions;
 
-public record GuildVoiceSession(VoiceClient VoiceClient, VoiceGuildChannel VoiceChannel, OpusEncodeStream OutputStream, AudioPlayer AudioPlayer) : IAsyncDisposable
+public record GuildVoiceSession(
+    VoiceClient VoiceClient,
+    VoiceGuildChannel VoiceChannel,
+    OpusEncodeStream OutputStream,
+    AudioPlayer AudioPlayer
+) : IAsyncDisposable
 {
     public async ValueTask DisposeAsync()
     {

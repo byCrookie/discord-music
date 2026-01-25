@@ -1,5 +1,6 @@
 ﻿using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Utils;
+using DiscordMusic.Core.VoiceCommands;
 using ErrorOr;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ internal class GuildSessionManager(
     IServiceProvider serviceProvider,
     ILogger<GuildSessionManager> logger,
     RestClient restClient,
-    VoiceCommandService voiceCommandService)
+    IVoiceCommandSubscriptions voiceCommandSubscriptions)
 {
     private readonly AsyncLock _lock = new();
     private readonly Dictionary<ulong, GuildSession> _sessions = new();
@@ -60,6 +61,8 @@ internal class GuildSessionManager(
             logger.LogDebug("Leaving voice channel {VoiceChannel} in guild {Guild}",
                 existingSession.GuildVoiceSession.VoiceChannel.Name,
                 existingSession.Guild.Name);
+
+            voiceCommandSubscriptions.Remove(guildId);
             await existingSession.GuildVoiceSession.DisposeAsync();
             return Result.Success;
         }
@@ -73,12 +76,9 @@ internal class GuildSessionManager(
         CancellationToken ct)
     {
         await using var _ = await _lock.AquireAsync(ct);
-        
+
         if (_sessions.TryGetValue(guild.Id, out var existingSession))
         {
-            if (listen)
-                voiceCommandService.Subscribe(existingSession);
-
             if (existingSession.GuildVoiceSession.VoiceChannel.Id == voiceChannel.Id)
             {
                 logger.LogDebug(
@@ -92,6 +92,12 @@ internal class GuildSessionManager(
                     await existingSession.GuildVoiceSession.VoiceClient.StartAsync(ct);
                 }
 
+                // Ensure voice command subscription matches current listen flag.
+                if (listen)
+                    voiceCommandSubscriptions.Set(guild.Id, existingSession.GuildVoiceSession.VoiceClient);
+                else
+                    voiceCommandSubscriptions.Remove(guild.Id);
+
                 return existingSession;
             }
 
@@ -99,6 +105,8 @@ internal class GuildSessionManager(
                 "Guild {Guild} already has a music session in voice channel {OldVoiceChannel}, moving to new voice channel {NewVoiceChannel}",
                 guild.Name, existingSession.GuildVoiceSession.VoiceChannel.Name, voiceChannel.Name);
             logger.LogDebug("Closing existing voice client for guild {Guild}", guild.Name);
+
+            voiceCommandSubscriptions.Remove(guild.Id);
             await existingSession.GuildVoiceSession.DisposeAsync();
 
             logger.LogDebug("Joining voice channel {VoiceChannel} in guild {Guild}",
@@ -112,6 +120,12 @@ internal class GuildSessionManager(
                 "Starting voice client for guild {Guild} and voice channel {VoiceChannel}",
                 guild.Name, voiceChannel.Name);
             await voiceClientForExisting.StartAsync(ct);
+
+            // Update voice command subscription to new client (or remove if listen disabled).
+            if (listen)
+                voiceCommandSubscriptions.Set(guild.Id, voiceClientForExisting);
+            else
+                voiceCommandSubscriptions.Remove(guild.Id);
 
             logger.LogDebug(
                 "Updating voice client and voice channel for existing session in guild {Guild} to new voice channel {VoiceChannel}",
@@ -131,10 +145,7 @@ internal class GuildSessionManager(
             await existingSession.UpdateGuildVoiceSessionAsync(new GuildVoiceSession(
                 voiceClientForExisting, voiceChannel, opusStreamForExisting,
                 audioPlayerForExisting), ct);
-            
-            if (listen)
-                voiceCommandService.Subscribe(existingSession);
-            
+
             return existingSession;
         }
 
@@ -151,6 +162,11 @@ internal class GuildSessionManager(
             guild.Name, voiceChannel.Name);
         await voiceClient.StartAsync(ct);
 
+        if (listen)
+            voiceCommandSubscriptions.Set(guild.Id, voiceClient);
+        else
+            voiceCommandSubscriptions.Remove(guild.Id);
+
         var opusStream = new OpusEncodeStream(
             voiceClient.CreateOutputStream(),
             PcmFormat.Short,
@@ -163,10 +179,7 @@ internal class GuildSessionManager(
         var session = ActivatorUtilities.CreateInstance<GuildSession>(serviceProvider, guild,
             textChannel,
             new GuildVoiceSession(voiceClient, voiceChannel, opusStream, audioPlayer));
-        
-        if (listen)
-            voiceCommandService.Subscribe(session);
-        
+
         _sessions.Add(guild.Id, session);
         return session;
     }
