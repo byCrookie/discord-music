@@ -28,11 +28,19 @@ internal class GuildSession(
     private readonly AsyncLock _commandLock = new();
     private readonly Queue.Queue<Track> _queue = new(queueLogger);
     private Track? _currentTrack;
-    
+
     public Guild Guild { get; } = guild;
-    public GuildVoiceSession GuildVoiceSession { get; set; } = guildVoiceSession;
+    public GuildVoiceSession GuildVoiceSession { get; private set; } = guildVoiceSession;
 
     public event Func<VoiceReceiveEventArgs, ValueTask>? VoiceReceive;
+
+    public async Task UpdateGuildVoiceSessionAsync(GuildVoiceSession newSession,
+        CancellationToken ct)
+    {
+        await using var _ = await _commandLock.AquireAsync(ct);
+        await GuildVoiceSession.DisposeAsync();
+        GuildVoiceSession = newSession;
+    }
 
     public async Task<ErrorOr<AudioUpdate>> PlayAsync(string query, CancellationToken ct)
     {
@@ -65,7 +73,7 @@ internal class GuildSession(
         logger.LogTrace("Seek {Mode}", mode);
         await using var _ = await _commandLock.AquireAsync(ct);
 
-        var seek = await guildVoiceSession.AudioPlayer.SeekAsync(time, mode, ct);
+        var seek = await GuildVoiceSession.AudioPlayer.SeekAsync(time, mode, ct);
 
         if (seek.IsError)
         {
@@ -260,7 +268,8 @@ internal class GuildSession(
                 {
                     logger.LogTrace("No more tracks in queue");
                     await textChannel.SendMessageAsync(
-                        new MessageProperties { Content = "Queue empty. No more tracks in _queue." },
+                        new MessageProperties
+                            { Content = "Queue empty. No more tracks in _queue." },
                         cancellationToken: ct
                     );
                 }
@@ -285,7 +294,8 @@ internal class GuildSession(
                 {
                     logger.LogTrace("No more tracks in queue");
                     await textChannel.SendMessageAsync(
-                        new MessageProperties { Content = "Queue empty. No more tracks in _queue." },
+                        new MessageProperties
+                            { Content = "Queue empty. No more tracks in _queue." },
                         cancellationToken: ct
                     );
                 }

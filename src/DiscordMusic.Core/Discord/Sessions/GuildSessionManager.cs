@@ -124,9 +124,9 @@ internal class GuildSessionManager(
                 ActivatorUtilities.CreateInstance<AudioPlayer>(serviceProvider,
                     opusStreamForExisting);
 
-            existingSession.GuildVoiceSession =
-                new GuildVoiceSession(voiceClientForExisting, voiceChannel, opusStreamForExisting,
-                    audioPlayerForExisting);
+            await existingSession.UpdateGuildVoiceSessionAsync(new GuildVoiceSession(
+                voiceClientForExisting, voiceChannel, opusStreamForExisting,
+                audioPlayerForExisting), ct);
             return existingSession;
         }
 
