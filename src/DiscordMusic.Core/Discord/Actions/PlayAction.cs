@@ -1,12 +1,16 @@
-using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-internal class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Cancellation cancellation)
+internal class PlayAction(
+    GuildSessionManager guildSessionManager,
+    ILogger<PlayAction> logger,
+    Cancellation cancellation)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("play", "Play a track. Direct link or search query. Appended to queue.")]
@@ -16,20 +20,38 @@ internal class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Canc
     {
         logger.LogTrace("Play");
 
+        var session =
+            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+                cancellation.CancellationToken);
+
+        if (session.IsError)
+        {
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = session.ToContent(),
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+            return;
+        }
+
         await RespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Searching for **{query}**
-                    This may take a moment...
-                    """,
+                               ### Searching for **{query}**
+                               This may take a moment...
+                               """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
         );
 
-        var play = await voiceHost.PlayAsync(VoiceHostContext.FromApplicationCommandContext(Context), query, cancellation.CancellationToken);
+        var play = await session.Value.PlayAsync(query, cancellation.CancellationToken);
 
         if (play.IsError)
         {
@@ -37,19 +59,8 @@ internal class PlayAction(IVoiceHost voiceHost, ILogger<PlayAction> logger, Canc
             return;
         }
 
-        var messageTitle = play.Value.Type == VoiceUpdateType.Now ? "Now" : "Next";
-
-        if (play.Value.Track is null)
-        {
-            await ModifyResponseAsync(m => m.Content = "No track found");
-            return;
-        }
-
         await ModifyResponseAsync(m =>
-            m.Content = $"""
-            ### {messageTitle}
-            **{play.Value.Track!.Name}** by **{play.Value.Track!.Artists}** ({play.Value.Track!.Duration.HumanizeSecond()})
-            """
+            m.Content = play.Value.ToContent()
         );
     }
 }
