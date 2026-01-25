@@ -21,7 +21,7 @@ internal class NowPlayingAction(
         logger.LogTrace("Nowplaying");
         
         var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+            await guildSessionManager.JoinAsync(Context, false,
                 cancellation.CancellationToken);
 
         if (session.IsError)

@@ -295,6 +295,8 @@ public class AudioStream : IDisposable
         StreamFailed = null;
         _inputStream.Dispose();
         _cts.Dispose();
+        _producerCts.Dispose();
+        _consumerCts.Dispose();
     }
 
     public event Func<Exception, object, EventArgs, Task>? StreamFailed;

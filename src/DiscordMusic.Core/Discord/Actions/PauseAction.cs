@@ -21,7 +21,7 @@ internal class PauseAction(
         logger.LogTrace("Pause");
 
         var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
+            await guildSessionManager.JoinAsync(Context, false,
                 cancellation.CancellationToken);
 
         if (session.IsError)
@@ -38,22 +38,20 @@ internal class PauseAction(
             return;
         }
 
-        await RespondAsync(
-            InteractionCallback.Message(
-                new InteractionMessageProperties
-                    { Content = "### Pausing..." }
-            ),
-            cancellationToken: cancellation.CancellationToken
-        );
-
         var pause = await session.Value.PauseAsync(cancellation.CancellationToken);
 
         if (pause.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = pause.ToErrorContent());
+            await RespondAsync(
+                InteractionCallback.Message(pause.ToErrorContent()),
+                cancellationToken: cancellation.CancellationToken
+            );
             return;
         }
 
-        await ModifyResponseAsync(m => m.Content = pause.Value.ToValueContent());
+        await RespondAsync(
+            InteractionCallback.Message(pause.Value.ToValueContent()),
+            cancellationToken: cancellation.CancellationToken
+        );
     }
 }
