@@ -5,7 +5,8 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Audio;
 
-public class AudioPlayer(
+public class 
+    AudioPlayer(
     ILogger<AudioPlayer> logger,
     ILogger<AudioStream> audioStreamLogger,
     IFileSystem fileSystem,

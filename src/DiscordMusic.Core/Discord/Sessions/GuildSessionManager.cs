@@ -90,6 +90,8 @@ internal class GuildSessionManager(
                     logger.LogDebug("Voice client for guild {Guild} is not ready, starting it",
                         guild.Name);
                     await existingSession.GuildVoiceSession.VoiceClient.StartAsync(ct);
+                    await existingSession.GuildVoiceSession.VoiceClient.EnterSpeakingStateAsync(
+                        new SpeakingProperties(SpeakingFlags.Priority), cancellationToken: ct);
                 }
 
                 // Ensure voice command subscription matches current listen flag.
@@ -120,6 +122,8 @@ internal class GuildSessionManager(
                 "Starting voice client for guild {Guild} and voice channel {VoiceChannel}",
                 guild.Name, voiceChannel.Name);
             await voiceClientForExisting.StartAsync(ct);
+            await voiceClientForExisting.EnterSpeakingStateAsync(
+                new SpeakingProperties(SpeakingFlags.Priority), cancellationToken: ct);
 
             // Update voice command subscription to new client (or remove if listen disabled).
             if (listen)
@@ -161,6 +165,8 @@ internal class GuildSessionManager(
         logger.LogDebug("Starting voice client for guild {Guild} and voice channel {VoiceChannel}",
             guild.Name, voiceChannel.Name);
         await voiceClient.StartAsync(ct);
+        await voiceClient.EnterSpeakingStateAsync(
+            new SpeakingProperties(SpeakingFlags.Priority), cancellationToken: ct);
 
         if (listen)
             voiceCommandSubscriptions.Set(guild.Id, voiceClient);
