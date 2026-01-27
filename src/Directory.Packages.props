@@ -14,12 +14,12 @@
         </PackageVersion>
         <PackageVersion Include="NetCord" Version="1.0.0-alpha.359" />
         <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.359" />
-        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.455" />
-        <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.455" />
+        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.458" />
+        <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.458" />
         <PackageVersion Include="SpotifyAPI.Web" Version="7.2.1" />
         <PackageVersion Include="System.CommandLine" Version="2.0.2" />
         <PackageVersion Include="Testably.Abstractions" Version="10.0.0" />
-        <PackageVersion Include="TUnit" Version="1.11.28" />
+        <PackageVersion Include="TUnit" Version="1.12.65" />
         <PackageVersion Include="ValueOf" Version="2.0.31" />
     </ItemGroup>
 </Project>
