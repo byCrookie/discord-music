@@ -1,7 +1,7 @@
 ﻿using System.IO.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
-using DiscordMusic.Core.Discord.Cache;
+using DiscordMusic.Core.Config;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
 using ErrorOr;

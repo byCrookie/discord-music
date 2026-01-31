@@ -12,29 +12,35 @@ namespace DiscordMusic.Core.Discord.Actions;
 internal class JoinAction(
     GuildSessionManager guildSessionManager,
     ILogger<JoinAction> logger,
-    Cancellation cancellation)
-    : ApplicationCommandModule<ApplicationCommandContext>
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    [SlashCommand("join", "The bot will join the voice channel you are in. Session for guild will be replaced.")]
+    [SlashCommand(
+        "join",
+        "The bot will join the voice channel you are in. Session for guild will be replaced."
+    )]
     [RequireBotPermissions<ApplicationCommandContext>(
         Permissions.Connect | Permissions.PrioritySpeaker | Permissions.Speak
     )]
     [RequireUserPermissions<ApplicationCommandContext>(Permissions.Connect | Permissions.Speak)]
     [RequireChannelMusic<ApplicationCommandContext>]
     [RequireRoleDj<ApplicationCommandContext>]
-    public async Task Join([SlashCommandParameter(
-            Description =
-                "Enable voice commands. Bot listens for verbal commands. Default is no."
+    public async Task Join(
+        [SlashCommandParameter(
+            Description = "Enable voice commands. Bot listens for verbal commands. Default is no."
         )]
-        VoiceCommandSetting listen = VoiceCommandSetting.No)
+            VoiceCommandSetting listen = VoiceCommandSetting.No
+    )
     {
         logger.LogTrace("Join");
-        
+
         await guildSessionManager.LeaveAsync(Context.Guild!.Id, cancellation.CancellationToken);
 
-        var session =
-            await guildSessionManager.JoinAsync(Context, listen,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.JoinAsync(
+            Context,
+            listen,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -43,7 +49,7 @@ internal class JoinAction(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
-                        Flags = MessageFlags.Ephemeral
+                        Flags = MessageFlags.Ephemeral,
                     }
                 )
             );
@@ -55,10 +61,10 @@ internal class JoinAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Connected
-                               I joined your voice channel.
-                               -# {ToJoinedString(listen)}
-                               """,
+                    ### Connected
+                    I joined your voice channel.
+                    -# {ToJoinedString(listen)}
+                    """,
                     Flags = MessageFlags.Ephemeral,
                 }
             )
@@ -70,6 +76,6 @@ internal class JoinAction(
         {
             VoiceCommandSetting.Yes => "Voice commands are enabled",
             VoiceCommandSetting.No => "Voice commands are disabled",
-            _ => ""
+            _ => "",
         };
 }

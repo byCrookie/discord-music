@@ -41,7 +41,10 @@ public class ErrorOrExtensionsTests
         var errors = new[]
         {
             Error.NotFound(code: "Session.NotFound", description: "No active music session."),
-            Error.Validation(code: "Permissions.Missing", description: "You don't have permission to do that."),
+            Error.Validation(
+                code: "Permissions.Missing",
+                description: "You don't have permission to do that."
+            ),
         };
 
         ErrorOr<Success> result = errors;

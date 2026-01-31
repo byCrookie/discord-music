@@ -24,10 +24,12 @@ internal class PlayNextAction(
     )
     {
         logger.LogTrace("Playnext");
-        
-        var session =
-            await guildSessionManager.JoinAsync(Context, null,
-                cancellation.CancellationToken);
+
+        var session = await guildSessionManager.JoinAsync(
+            Context,
+            null,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -65,8 +67,6 @@ internal class PlayNextAction(
             return;
         }
 
-        await ModifyResponseAsync(m =>
-            m.Content = play.Value.ToValueContent()
-        );
+        await ModifyResponseAsync(m => m.Content = play.Value.ToValueContent());
     }
 }

@@ -20,9 +20,10 @@ internal class PauseAction(
     {
         logger.LogTrace("Pause");
 
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {

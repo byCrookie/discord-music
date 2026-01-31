@@ -19,10 +19,11 @@ internal class ResumeAction(
     public async Task Resume()
     {
         logger.LogTrace("Resume");
-        
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -37,7 +38,7 @@ internal class ResumeAction(
             );
             return;
         }
-        
+
         var resume = await session.Value.ResumeAsync(cancellation.CancellationToken);
 
         if (resume.IsError)

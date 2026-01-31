@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Text;
+using DiscordMusic.Core.Discord.Cache;
+using Humanizer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -16,11 +19,29 @@ public static class ConfigModule
             .ValidateOnStart();
 
         builder.Services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IValidateOptions<ConfigOptions>, ValidateSettingsOptions>()
+            ServiceDescriptor.Singleton<
+                IValidateOptions<ConfigOptions>,
+                ValidateSettingsConfigOptions
+            >()
         );
+
+        builder
+            .Services.AddOptions<CacheOptions>()
+            .Bind(builder.Configuration.GetSection(CacheOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IValidateOptions<CacheOptions>,
+                ValidateSettingsCacheOptions
+            >()
+        );
+
+        builder.Services.AddTransient<AppPaths>();
     }
 
-    private sealed class ValidateSettingsOptions : IValidateOptions<ConfigOptions>
+    private sealed class ValidateSettingsConfigOptions : IValidateOptions<ConfigOptions>
     {
         public ValidateOptionsResult Validate(string? name, ConfigOptions options)
         {
@@ -38,6 +59,25 @@ public static class ConfigModule
 
             return errors is not null
                 ? ValidateOptionsResult.Fail(errors)
+                : ValidateOptionsResult.Success;
+        }
+    }
+
+    private sealed class ValidateSettingsCacheOptions : IValidateOptions<CacheOptions>
+    {
+        public ValidateOptionsResult Validate(string? name, CacheOptions options)
+        {
+            StringBuilder? failure = null;
+
+            if (!ByteSize.TryParse(options.MaxSize, out _))
+            {
+                (failure ??= new StringBuilder()).AppendLine(
+                    $"{nameof(CacheOptions.MaxSize)} {options.MaxSize} is not a valid hex color"
+                );
+            }
+
+            return failure is not null
+                ? ValidateOptionsResult.Fail(failure.ToString())
                 : ValidateOptionsResult.Success;
         }
     }

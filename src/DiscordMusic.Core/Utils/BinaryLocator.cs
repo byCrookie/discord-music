@@ -112,9 +112,7 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             path,
             defaultBinaryName
         );
-        return Error.Unexpected(
-            description: $"Invalid configuration for `{defaultBinaryName}`."
-        );
+        return Error.Unexpected(description: $"Invalid configuration for `{defaultBinaryName}`.");
     }
 
     public record BinaryLocation(

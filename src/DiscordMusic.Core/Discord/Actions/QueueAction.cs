@@ -40,10 +40,11 @@ internal class QueueAction(
             );
             return;
         }
-        
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -144,10 +145,11 @@ internal class QueueAction(
     public async Task Clear()
     {
         logger.LogTrace("Queue clear");
-        
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -162,7 +164,7 @@ internal class QueueAction(
             );
             return;
         }
-        
+
         var clear = await session.Value.QueueClearAsync(cancellation.CancellationToken);
 
         if (clear.IsError)
@@ -180,10 +182,11 @@ internal class QueueAction(
     public async Task Shuffle()
     {
         logger.LogTrace("Shuffle");
-        
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -198,7 +201,7 @@ internal class QueueAction(
             );
             return;
         }
-        
+
         var shuffle = await session.Value.ShuffleAsync(cancellation.CancellationToken);
 
         if (shuffle.IsError)

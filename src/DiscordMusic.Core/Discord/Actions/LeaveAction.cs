@@ -20,8 +20,10 @@ internal class LeaveAction(
     {
         logger.LogTrace("Leave");
 
-        var leave =
-            await guildSessionManager.LeaveAsync(Context.Guild!.Id, cancellation.CancellationToken);
+        var leave = await guildSessionManager.LeaveAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (leave.IsError)
         {
@@ -42,9 +44,9 @@ internal class LeaveAction(
                 new InteractionMessageProperties
                 {
                     Content = """
-                              ### Disconnected
-                              I left the voice channel.
-                              """,
+                    ### Disconnected
+                    I left the voice channel.
+                    """,
                     Flags = MessageFlags.Ephemeral,
                 }
             )

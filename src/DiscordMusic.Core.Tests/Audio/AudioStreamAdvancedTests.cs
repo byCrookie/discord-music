@@ -8,7 +8,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Load_Stopped_DoesNotWriteToOutput()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(200_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(200_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -28,7 +30,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Load_Playing_ProducesSomeOutput()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(500_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(500_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -39,14 +43,23 @@ public class AudioStreamAdvancedTests
             CancellationToken.None
         );
 
-        await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
-        await Assert.That(audioStream.State is AudioStream.AudioState.Playing or AudioStream.AudioState.Ended).IsTrue();
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > 0,
+            TimeSpan.FromSeconds(2)
+        );
+        await Assert
+            .That(
+                audioStream.State is AudioStream.AudioState.Playing or AudioStream.AudioState.Ended
+            )
+            .IsTrue();
     }
 
     [Test]
     public async Task Pause_IsIdempotent()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(100_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(100_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -66,7 +79,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Resume_IsIdempotent()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(100_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(100_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -86,7 +101,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task PauseThenResume_ContinuesWritingOutput()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(2_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(2_000_000)
+        );
 
         var output = new MemoryStream();
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -99,7 +116,10 @@ public class AudioStreamAdvancedTests
 
         try
         {
-            await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
+            await AudioStreamTestHelpers.WaitUntilAsync(
+                () => output.Length > 0,
+                TimeSpan.FromSeconds(2)
+            );
             audioStream.Pause();
 
             var pausedLength = output.Length;
@@ -107,7 +127,13 @@ public class AudioStreamAdvancedTests
 
             // Pause() cancels the CopyToAsync, but the producer keeps reading.
             // So the stream may reach EOF and transition to Ended even while paused.
-            await Assert.That(audioStream.State is AudioStream.AudioState.Silence or AudioStream.AudioState.Ended).IsTrue();
+            await Assert
+                .That(
+                    audioStream.State
+                        is AudioStream.AudioState.Silence
+                            or AudioStream.AudioState.Ended
+                )
+                .IsTrue();
 
             if (audioStream.State == AudioStream.AudioState.Ended)
             {
@@ -115,13 +141,22 @@ public class AudioStreamAdvancedTests
             }
 
             audioStream.Resume();
-            await Assert.That(audioStream.State is AudioStream.AudioState.Playing or AudioStream.AudioState.Ended).IsTrue();
+            await Assert
+                .That(
+                    audioStream.State
+                        is AudioStream.AudioState.Playing
+                            or AudioStream.AudioState.Ended
+                )
+                .IsTrue();
 
             // After resuming we either write more bytes or hit EOF; both are acceptable.
             var started = DateTime.UtcNow;
             while (DateTime.UtcNow - started < TimeSpan.FromSeconds(3))
             {
-                if (output.Length > pausedLength || audioStream.State == AudioStream.AudioState.Ended)
+                if (
+                    output.Length > pausedLength
+                    || audioStream.State == AudioStream.AudioState.Ended
+                )
                 {
                     return;
                 }
@@ -129,7 +164,9 @@ public class AudioStreamAdvancedTests
                 await Task.Delay(10);
             }
 
-            throw new TimeoutException("Stream did not resume writing and did not end within the timeout.");
+            throw new TimeoutException(
+                "Stream did not resume writing and did not end within the timeout."
+            );
         }
         finally
         {
@@ -142,7 +179,9 @@ public class AudioStreamAdvancedTests
     public async Task Seek_ForwardAndBackward_AdjustsByRequestedPcmBytes()
     {
         // Use a larger file so we can move around and not instantly EOF.
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(5_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(5_000_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -182,7 +221,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Seek_WhilePaused_DoesNotThrow_AndResumePlays()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(2_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(2_000_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -193,7 +234,10 @@ public class AudioStreamAdvancedTests
             CancellationToken.None
         );
 
-        await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > 0,
+            TimeSpan.FromSeconds(2)
+        );
 
         audioStream.Pause();
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Silence);
@@ -205,13 +249,18 @@ public class AudioStreamAdvancedTests
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Playing);
 
         var pausedLength = output.Length;
-        await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > pausedLength, TimeSpan.FromSeconds(2));
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > pausedLength,
+            TimeSpan.FromSeconds(2)
+        );
     }
 
     [Test]
     public async Task StreamEnded_FiresOnlyOnce()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(80_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(80_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -242,7 +291,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Dispose_StopsFurtherWrites()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(2_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(2_000_000)
+        );
 
         await using var output = new MemoryStream();
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -253,7 +304,10 @@ public class AudioStreamAdvancedTests
             CancellationToken.None
         );
 
-        await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > 0,
+            TimeSpan.FromSeconds(2)
+        );
         var beforeDispose = output.Length;
 
         audioStream.Dispose();
@@ -266,7 +320,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task StreamFailed_Fires_WhenOutputStreamThrows()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(500_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(500_000)
+        );
 
         await using var output = new ThrowingWriteStream();
 
@@ -297,7 +353,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Concurrent_PauseResumeSeek_Dispose_NoThrow_FinalStateStopped()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(3_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(3_000_000)
+        );
 
         await using var output = new MemoryStream();
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -310,29 +368,38 @@ public class AudioStreamAdvancedTests
 
         var tasks = new List<Task>();
 
-        tasks.Add(Task.Run(() =>
-        {
-            for (var i = 0; i < 30; i++)
+        tasks.Add(
+            Task.Run(() =>
             {
-                audioStream.Pause();
-                audioStream.Resume();
-            }
-        }));
+                for (var i = 0; i < 30; i++)
+                {
+                    audioStream.Pause();
+                    audioStream.Resume();
+                }
+            })
+        );
 
-        tasks.Add(Task.Run(() =>
-        {
-            for (var i = 0; i < 30; i++)
+        tasks.Add(
+            Task.Run(() =>
             {
-                _ = audioStream.Seek(TimeSpan.FromMilliseconds(20 * i), AudioStream.SeekMode.Position);
-            }
-        }));
+                for (var i = 0; i < 30; i++)
+                {
+                    _ = audioStream.Seek(
+                        TimeSpan.FromMilliseconds(20 * i),
+                        AudioStream.SeekMode.Position
+                    );
+                }
+            })
+        );
 
-        tasks.Add(Task.Run(() =>
-        {
-            // Dispose mid-flight.
-            Thread.Sleep(50);
-            audioStream.Dispose();
-        }));
+        tasks.Add(
+            Task.Run(() =>
+            {
+                // Dispose mid-flight.
+                Thread.Sleep(50);
+                audioStream.Dispose();
+            })
+        );
 
         await Task.WhenAll(tasks);
 
@@ -343,7 +410,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Seek_PositionToZero_SetsExactStart()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(500_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(500_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -362,7 +431,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task Seek_NegativePosition_ClampsToStart()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(500_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(500_000)
+        );
 
         await using var output = new MemoryStream();
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -382,7 +453,9 @@ public class AudioStreamAdvancedTests
     public async Task Dispose_PreventsStreamEndedFromFiringAfterDispose()
     {
         // Large file: we want the stream to be in-flight when we dispose.
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(5_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(5_000_000)
+        );
 
         await using var output = new MemoryStream();
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -401,12 +474,18 @@ public class AudioStreamAdvancedTests
         };
 
         // Ensure we started playback first.
-        await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > 0,
+            TimeSpan.FromSeconds(2)
+        );
 
         audioStream.Dispose();
 
         // We should not observe StreamEnded after disposal. Give it a small window for race conditions.
-        var completed = await Task.WhenAny(endedTcs.Task, Task.Delay(TimeSpan.FromMilliseconds(300)));
+        var completed = await Task.WhenAny(
+            endedTcs.Task,
+            Task.Delay(TimeSpan.FromMilliseconds(300))
+        );
         await Assert.That(completed).IsNotEqualTo(endedTcs.Task);
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Stopped);
     }
@@ -414,7 +493,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task RapidSeekStorm_LastSeekWins_AndDoesNotTransitionToEnded()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(10_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(10_000_000)
+        );
 
         var output = new MemoryStream();
         await using var _ = output;
@@ -429,7 +510,10 @@ public class AudioStreamAdvancedTests
         try
         {
             // Ensure playback loop is active.
-            await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
+            await AudioStreamTestHelpers.WaitUntilAsync(
+                () => output.Length > 0,
+                TimeSpan.FromSeconds(2)
+            );
 
             // Seek a bunch of times while CopyToAsync is likely in progress.
             var positions = new[]
@@ -438,7 +522,7 @@ public class AudioStreamAdvancedTests
                 TimeSpan.FromMilliseconds(500),
                 TimeSpan.FromMilliseconds(100),
                 TimeSpan.FromMilliseconds(800),
-                TimeSpan.FromMilliseconds(300)
+                TimeSpan.FromMilliseconds(300),
             };
 
             TimeSpan? lastReturned = null;
@@ -448,7 +532,8 @@ public class AudioStreamAdvancedTests
                 await Assert.That(seek.IsError).IsFalse();
 
                 // Assert the returned position corresponds to the requested PCM byte offset.
-                await Assert.That(Pcm16Bytes.ToBytes(seek.Value).Value)
+                await Assert
+                    .That(Pcm16Bytes.ToBytes(seek.Value).Value)
                     .IsEqualTo(Pcm16Bytes.ToBytes(pos).Value);
 
                 lastReturned = seek.Value;
@@ -472,7 +557,9 @@ public class AudioStreamAdvancedTests
     [Test]
     public async Task PauseThenSeekThenResume_ContinuesFromNewPosition()
     {
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(8_000_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(8_000_000)
+        );
 
         var output = new MemoryStream();
         await using var _ = output;
@@ -486,7 +573,10 @@ public class AudioStreamAdvancedTests
 
         try
         {
-            await AudioStreamTestHelpers.WaitUntilAsync(() => output.Length > 0, TimeSpan.FromSeconds(2));
+            await AudioStreamTestHelpers.WaitUntilAsync(
+                () => output.Length > 0,
+                TimeSpan.FromSeconds(2)
+            );
 
             audioStream.Pause();
             await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Silence);
@@ -508,7 +598,10 @@ public class AudioStreamAdvancedTests
             var started = DateTime.UtcNow;
             while (DateTime.UtcNow - started < TimeSpan.FromSeconds(3))
             {
-                if (output.Length > oldOutputLength || audioStream.State == AudioStream.AudioState.Ended)
+                if (
+                    output.Length > oldOutputLength
+                    || audioStream.State == AudioStream.AudioState.Ended
+                )
                 {
                     return;
                 }
@@ -516,7 +609,9 @@ public class AudioStreamAdvancedTests
                 await Task.Delay(10);
             }
 
-            throw new TimeoutException("Stream did not resume writing and did not end within the timeout.");
+            throw new TimeoutException(
+                "Stream did not resume writing and did not end within the timeout."
+            );
         }
         finally
         {
@@ -528,7 +623,9 @@ public class AudioStreamAdvancedTests
     public async Task Dispose_WhileStreamEndedHandlerIsBlocked_DoesNotDeadlock_AndEndedFiresOnce()
     {
         // Smallish file so it reaches EOF quickly.
-        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(AudioStreamTestHelpers.CreateAudioBytes(120_000));
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(120_000)
+        );
 
         await using var output = new MemoryStream();
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
@@ -539,7 +636,9 @@ public class AudioStreamAdvancedTests
             CancellationToken.None
         );
 
-        var allowHandlerToComplete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowHandlerToComplete = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
         var endedCount = 0;
         var handlerEntered = AudioStreamTestHelpers.CreateTcs();
 
@@ -553,7 +652,10 @@ public class AudioStreamAdvancedTests
         try
         {
             // Wait for handler to start, then dispose while it's blocked.
-            var entered = await Task.WhenAny(handlerEntered.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+            var entered = await Task.WhenAny(
+                handlerEntered.Task,
+                Task.Delay(TimeSpan.FromSeconds(2))
+            );
             await Assert.That(entered).IsEqualTo(handlerEntered.Task);
 
             // Dispose should not deadlock even though the state machine is awaiting the handler.
@@ -581,22 +683,35 @@ public class AudioStreamAdvancedTests
         public override bool CanSeek => false;
         public override bool CanWrite => true;
         public override long Length => throw new NotSupportedException();
-        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
 
         public override void Flush() => throw new IOException("boom");
 
-        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
 
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
 
         public override void SetLength(long value) => throw new NotSupportedException();
 
-        public override void Write(byte[] buffer, int offset, int count) => throw new IOException("boom");
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new IOException("boom");
 
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
-            Task.FromException(new IOException("boom"));
+        public override Task WriteAsync(
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken
+        ) => Task.FromException(new IOException("boom"));
 
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) =>
-            ValueTask.FromException(new IOException("boom"));
+        public override ValueTask WriteAsync(
+            ReadOnlyMemory<byte> buffer,
+            CancellationToken cancellationToken = default
+        ) => ValueTask.FromException(new IOException("boom"));
     }
 }

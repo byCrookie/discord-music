@@ -25,7 +25,9 @@ internal partial class YoutubeSearch(
         if (ytdlp.IsError)
         {
             logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToErrorContent());
-            return Error.Unexpected(description: "YouTube search isn't available. `yt-dlp` was not found.");
+            return Error.Unexpected(
+                description: "YouTube search isn't available. `yt-dlp` was not found."
+            );
         }
 
         var deno = binaryLocator.LocateAndValidate(youTubeOptions.Value.Deno, "deno");
@@ -33,7 +35,9 @@ internal partial class YoutubeSearch(
         if (deno.IsError)
         {
             logger.LogError("Failed to locate deno: {Error}", deno.ToErrorContent());
-            return Error.Unexpected(description: "YouTube search isn't available. `deno` was not found.");
+            return Error.Unexpected(
+                description: "YouTube search isn't available. `deno` was not found."
+            );
         }
 
         var command = new StringBuilder();
@@ -71,9 +75,7 @@ internal partial class YoutubeSearch(
                 ytdlp,
                 commandText
             );
-            return Error.Unexpected(
-                description: "I couldn't start the YouTube search process."
-            );
+            return Error.Unexpected(description: "I couldn't start the YouTube search process.");
         }
 
         var lines = new List<string>();
@@ -101,10 +103,10 @@ internal partial class YoutubeSearch(
 
             return Error.Unexpected(
                 description: $"""
-                              YouTube search failed.
-                              Exit code: {process.ExitCode}
-                              {errorMessage}
-                              """
+                YouTube search failed.
+                Exit code: {process.ExitCode}
+                {errorMessage}
+                """
             );
         }
 

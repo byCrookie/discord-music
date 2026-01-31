@@ -24,7 +24,8 @@ internal static class AudioStreamTestHelpers
     internal static async Task WaitUntilAsync(
         Func<bool> predicate,
         TimeSpan timeout,
-        TimeSpan? pollInterval = null)
+        TimeSpan? pollInterval = null
+    )
     {
         var interval = pollInterval ?? TimeSpan.FromMilliseconds(10);
         var started = DateTime.UtcNow;
@@ -48,7 +49,8 @@ internal static class AudioStreamTestHelpers
         MockFileSystem fs,
         string path,
         Stream output,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var streamOrError = AudioStream.Load(
             initialState,

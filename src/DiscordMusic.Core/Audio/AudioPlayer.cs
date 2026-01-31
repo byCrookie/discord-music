@@ -5,8 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Audio;
 
-public class 
-    AudioPlayer(
+public class AudioPlayer(
     ILogger<AudioPlayer> logger,
     ILogger<AudioStream> audioStreamLogger,
     IFileSystem fileSystem,
@@ -100,12 +99,23 @@ public class
         );
     }
 
-    public async Task<ErrorOr<AudioStatus>> PlayAsync(IFileInfo file, Func<AudioEvent, Exception?, CancellationToken, Task> updateAsync, CancellationToken ct)
+    public async Task<ErrorOr<AudioStatus>> PlayAsync(
+        IFileInfo file,
+        Func<AudioEvent, Exception?, CancellationToken, Task> updateAsync,
+        CancellationToken ct
+    )
     {
         logger.LogTrace("Play audio from file");
         await using var _ = await _lock.AquireAsync(ct);
 
-        var audioStream = AudioStream.Load(AudioStream.AudioState.Playing, file, output, fileSystem, audioStreamLogger, ct);
+        var audioStream = AudioStream.Load(
+            AudioStream.AudioState.Playing,
+            file,
+            output,
+            fileSystem,
+            audioStreamLogger,
+            ct
+        );
 
         if (audioStream.IsError)
         {

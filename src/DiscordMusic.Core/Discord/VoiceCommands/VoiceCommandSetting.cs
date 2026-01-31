@@ -3,5 +3,5 @@
 public enum VoiceCommandSetting
 {
     Yes,
-    No
+    No,
 }

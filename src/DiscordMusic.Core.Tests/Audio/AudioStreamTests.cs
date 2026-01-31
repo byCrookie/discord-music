@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Testably.Abstractions.Testing;
 
-
 namespace DiscordMusic.Core.Tests.Audio;
 
 public class AudioStreamTests
@@ -11,11 +10,9 @@ public class AudioStreamTests
     public async Task Seek_ClampsToStart()
     {
         const string tempFile = "tempAudioFile";
-        
+
         var fs = new MockFileSystem();
-        fs.Initialize()
-            .WithFile(tempFile)
-            .Which(f => f.HasBytesContent(new byte[100]));
+        fs.Initialize().WithFile(tempFile).Which(f => f.HasBytesContent(new byte[100]));
 
         await using var output = new MemoryStream();
         var streamOrError = AudioStream.Load(
@@ -41,11 +38,9 @@ public class AudioStreamTests
     public async Task Seek_ClampsToEnd()
     {
         const string tempFile = "tempAudioFile";
-        
+
         var fs = new MockFileSystem();
-        fs.Initialize()
-            .WithFile(tempFile)
-            .Which(f => f.HasBytesContent(new byte[100]));
+        fs.Initialize().WithFile(tempFile).Which(f => f.HasBytesContent(new byte[100]));
 
         await using var output = new MemoryStream();
         var streamOrError = AudioStream.Load(
@@ -69,11 +64,9 @@ public class AudioStreamTests
     public async Task PauseAndResume_ChangeState()
     {
         const string tempFile = "tempAudioFile";
-        
+
         var fs = new MockFileSystem();
-        fs.Initialize()
-            .WithFile(tempFile)
-            .Which(f => f.HasBytesContent(new byte[100]));
+        fs.Initialize().WithFile(tempFile).Which(f => f.HasBytesContent(new byte[100]));
 
         await using var output = new MemoryStream();
         var streamOrError = AudioStream.Load(

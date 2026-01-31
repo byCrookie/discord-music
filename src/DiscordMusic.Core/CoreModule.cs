@@ -73,7 +73,7 @@ public static class CoreModule
 
     private static void AddConfigFromOsSpecificDirs(IHostApplicationBuilder builder, ILogger logger)
     {
-        var configDir = GetConfigDir(logger);
+        var configDir = AppPaths.Config(logger);
         if (File.Exists(Path.Combine(configDir, Dmrc)))
         {
             builder.Configuration.AddIniFile(
@@ -124,42 +124,5 @@ public static class CoreModule
     {
         host.UseDiscord();
         return host;
-    }
-
-    private static string GetConfigDir(ILogger logger)
-    {
-        var xdgConfigHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        if (!string.IsNullOrWhiteSpace(xdgConfigHome))
-        {
-            logger.LogDebug(
-                "Using XDG_CONFIG_HOME '{XDG_CONFIG_HOME}' as config location",
-                xdgConfigHome
-            );
-            var configDir = Path.Combine(xdgConfigHome, "bycrookie", "discord-music");
-            logger.LogDebug("Final XDG config location {Location}", configDir);
-            return configDir;
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            logger.LogDebug("Using home as config location");
-            var windows = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "bycrookie",
-                "discord-music"
-            );
-            logger.LogDebug("Final windows location {Location}", windows);
-            return windows;
-        }
-
-        logger.LogDebug("Using unix home as config location");
-        var unix = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".config",
-            "bycrookie",
-            "discord-music"
-        );
-        logger.LogDebug("Final unix location {Location}", unix);
-        return unix;
     }
 }
