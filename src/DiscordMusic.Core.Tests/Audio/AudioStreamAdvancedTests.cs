@@ -637,7 +637,7 @@ public class AudioStreamAdvancedTests
         );
 
         await using var output = new MemoryStream();
-        
+
         // Create in Stopped state first so we can register handlers before playback starts
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
             AudioStream.AudioState.Stopped,
