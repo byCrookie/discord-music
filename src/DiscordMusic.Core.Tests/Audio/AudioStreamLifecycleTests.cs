@@ -66,7 +66,7 @@ public class AudioStreamLifecycleTests
 
         await using var output = new MemoryStream();
         var streamOrError = AudioStream.Load(
-            AudioStream.AudioState.Playing,
+            AudioStream.AudioState.Stopped,
             fs.FileInfo.New(path),
             output,
             fs,
@@ -83,6 +83,10 @@ public class AudioStreamLifecycleTests
             tcs.TrySetResult();
             return Task.CompletedTask;
         };
+
+        // Start playback only after we've subscribed, to avoid missing the event on fast machines.
+        audioStream.Resume();
+        await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Playing);
 
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
         await Assert.That(completed == tcs.Task).IsTrue();
