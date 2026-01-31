@@ -6,6 +6,15 @@ permissions:
 
 on:
     workflow_dispatch:
+        inputs:
+            docker:
+                description: 'Build and push Docker image'
+                type: boolean
+                default: true
+            release:
+                description: 'Create GitHub release'
+                type: boolean
+                default: true
 
 jobs:
     
@@ -14,9 +23,15 @@ jobs:
         outputs:
             version: ${{ env.GitBuildVersionSimple }}
         steps:
-            -   uses: actions/checkout@v4
+            -   name: Checkout repository
+                uses: actions/checkout@v4
                 with:
                     fetch-depth: 0
+
+            -   name: Setup dotnet
+                uses: actions/setup-dotnet@v5
+                with:
+                    dotnet-version: '10.0.102'
 
             -   name: Nerdbank.GitVersioning
                 uses: dotnet/nbgv@master
@@ -26,6 +41,7 @@ jobs:
     
     docker:
         needs: version
+        if: ${{ inputs.docker }}
         runs-on: ubuntu-latest
         steps:
             -   name: Checkout repository
@@ -62,16 +78,43 @@ jobs:
                         ghcr.io/bycrookie/discord-music:latest
                     labels: ${{ steps.meta.outputs.labels }}
     
-    windows:
+    build:
         needs: version
-        runs-on: windows-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # Windows
+                    - os: windows-latest
+                      runtime: win-x64
+                    - os: windows-latest
+                      runtime: win-x86
+                    - os: windows-latest
+                      runtime: win-arm64
+                    # Linux
+                    - os: ubuntu-latest
+                      runtime: linux-x64
+                    - os: ubuntu-latest
+                      runtime: linux-musl-x64
+                    - os: ubuntu-latest
+                      runtime: linux-musl-arm64
+                    - os: ubuntu-latest
+                      runtime: linux-arm
+                    - os: ubuntu-latest
+                      runtime: linux-arm64
+                    # macOS
+                    - os: macos-latest
+                      runtime: osx-x64
+                    - os: macos-latest
+                      runtime: osx-arm64
+        runs-on: ${{ matrix.os }}
         steps:
             -   uses: actions/checkout@v4
                 with:
                     fetch-depth: 0
 
             -   name: Setup dotnet
-                uses: actions/setup-dotnet@v4
+                uses: actions/setup-dotnet@v5
                 with:
                     dotnet-version: '10.0.102'
 
@@ -88,131 +131,28 @@ jobs:
                 working-directory: ./src
 
             -   name: Publish
-                run: |
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/win-x64 --runtime win-x64 --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/win-x86 --runtime win-x86 --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/win-arm64 --runtime win-arm64 --self-contained true
+                run: dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/${{ matrix.runtime }} --runtime ${{ matrix.runtime }} --self-contained true
                 working-directory: ./src
 
-            -   name: Zip
-                run: |
-                    Compress-Archive -Path ./publish/win-x64/* -DestinationPath ./publish/dm_win_x64_${{ needs.version.outputs.version }}.zip
-                    Compress-Archive -Path ./publish/win-x86/* -DestinationPath ./publish/dm_win_x86_${{ needs.version.outputs.version }}.zip
-                    Compress-Archive -Path ./publish/win-arm64/* -DestinationPath ./publish/dm_win_arm64_${{ needs.version.outputs.version }}.zip
+            -   name: Zip (Windows)
+                if: runner.os == 'Windows'
+                run: Compress-Archive -Path ./publish/${{ matrix.runtime }}/* -DestinationPath ./publish/dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip
                 working-directory: ./src
 
-            -   name: Upload artifacts
-                uses: actions/upload-artifact@v4
-                with:
-                    name: windows-artifacts
-                    path: |
-                        ./src/publish/dm_win_x64_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/dm_win_x86_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/dm_win_arm64_${{ needs.version.outputs.version }}.zip
-    
-    
-    linux:
-        needs: version
-        runs-on: ubuntu-latest
-        steps:
-            -   uses: actions/checkout@v4
-                with:
-                    fetch-depth: 0
-
-            -   name: Setup dotnet
-                uses: actions/setup-dotnet@v4
-                with:
-                    dotnet-version: '10.0.102'
-
-            -   name: Restore
-                run: dotnet restore DiscordMusic.slnx
-                working-directory: ./src
-
-            -   name: Build
-                run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
-
-            -   name: Test
-                run: dotnet test --solution DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
-
-            -   name: Publish
-                run: |
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-x64 --runtime linux-x64 --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-musl-x64 --runtime linux-musl-x64 --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-musl-arm64 --runtime linux-musl-arm64 --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-arm --runtime linux-arm --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/linux-arm64 --runtime linux-arm64 --self-contained true
-                working-directory: ./src
-
-            -   name: Zip
-                run: |
-                    (cd linux-x64 && zip -r ../linux-x64/dm_linux_x64_${{ needs.version.outputs.version }}.zip .)
-                    (cd linux-musl-x64 && zip -r ../linux-musl-x64/dm_linux_musl_x64_${{ needs.version.outputs.version }}.zip .)
-                    (cd linux-musl-arm64 && zip -r ../linux-musl-arm64/dm_linux_musl_arm64_${{ needs.version.outputs.version }}.zip .)
-                    (cd linux-arm && zip -r ../linux-arm/dm_linux_arm_${{ needs.version.outputs.version }}.zip .)
-                    (cd linux-arm64 && zip -r ../linux-arm64/dm_linux_arm64_${{ needs.version.outputs.version }}.zip .)
+            -   name: Zip (Linux/macOS)
+                if: runner.os != 'Windows'
+                run: (cd ${{ matrix.runtime }} && zip -r ../dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip .)
                 working-directory: ./src/publish/
 
-            -   name: Upload artifacts
+            -   name: Upload artifact
                 uses: actions/upload-artifact@v4
                 with:
-                    name: linux-artifacts
-                    path: |
-                        ./src/publish/linux-x64/dm_linux_x64_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/linux-musl-x64/dm_linux_musl_x64_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/linux-musl-arm64/dm_linux_musl_arm64_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/linux-arm/dm_linux_arm_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/linux-arm64/dm_linux_arm64_${{ needs.version.outputs.version }}.zip
-    
-    
-    macos:
-        needs: version
-        runs-on: macos-latest
-        steps:
-            -   uses: actions/checkout@v4
-                with:
-                    fetch-depth: 0
-
-            -   name: Setup dotnet
-                uses: actions/setup-dotnet@v4
-                with:
-                    dotnet-version: '10.0.102'
-
-            -   name: Restore
-                run: dotnet restore DiscordMusic.slnx
-                working-directory: ./src
-
-            -   name: Build
-                run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
-
-            -   name: Test
-                run: dotnet test --solution DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
-
-            -   name: Publish
-                run: |
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/osx-x64 --runtime osx-x64 --self-contained true
-                    dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/osx-arm64 --runtime osx-arm64 --self-contained true
-                working-directory: ./src
-
-            -   name: Zip
-                run: |
-                    (cd osx-x64 && zip -r ../dm_osx_x64_${{ needs.version.outputs.version }}.zip .)
-                    (cd osx-arm64 && zip -r ../dm_osx_arm64_${{ needs.version.outputs.version }}.zip .)
-                working-directory: ./src/publish/
-
-            -   name: Upload artifacts
-                uses: actions/upload-artifact@v4
-                with:
-                    name: macos-artifacts
-                    path: |
-                        ./src/publish/dm_osx_x64_${{ needs.version.outputs.version }}.zip
-                        ./src/publish/dm_osx_arm64_${{ needs.version.outputs.version }}.zip
+                    name: dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}
+                    path: ./src/publish/dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip
     
     release:
-        needs: [ version, docker, windows, linux, macos ]
+        needs: [ version, docker, build ]
+        if: ${{ always() && inputs.release && needs.build.result == 'success' && (needs.docker.result == 'success' || needs.docker.result == 'skipped') }}
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v4
@@ -221,14 +161,18 @@ jobs:
                 uses: actions/download-artifact@v4
                 with:
                     path: artifacts
+                    pattern: 'dm_*'
+                    merge-multiple: true
 
             -   name: Create Release
                 uses: softprops/action-gh-release@v2
                 with:
-                    name: Release ${{ needs.version.outputs.version }}
+                    name: v${{ needs.version.outputs.version }}
                     tag_name: ${{ needs.version.outputs.version }}
+                    body_path: CHANGELOG.md
                     fail_on_unmatched_files: true
+                    overwrite_files: false
                     files: |
-                        artifacts/windows-artifacts/*.zip
-                        artifacts/linux-artifacts/*.zip
-                        artifacts/macos-artifacts/*.zip
+                        artifacts/*.zip
+                        CHANGELOG.md
+                        LICENSE

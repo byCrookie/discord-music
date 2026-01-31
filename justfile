@@ -10,3 +10,6 @@ stable:
     skopeo copy --preserve-digests --dest-creds {{username}}:{{password}} --all docker://ghcr.io/bycrookie/discord-music:{{stable-version}} docker://ghcr.io/bycrookie/discord-music:stable
 
 test: build run
+
+action:
+    act --workflows ".github/workflows/release.yml" --artifact-server-path artifacts/act
