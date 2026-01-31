@@ -61,6 +61,8 @@ jobs:
                         ghcr.io/bycrookie/discord-music:${{ needs.version.outputs.version }}
                         ghcr.io/bycrookie/discord-music:latest
                     labels: ${{ steps.meta.outputs.labels }}
+                    provenance: false
+                    sbom: false
     
     windows:
         needs: version
@@ -221,6 +223,8 @@ jobs:
                 uses: actions/download-artifact@v4
                 with:
                     path: artifacts
+                    pattern: '*-artifacts'
+                    merge-multiple: false
 
             -   name: Create Release
                 uses: softprops/action-gh-release@v2
