@@ -13,14 +13,69 @@ public static class ErrorOrExtensions
 
         return value.Errors.Count == 1
             ? value.FirstError.ToErrorContent()
-            : string.Join(Environment.NewLine, value.Errors.Select(e => e.ToErrorContent()));
+            : $"""
+               ### Something went wrong
+               {string.Join(Environment.NewLine, value.Errors.Select(e => e.ToErrorListItem()))}
+               """;
     }
 
-    private static string ToErrorContent(this Error error)
+    extension(Error error)
     {
+        private string ToErrorContent()
+        {
+            var detail = FormatDetail(error.Description);
+
+            return $"""
+                    ### Something went wrong
+                    {FirstLineOrFallback(error.Description, "Please try again.")}
+                    -# Code: `{error.Code}`
+                    {detail}
+                    """;
+        }
+
+        private string ToErrorListItem()
+        {
+            var summary = FirstLineOrFallback(error.Description, "Unknown error.");
+            var detail = FormatDetail(error.Description);
+
+            var detailBlock = string.IsNullOrWhiteSpace(detail)
+                ? string.Empty
+                : $"{Environment.NewLine}  {detail}";
+
+            return $"- {summary}{Environment.NewLine}  -# Code: `{error.Code}`{detailBlock}";
+        }
+    }
+
+    private static string FirstLineOrFallback(string? text, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return fallback;
+        }
+
+        var idx = text.IndexOfAny(['\r', '\n']);
+        return idx >= 0 ? text[..idx].Trim() : text.Trim();
+    }
+
+    private static string FormatDetail(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = description.Trim();
+
+        if (!trimmed.Contains('\n') && !trimmed.Contains('\r'))
+        {
+            return string.Empty;
+        }
+
         return $"""
-            ### **ERROR**: {error.Code}
-            ```{error.Description}```
-            """;
+                -# Details:
+                ```
+                {trimmed}
+                ```
+                """.TrimEnd();
     }
 }

@@ -27,6 +27,7 @@ internal class GuildSessionManager(
         await using var _ = await _lock.AquireAsync(ct);
 
         var userVoiceState = await TryGetGuildUserVoiceStateAsync(
+            logger,
             context.Client,
             context.Guild!.Id,
             context.User.Id,
@@ -69,7 +70,7 @@ internal class GuildSessionManager(
         }
 
         var guild = await gatewayClient.Rest.GetGuildAsync(guildId, cancellationToken: ct);
-        return Error.NotFound($"No session found for guild {guild.Name} ({guild.Id}). Join first.");
+        return Error.NotFound(description: $"No active music session for **{guild.Name}**. Use `/join` first.");
     }
 
     private async Task<ErrorOr<Success>> LeaveAndDisposeVoiceClientAsync(ulong guildId,
@@ -94,7 +95,7 @@ internal class GuildSessionManager(
         await gatewayClient.StartAsync(cancellationToken: ct);
 
         logger.LogDebug("No existing session for guild {Guild}", guildId);
-        return Error.NotFound($"No existing session for guild {guildId}");
+        return Error.NotFound(description: "I’m not connected in this server.");
     }
 
     private async Task<ErrorOr<GuildSession>> GetOrCreateSessionAsync(GatewayClient client,
@@ -210,6 +211,7 @@ internal class GuildSessionManager(
     }
 
     private static async Task<ErrorOr<VoiceState>> TryGetGuildUserVoiceStateAsync(
+        ILogger logger,
         GatewayClient gatewayClient, ulong guildId, ulong userId, CancellationToken ct)
     {
         try
@@ -219,9 +221,14 @@ internal class GuildSessionManager(
         }
         catch (Exception ex)
         {
+            // Keep Discord-facing message friendly, but log the underlying exception.
+            logger.LogWarning(ex,
+                "Failed to get voice state for user {UserId} in guild {GuildId}",
+                userId,
+                guildId);
             return Error.NotFound(
                 description:
-                $"Could not get voice state for user {userId} in guild {guildId}: {ex.Message}");
+                "I couldn’t figure out which voice channel you’re in. Please join a voice channel and try again.");
         }
     }
 

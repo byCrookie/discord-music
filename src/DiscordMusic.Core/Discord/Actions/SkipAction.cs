@@ -35,7 +35,7 @@ internal class SkipAction(
             if (position.Value < 1)
             {
                 await RespondAsync(
-                    InteractionCallback.Message("Invalid position"),
+                    InteractionCallback.Message("Invalid position. It must be 1 or higher."),
                     cancellationToken: cancellation.CancellationToken
                 );
                 return;
@@ -67,8 +67,8 @@ internal class SkipAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Skip by {skipCount} track(s)
-                               This may take a moment...
+                               ### Skipping…
+                               -# Skipping {skipCount} track(s). This may take a moment...
                                """,
                 }
             ),

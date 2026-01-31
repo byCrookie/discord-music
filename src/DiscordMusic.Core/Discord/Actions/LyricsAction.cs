@@ -48,8 +48,9 @@ internal class LyricsAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Searching for lyrics of **{title} - {artists}**
-                               This may take a moment...
+                               ### Searching for lyrics
+                               **{title}** — **{artists}**
+                               -# This may take a moment...
                                """,
                 }
             ),
@@ -72,8 +73,9 @@ internal class LyricsAction(
             await ModifyResponseAsync(
                 m =>
                     m.Content = $"""
-                                 ### Searching for lyrics of **{title} - {artists}**
-                                 This may take a moment...
+                                 ### Searching for lyrics
+                                 **{title}** — **{artists}**
+                                 -# This may take a moment...
                                  """,
                 cancellationToken: ct
             );
@@ -104,7 +106,7 @@ internal class LyricsAction(
         if (nowPlaying.Value.Track is null)
         {
             await ModifyResponseAsync(
-                m => m.Content = "No track is currently playing",
+                m => m.Content = "Nothing is playing right now.",
                 cancellationToken: ct
             );
             return;
@@ -115,8 +117,9 @@ internal class LyricsAction(
         await ModifyResponseAsync(
             m =>
                 m.Content = $"""
-                             ### Searching for lyrics of **{track.Name} - {track.Artists}**
-                             This may take a moment...
+                             ### Searching for lyrics
+                             **{track.Name}** — **{track.Artists}**
+                             -# This may take a moment...
                              """,
             cancellationToken: ct
         );

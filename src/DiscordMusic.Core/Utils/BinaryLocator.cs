@@ -58,7 +58,7 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
                 current.Directory!.FullName
             );
             return Error.Unexpected(
-                description: $"Binary {defaultBinaryName} not found in current directory {current.Directory.FullName}"
+                description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
             );
         }
 
@@ -103,7 +103,7 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
                 path
             );
             return Error.Unexpected(
-                description: $"Binary {defaultBinaryName} not found in directory {path}"
+                description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
             );
         }
 
@@ -113,7 +113,7 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             defaultBinaryName
         );
         return Error.Unexpected(
-            description: $"Path {path} is not a valid path or directory for binary {defaultBinaryName}"
+            description: $"Invalid configuration for `{defaultBinaryName}`."
         );
     }
 

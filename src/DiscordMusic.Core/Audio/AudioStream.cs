@@ -396,7 +396,7 @@ public class AudioStream : IDisposable
     {
         if (!fileSystem.File.Exists(audioFile.FullName))
         {
-            return Error.NotFound(description: $"Audio file '{audioFile.FullName}' does not exist");
+            return Error.NotFound(description: "Audio file not found.");
         }
 
         var stream = fileSystem.FileStream.New(audioFile.FullName, FileMode.Open, FileAccess.Read);

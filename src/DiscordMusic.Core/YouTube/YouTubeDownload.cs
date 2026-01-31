@@ -40,9 +40,7 @@ internal partial class YouTubeDownload(
             if (ytdlp.IsError)
             {
                 logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToErrorContent());
-                return Error.Unexpected(
-                    description: $"Failed to locate yt-dlp: {ytdlp.ToErrorContent()}"
-                );
+                return Error.Unexpected(description: "YouTube playback isn't available. `yt-dlp` was not found.");
             }
 
             var deno = binaryLocator.LocateAndValidate(options.Value.Deno, "deno");
@@ -50,7 +48,7 @@ internal partial class YouTubeDownload(
             if (deno.IsError)
             {
                 logger.LogError("Failed to locate deno: {Error}", deno.ToErrorContent());
-                return Error.Unexpected(description: $"Failed to locate deno: {deno.ToErrorContent()}");
+                return Error.Unexpected(description: "YouTube playback isn't available. `deno` was not found.");
             }
 
             var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
@@ -58,9 +56,7 @@ internal partial class YouTubeDownload(
             if (ffmpeg.IsError)
             {
                 logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToErrorContent());
-                return Error.Unexpected(
-                    description: $"Failed to locate ffmpeg: {ffmpeg.ToErrorContent()}"
-                );
+                return Error.Unexpected(description: "YouTube playback isn't available. `ffmpeg` was not found.");
             }
 
             var command = new StringBuilder();
@@ -103,9 +99,7 @@ internal partial class YouTubeDownload(
             if (ytdlpProcess is null)
             {
                 logger.LogError("Failed to start process yt-dlp with command {Command}.", command);
-                return Error.Unexpected(
-                    description: $"Failed to start process yt-dlp with command {command}"
-                );
+                return Error.Unexpected(description: "I couldn't start the YouTube download process.");
             }
 
             var ytdlpLines = new List<string>();
@@ -126,11 +120,16 @@ internal partial class YouTubeDownload(
             {
                 var errorMessage = string.Join(Environment.NewLine, ytdlpErrors);
                 logger.LogError(
-                    "YouTube download failed with exit code {ExitCode}",
-                    ytdlpProcess.ExitCode
+                    "YouTube download failed with exit code {ExitCode}. {Error}",
+                    ytdlpProcess.ExitCode,
+                    errorMessage
                 );
                 return Error.Unexpected(
-                    description: $"Download from YouTube for {query} failed: {errorMessage}"
+                    description: $"""
+                                  Downloading from YouTube failed.
+                                  Exit code: {ytdlpProcess.ExitCode}
+                                  {errorMessage}
+                                  """
                 );
             }
 
@@ -165,8 +164,7 @@ internal partial class YouTubeDownload(
                     "Failed to start process ffmpeg with arguments {FfmpegArgs}.",
                     ffmpegArgs
                 );
-                return Error.Unexpected(
-                    description: $"Failed to start process ffmpeg with arguments {ffmpegArgs}"
+                return Error.Unexpected(description: "I couldn't start the audio converter (ffmpeg)."
                 );
             }
 
@@ -188,11 +186,16 @@ internal partial class YouTubeDownload(
             {
                 var errorMessage = string.Join(Environment.NewLine, ffmpegErrors);
                 logger.LogError(
-                    "YouTube download failed with exit code {ExitCode}",
-                    ffmpegProcess.ExitCode
+                    "Audio conversion failed with exit code {ExitCode}. {Error}",
+                    ffmpegProcess.ExitCode,
+                    errorMessage
                 );
                 return Error.Unexpected(
-                    description: $"Download from YouTube for {query} failed: {errorMessage}"
+                    description: $"""
+                                  Converting the downloaded audio failed.
+                                  Exit code: {ffmpegProcess.ExitCode}
+                                  {errorMessage}
+                                  """
                 );
             }
 

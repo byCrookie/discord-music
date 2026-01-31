@@ -113,7 +113,8 @@ internal class MusicCache(
         }
         catch (Exception e)
         {
-            return Error.Unexpected(e.Message);
+            logger.LogError(e, "Failed to initialize cache location");
+            return Error.Unexpected(description: "I couldn't access the cache directory.");
         }
 
         return await _fileCache.IndexAsync(cacheLocation, ct);

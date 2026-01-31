@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿﻿using System.Diagnostics;
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Spotify;
@@ -265,7 +265,7 @@ internal class GuildSession(
                     logger.LogTrace("No more tracks in queue");
                     await textChannel.SendMessageAsync(
                         new MessageProperties
-                            { Content = "Queue empty. No more tracks in _queue." },
+                            { Content = "Queue is empty. No more tracks to play." },
                         cancellationToken: ct
                     );
                 }
@@ -291,7 +291,7 @@ internal class GuildSession(
                     logger.LogTrace("No more tracks in queue");
                     await textChannel.SendMessageAsync(
                         new MessageProperties
-                            { Content = "Queue empty. No more tracks in _queue." },
+                            { Content = "Queue is empty. No more tracks to play." },
                         cancellationToken: ct
                     );
                 }
@@ -311,8 +311,9 @@ internal class GuildSession(
             return ex is null
                 ? message
                 : $"""
-                   ### **ERROR**: {message}
-                   ```{ex}```
+                   ### Playback error
+                   {message}
+                   -# {ex.GetType().Name}: {ex.Message}
                    """;
         }
     }

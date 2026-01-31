@@ -55,8 +55,8 @@ internal class JoinAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Joined
-                               Joined your voice channel!
+                               ### Connected
+                               I joined your voice channel.
                                -# {ToJoinedString(listen)}
                                """,
                     Flags = MessageFlags.Ephemeral,
@@ -65,11 +65,11 @@ internal class JoinAction(
         );
     }
 
-    private string ToJoinedString(VoiceCommandSetting voiceCommandSetting) =>
+    private static string ToJoinedString(VoiceCommandSetting voiceCommandSetting) =>
         voiceCommandSetting switch
         {
-            VoiceCommandSetting.Yes => "Voice commands are enabled.",
-            VoiceCommandSetting.No => "Voice commands are disabled.",
+            VoiceCommandSetting.Yes => "Voice commands are enabled",
+            VoiceCommandSetting.No => "Voice commands are disabled",
             _ => ""
         };
 }

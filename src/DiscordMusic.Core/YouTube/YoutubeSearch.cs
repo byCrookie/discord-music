@@ -25,7 +25,7 @@ internal partial class YoutubeSearch(
         if (ytdlp.IsError)
         {
             logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToErrorContent());
-            return Error.Unexpected(description: $"Failed to locate yt-dlp: {ytdlp.ToErrorContent()}");
+            return Error.Unexpected(description: "YouTube search isn't available. `yt-dlp` was not found.");
         }
 
         var deno = binaryLocator.LocateAndValidate(youTubeOptions.Value.Deno, "deno");
@@ -33,7 +33,7 @@ internal partial class YoutubeSearch(
         if (deno.IsError)
         {
             logger.LogError("Failed to locate deno: {Error}", deno.ToErrorContent());
-            return Error.Unexpected(description: $"Failed to locate deno: {deno.ToErrorContent()}");
+            return Error.Unexpected(description: "YouTube search isn't available. `deno` was not found.");
         }
 
         var command = new StringBuilder();
@@ -72,7 +72,7 @@ internal partial class YoutubeSearch(
                 commandText
             );
             return Error.Unexpected(
-                description: $"Failed to start process {ytdlp} with command {commandText}"
+                description: "I couldn't start the YouTube search process."
             );
         }
 
@@ -93,9 +93,18 @@ internal partial class YoutubeSearch(
         if (process.ExitCode != 0)
         {
             var errorMessage = string.Join(Environment.NewLine, errors);
-            logger.LogError("YouTube search failed with exit code {ExitCode}", process.ExitCode);
+            logger.LogError(
+                "YouTube search failed with exit code {ExitCode}. {Error}",
+                process.ExitCode,
+                errorMessage
+            );
+
             return Error.Unexpected(
-                description: $"Search on YouTube for {query} failed: {errorMessage}"
+                description: $"""
+                              YouTube search failed.
+                              Exit code: {process.ExitCode}
+                              {errorMessage}
+                              """
             );
         }
 

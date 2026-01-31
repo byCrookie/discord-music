@@ -1,0 +1,5 @@
+﻿### Something went wrong
+- No active music session.
+  -# Code: `Session.NotFound`
+- You don't have permission to do that.
+  -# Code: `Permissions.Missing`

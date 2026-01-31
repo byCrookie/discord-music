@@ -48,8 +48,9 @@ internal class PlayNextAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                    ### Searching for **{query}**
-                    This may take a moment...
+                    ### Searching
+                    **{query}**
+                    -# This may take a moment...
                     """,
                 }
             ),

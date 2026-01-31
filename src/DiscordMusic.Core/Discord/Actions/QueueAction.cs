@@ -33,7 +33,7 @@ internal class QueueAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = "Invalid page number. Must be a positive number.",
+                        Content = "Invalid page number. It must be 1 or higher.",
                         Flags = MessageFlags.Ephemeral,
                     }
                 )
@@ -81,7 +81,7 @@ internal class QueueAction(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
-                        Content = "The queue is empty",
+                        Content = "The queue is empty.",
                         Flags = MessageFlags.Ephemeral,
                     }
                 )
@@ -171,7 +171,7 @@ internal class QueueAction(
             return;
         }
 
-        await RespondAsync(InteractionCallback.Message("The queue has been cleared"));
+        await RespondAsync(InteractionCallback.Message("Queue cleared."));
     }
 
     [SubSlashCommand("shuffle", "Shuffle the queue.")]
@@ -213,7 +213,7 @@ internal class QueueAction(
         if (shuffle.Value.Track is null)
         {
             await RespondAsync(
-                InteractionCallback.Message("The queue is empty"),
+                InteractionCallback.Message("The queue is empty."),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
