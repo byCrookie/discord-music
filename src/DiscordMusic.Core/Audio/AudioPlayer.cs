@@ -23,7 +23,7 @@ public class
 
         if (_audioStream is null)
         {
-            return Error.NotFound(description: "No audio to resume");
+            return Error.NotFound(description: "Nothing is playing right now.");
         }
 
         _audioStream.Resume();
@@ -45,7 +45,7 @@ public class
 
         if (_audioStream is null)
         {
-            return Error.Unexpected(description: "No audio to seek");
+            return Error.NotFound(description: "Nothing is playing right now.");
         }
 
         var seek = _audioStream.Seek(time, mode);
@@ -89,7 +89,7 @@ public class
 
         if (_audioStream is null)
         {
-            return Error.Unexpected(description: "No audio to pause");
+            return Error.NotFound(description: "Nothing is playing right now.");
         }
 
         _audioStream.Pause();

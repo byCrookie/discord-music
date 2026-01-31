@@ -10,26 +10,42 @@ public record AudioUpdate(Track? Track, Track? NextTrack, AudioStatus AudioStatu
     {
         var content = new StringBuilder();
 
+        content.AppendLine("### Now playing");
+
         if (Track is not null)
         {
+            var length = AudioStatus.Length == TimeSpan.Zero
+                ? "live"
+                : AudioStatus.Length.HumanizeSecond();
+
+            content.AppendLine($"**{Track.Name}** — **{Track.Artists}**");
             content.AppendLine(
-                $"**Now Playing ({AudioStatus.State}):** {Track.Name} by {Track.Artists} ({AudioStatus.Position.HumanizeSecond()} / {AudioStatus.Length.HumanizeSecond()})");
+                $"-# Status: {AudioStatus.State} • {AudioStatus.Position.HumanizeSecond()} / {length}"
+            );
         }
         else
         {
-            content.AppendLine("**Now Playing:** None");
+            content.AppendLine("Nothing is playing right now.");
+            content.AppendLine($"-# Status: {AudioStatus.State}");
         }
+
+        content.AppendLine();
+        content.AppendLine("### Up next");
 
         if (NextTrack is not null)
         {
-            content.AppendLine(
-                $"**Up Next:** {NextTrack.Name} by {NextTrack.Artists} - ({NextTrack.Duration.HumanizeSecond()})");
+            var duration = NextTrack.Duration == TimeSpan.Zero
+                ? "unknown"
+                : NextTrack.Duration.HumanizeSecond();
+
+            content.AppendLine($"**{NextTrack.Name}** — **{NextTrack.Artists}**");
+            content.AppendLine($"-# Duration: {duration}");
         }
         else
         {
-            content.AppendLine("**Up Next:** None");
+            content.AppendLine("Nothing queued.");
         }
 
-        return content.ToString();
+        return content.ToString().TrimEnd();
     }
 };

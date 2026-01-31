@@ -1,0 +1,9 @@
+﻿### Something went wrong
+Downloading from YouTube failed.
+-# Code: `YouTube.DownloadFailed`
+-# Details:
+```
+Downloading from YouTube failed.
+Exit code: 1
+This is a sub error line
+```

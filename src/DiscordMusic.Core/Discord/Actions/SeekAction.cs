@@ -28,7 +28,7 @@ internal class SeekAction(
         if (!TimeSpanParser.TryParse(position, out var positionTs))
         {
             await RespondAsync(
-                InteractionCallback.Message("Not a valid position. Valid example: 00:01:23"),
+                InteractionCallback.Message("Not a valid position. Example: 00:01:23"),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
@@ -59,8 +59,8 @@ internal class SeekAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Seeking to {positionTs.HumanizeSecond()}
-                               This may take a moment...
+                               ### Seeking to {positionTs.HumanizeSecond()}...
+                               -# This may take a moment...
                                """,
                 }
             ),
@@ -103,7 +103,7 @@ internal class SeekAction(
         if (!TimeSpanParser.TryParse(duration, out var durationTs))
         {
             await RespondAsync(
-                InteractionCallback.Message("Not a valid duration. Valid example: 00:00:10")
+                InteractionCallback.Message("Not a valid duration. Example: 00:00:10")
             );
             return;
         }
@@ -134,7 +134,7 @@ internal class SeekAction(
                 {
                     Content = $"""
                                ### Seeking backward by {durationTs.HumanizeSecond()}...
-                               This may take a moment...
+                               -# This may take a moment...
                                """,
                 }
             ),
@@ -178,7 +178,7 @@ internal class SeekAction(
         if (!TimeSpanParser.TryParse(duration, out var durationTs))
         {
             await RespondAsync(
-                InteractionCallback.Message("Not a valid duration. Valid example: 00:00:10"),
+                InteractionCallback.Message("Not a valid duration. Example: 00:00:10"),
                 cancellationToken: cancellation.CancellationToken
             );
             return;
@@ -210,7 +210,7 @@ internal class SeekAction(
                 {
                     Content = $"""
                                ### Seeking forward by {durationTs.HumanizeSecond()}...
-                               This may take a moment...
+                               -# This may take a moment...
                                """,
                 }
             ),

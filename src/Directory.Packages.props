@@ -20,8 +20,9 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.2" />
     <PackageVersion Include="Testably.Abstractions" Version="10.0.0" />
     <PackageVersion Include="Testably.Abstractions.Testing" Version="5.0.3" />
-    <PackageVersion Include="TUnit" Version="1.11.28" />
+    <PackageVersion Include="TUnit" Version="1.12.65" />
     <PackageVersion Include="ValueOf" Version="2.0.31" />
+    <PackageVersion Include="Verify.TUnit" Version="31.10.0" />
     <PackageVersion Include="Whisper.net.AllRuntimes" Version="1.9.0" />
   </ItemGroup>
 </Project>
