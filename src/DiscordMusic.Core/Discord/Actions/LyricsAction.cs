@@ -26,9 +26,10 @@ internal class LyricsAction(
         var ct = cancellation.CancellationToken;
         logger.LogTrace("Lyrics");
 
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -37,9 +38,11 @@ internal class LyricsAction(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
-                        Flags = MessageFlags.Ephemeral
+                        Flags = MessageFlags.Ephemeral,
                     }
-                ), cancellationToken: ct);
+                ),
+                cancellationToken: ct
+            );
             return;
         }
 
@@ -48,10 +51,10 @@ internal class LyricsAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Searching for lyrics
-                               **{title}** — **{artists}**
-                               -# This may take a moment...
-                               """,
+                    ### Searching for lyrics
+                    **{title}** — **{artists}**
+                    -# This may take a moment...
+                    """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
@@ -73,10 +76,10 @@ internal class LyricsAction(
             await ModifyResponseAsync(
                 m =>
                     m.Content = $"""
-                                 ### Searching for lyrics
-                                 **{title}** — **{artists}**
-                                 -# This may take a moment...
-                                 """,
+                    ### Searching for lyrics
+                    **{title}** — **{artists}**
+                    -# This may take a moment...
+                    """,
                 cancellationToken: ct
             );
 
@@ -94,10 +97,10 @@ internal class LyricsAction(
             await ModifyResponseAsync(
                 m =>
                     m.Content = $"""
-                                 ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
-                                 {specificLyrics.Value.Text}
-                                 -# {specificLyrics.Value.Url}
-                                 """,
+                    ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
+                    {specificLyrics.Value.Text}
+                    -# {specificLyrics.Value.Url}
+                    """,
                 cancellationToken: ct
             );
             return;
@@ -117,10 +120,10 @@ internal class LyricsAction(
         await ModifyResponseAsync(
             m =>
                 m.Content = $"""
-                             ### Searching for lyrics
-                             **{track.Name}** — **{track.Artists}**
-                             -# This may take a moment...
-                             """,
+                ### Searching for lyrics
+                **{track.Name}** — **{track.Artists}**
+                -# This may take a moment...
+                """,
             cancellationToken: ct
         );
 
@@ -128,18 +131,20 @@ internal class LyricsAction(
 
         if (lyrics.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = lyrics.ToErrorContent(),
-                cancellationToken: ct);
+            await ModifyResponseAsync(
+                m => m.Content = lyrics.ToErrorContent(),
+                cancellationToken: ct
+            );
             return;
         }
 
         await ModifyResponseAsync(
             m =>
                 m.Content = $"""
-                             ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
-                             {lyrics.Value.Text}
-                             -# {lyrics.Value.Url}
-                             """,
+                ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
+                {lyrics.Value.Text}
+                -# {lyrics.Value.Url}
+                """,
             cancellationToken: ct
         );
     }

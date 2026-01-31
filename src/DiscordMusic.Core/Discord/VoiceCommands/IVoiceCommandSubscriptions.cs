@@ -10,7 +10,7 @@ namespace DiscordMusic.Core.Discord.VoiceCommands;
 internal interface IVoiceCommandSubscriptions
 {
     bool Has(ulong guildId);
-    
+
     /// <summary>
     /// Ensures voice command processing is wired to <paramref name="voiceClient"/> for <paramref name="guildId"/>.
     /// If a subscription already exists, it is replaced.

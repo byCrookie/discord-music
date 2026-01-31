@@ -47,9 +47,10 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
     [ComponentInteraction(PlayPauseButton)]
     public async Task PlayPause()
     {
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -122,9 +123,10 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
 
     private async Task ForwardAsync(TimeSpan durationTs)
     {
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -145,9 +147,9 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Seeking forward by {durationTs.HumanizeSecond()}...
-                               -# This may take a moment...
-                               """,
+                    ### Seeking forward by {durationTs.HumanizeSecond()}...
+                    -# This may take a moment...
+                    """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
@@ -169,22 +171,22 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
         }
 
         var seekedMessage = $"""
-                             Seeked forward by {durationTs.HumanizeSecond()}
-                             {seek.Value.ToValueContent()}
-                             """;
+            Seeked forward by {durationTs.HumanizeSecond()}
+            {seek.Value.ToValueContent()}
+            """;
 
         await ModifyResponseAsync(
-            m =>
-                m.Content = seekedMessage,
+            m => m.Content = seekedMessage,
             cancellationToken: cancellation.CancellationToken
         );
     }
 
     private async Task BackwardAsync(TimeSpan durationTs)
     {
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -195,7 +197,9 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                ), cancellationToken: cancellation.CancellationToken);
+                ),
+                cancellationToken: cancellation.CancellationToken
+            );
 
             return;
         }
@@ -205,9 +209,9 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Seeking backward by {durationTs.HumanizeSecond()}...
-                               -# This may take a moment...
-                               """,
+                    ### Seeking backward by {durationTs.HumanizeSecond()}...
+                    -# This may take a moment...
+                    """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
@@ -229,9 +233,9 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
         }
 
         var seekedMessage = $"""
-                             Seeked backward by {durationTs.HumanizeSecond()}
-                             {seek.Value.ToValueContent()}
-                             """;
+            Seeked backward by {durationTs.HumanizeSecond()}
+            {seek.Value.ToValueContent()}
+            """;
 
         await ModifyResponseAsync(
             m => m.Content = seekedMessage,

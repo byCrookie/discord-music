@@ -18,7 +18,8 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
         // OpusDecoder/buffer reuse is guarded because VoiceReceive can be concurrent.
         public Lock DecodeLock { get; } = new();
         public OpusDecoder OpusDecoder { get; } = new(VoiceChannels.Stereo);
-        public byte[] Pcm48KStereo { get; } = new byte[Opus.GetFrameSize(PcmFormat.Short, VoiceChannels.Stereo)];
+        public byte[] Pcm48KStereo { get; } =
+            new byte[Opus.GetFrameSize(PcmFormat.Short, VoiceChannels.Stereo)];
         public short[] Mono48KSamples { get; } = new short[Opus.SamplesPerChannel];
         public short[] Mono16KSamples { get; } = new short[Opus.SamplesPerChannel / 3];
     }
@@ -76,7 +77,10 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
         }
     }
 
-    private static void DownmixStereoS16ToMono(ReadOnlySpan<short> stereoInterleaved, Span<short> monoOut)
+    private static void DownmixStereoS16ToMono(
+        ReadOnlySpan<short> stereoInterleaved,
+        Span<short> monoOut
+    )
     {
         var samples = monoOut.Length;
         for (var i = 0; i < samples; i++)
@@ -99,6 +103,7 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
     private sealed class Subscription(Action dispose) : IDisposable
     {
         private Action? _dispose = dispose;
+
         public void Dispose() => Interlocked.Exchange(ref _dispose, null)?.Invoke();
     }
 }

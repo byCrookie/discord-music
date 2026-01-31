@@ -87,7 +87,7 @@ public class AudioStreamLifecycleTests
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(2)));
         await Assert.That(completed).IsEqualTo(tcs.Task);
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Ended);
-        
+
         await Assert.That(output.Length).IsGreaterThan(0);
     }
 

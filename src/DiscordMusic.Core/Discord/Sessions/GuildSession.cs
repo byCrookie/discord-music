@@ -1,4 +1,4 @@
-﻿﻿using System.Diagnostics;
+﻿using System.Diagnostics;
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Spotify;
@@ -21,7 +21,8 @@ internal class GuildSession(
     ILogger<Queue.Queue<Track>> queueLogger,
     Guild guild,
     TextChannel textChannel,
-    GuildVoiceSession guildVoiceSession)
+    GuildVoiceSession guildVoiceSession
+)
 {
     private readonly AsyncLock _commandLock = new();
     private readonly Queue.Queue<Track> _queue = new(queueLogger);
@@ -30,8 +31,10 @@ internal class GuildSession(
     public Guild Guild { get; } = guild;
     public GuildVoiceSession GuildVoiceSession { get; private set; } = guildVoiceSession;
 
-    public async Task UpdateGuildVoiceSessionAsync(GuildVoiceSession newSession,
-        CancellationToken ct)
+    public async Task UpdateGuildVoiceSessionAsync(
+        GuildVoiceSession newSession,
+        CancellationToken ct
+    )
     {
         await using var _ = await _commandLock.AquireAsync(ct);
         await GuildVoiceSession.DisposeAsync();
@@ -221,11 +224,7 @@ internal class GuildSession(
         return await PlayNextTrackFromQueueAsync(false, ct);
     }
 
-    private async Task UpdateAsync(
-        AudioEvent item,
-        Exception? exception,
-        CancellationToken ct
-    )
+    private async Task UpdateAsync(AudioEvent item, Exception? exception, CancellationToken ct)
     {
         logger.LogTrace("Update {Item}", item);
 
@@ -265,7 +264,9 @@ internal class GuildSession(
                     logger.LogTrace("No more tracks in queue");
                     await textChannel.SendMessageAsync(
                         new MessageProperties
-                            { Content = "Queue is empty. No more tracks to play." },
+                        {
+                            Content = "Queue is empty. No more tracks to play.",
+                        },
                         cancellationToken: ct
                     );
                 }
@@ -291,7 +292,9 @@ internal class GuildSession(
                     logger.LogTrace("No more tracks in queue");
                     await textChannel.SendMessageAsync(
                         new MessageProperties
-                            { Content = "Queue is empty. No more tracks to play." },
+                        {
+                            Content = "Queue is empty. No more tracks to play.",
+                        },
                         cancellationToken: ct
                     );
                 }
@@ -311,10 +314,10 @@ internal class GuildSession(
             return ex is null
                 ? message
                 : $"""
-                   ### Playback error
-                   {message}
-                   -# {ex.GetType().Name}: {ex.Message}
-                   """;
+                    ### Playback error
+                    {message}
+                    -# {ex.GetType().Name}: {ex.Message}
+                    """;
         }
     }
 
@@ -400,8 +403,11 @@ internal class GuildSession(
                 firstTrack.Artists
             );
 
-            var playExisting =
-                await GuildVoiceSession.AudioPlayer.PlayAsync(cache.Value, UpdateAsync, ct);
+            var playExisting = await GuildVoiceSession.AudioPlayer.PlayAsync(
+                cache.Value,
+                UpdateAsync,
+                ct
+            );
 
             if (playExisting.IsError)
             {
@@ -440,15 +446,10 @@ internal class GuildSession(
     {
         var status = await GuildVoiceSession.AudioPlayer.StatusAsync(CancellationToken.None);
         var nextTrack = _queue.TryPeek(out var next) ? next : null;
-        return new AudioUpdate(
-            _currentTrack,
-            nextTrack,
-            status
-        );
+        return new AudioUpdate(_currentTrack, nextTrack, status);
     }
 
-    private async Task DownloadNextTrackAsync
-        (CancellationToken ct)
+    private async Task DownloadNextTrackAsync(CancellationToken ct)
     {
         if (_queue.TryPeek(out var nextTrack))
         {

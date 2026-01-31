@@ -10,8 +10,8 @@ namespace DiscordMusic.Core.Discord.Actions;
 internal class PlayAction(
     GuildSessionManager guildSessionManager,
     ILogger<PlayAction> logger,
-    Cancellation cancellation)
-    : ApplicationCommandModule<ApplicationCommandContext>
+    Cancellation cancellation
+) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("play", "Play a track. Direct link or search query. Appended to queue.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -20,9 +20,11 @@ internal class PlayAction(
     {
         logger.LogTrace("Play");
 
-        var session =
-            await guildSessionManager.JoinAsync(Context, null,
-                cancellation.CancellationToken);
+        var session = await guildSessionManager.JoinAsync(
+            Context,
+            null,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -43,10 +45,10 @@ internal class PlayAction(
                 new InteractionMessageProperties
                 {
                     Content = $"""
-                               ### Searching
-                               **{query}**
-                               -# This may take a moment...
-                               """,
+                    ### Searching
+                    **{query}**
+                    -# This may take a moment...
+                    """,
                 }
             ),
             cancellationToken: cancellation.CancellationToken
@@ -60,8 +62,6 @@ internal class PlayAction(
             return;
         }
 
-        await ModifyResponseAsync(m =>
-            m.Content = play.Value.ToValueContent()
-        );
+        await ModifyResponseAsync(m => m.Content = play.Value.ToValueContent());
     }
 }

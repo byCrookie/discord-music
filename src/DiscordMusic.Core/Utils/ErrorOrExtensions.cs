@@ -14,9 +14,9 @@ public static class ErrorOrExtensions
         return value.Errors.Count == 1
             ? value.FirstError.ToErrorContent()
             : $"""
-               ### Something went wrong
-               {string.Join(Environment.NewLine, value.Errors.Select(e => e.ToErrorListItem()))}
-               """;
+                ### Something went wrong
+                {string.Join(Environment.NewLine, value.Errors.Select(e => e.ToErrorListItem()))}
+                """;
     }
 
     extension(Error error)
@@ -26,11 +26,11 @@ public static class ErrorOrExtensions
             var detail = FormatDetail(error.Description);
 
             return $"""
-                    ### Something went wrong
-                    {FirstLineOrFallback(error.Description, "Please try again.")}
-                    -# Code: `{error.Code}`
-                    {detail}
-                    """;
+                ### Something went wrong
+                {FirstLineOrFallback(error.Description, "Please try again.")}
+                -# Code: `{error.Code}`
+                {detail}
+                """;
         }
 
         private string ToErrorListItem()
@@ -72,10 +72,10 @@ public static class ErrorOrExtensions
         }
 
         return $"""
-                -# Details:
-                ```
-                {trimmed}
-                ```
-                """.TrimEnd();
+            -# Details:
+            ```
+            {trimmed}
+            ```
+            """.TrimEnd();
     }
 }

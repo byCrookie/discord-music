@@ -7,10 +7,11 @@ namespace DiscordMusic.Core.Discord.VoiceCommands;
 /// Thread-safe holder for per-guild voice command subscriptions.
 /// Owns the lifecycle of the underlying subscription tokens.
 /// </summary>
-internal sealed class VoiceCommandSubscriptions(VoiceCommandManager manager) : IVoiceCommandSubscriptions
+internal sealed class VoiceCommandSubscriptions(VoiceCommandManager manager)
+    : IVoiceCommandSubscriptions
 {
     private readonly ConcurrentDictionary<ulong, IDisposable> _subscriptionTokens = new();
-    
+
     public bool Has(ulong guildId)
     {
         return _subscriptionTokens.ContainsKey(guildId);
@@ -21,11 +22,15 @@ internal sealed class VoiceCommandSubscriptions(VoiceCommandManager manager) : I
         var token = manager.Subscribe(guildId, voiceClient);
 
         // Replace existing token atomically.
-        var old = _subscriptionTokens.AddOrUpdate(guildId, token, (_, existing) =>
-        {
-            existing.Dispose();
-            return token;
-        });
+        var old = _subscriptionTokens.AddOrUpdate(
+            guildId,
+            token,
+            (_, existing) =>
+            {
+                existing.Dispose();
+                return token;
+            }
+        );
 
         // If AddOrUpdate inserted (no existing), old == token. Nothing else to do.
         if (!ReferenceEquals(old, token))

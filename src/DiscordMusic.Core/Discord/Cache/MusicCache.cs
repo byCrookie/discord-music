@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using DiscordMusic.Core.Config;
 using DiscordMusic.Core.FileCache;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
@@ -14,7 +15,8 @@ internal class MusicCache(
     IFileSystem fileSystem,
     IJsonSerializer jsonSerializer,
     ILogger<MusicCache> logger,
-    ILogger<FileCache<string, Track>> fileCacheLogger
+    ILogger<FileCache<string, Track>> fileCacheLogger,
+    AppPaths appPaths
 ) : IMusicCache
 {
     private readonly FileCache<string, Track> _fileCache = new(
@@ -98,7 +100,7 @@ internal class MusicCache(
 
     private async Task<ErrorOr<Success>> IndexAsync(CancellationToken ct)
     {
-        var cacheLocation = GetCacheLocation(logger, cacheOptions, fileSystem);
+        var cacheLocation = appPaths.Cache();
 
         try
         {
@@ -118,64 +120,5 @@ internal class MusicCache(
         }
 
         return await _fileCache.IndexAsync(cacheLocation, ct);
-    }
-
-    private static IDirectoryInfo GetCacheLocation(
-        ILogger<MusicCache> logger,
-        IOptions<CacheOptions> cacheOptions,
-        IFileSystem fileSystem
-    )
-    {
-        if (!string.IsNullOrWhiteSpace(cacheOptions.Value.Location))
-        {
-            logger.LogDebug(
-                "Using {Location} from environment variable or config file as cache location",
-                cacheOptions.Value.Location
-            );
-            var cacheLocation = fileSystem.DirectoryInfo.New(cacheOptions.Value.Location);
-            logger.LogDebug("Final env or config location {Location}", cacheLocation);
-            return cacheLocation;
-        }
-
-        var xdgCacheHome = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
-        if (!string.IsNullOrWhiteSpace(xdgCacheHome))
-        {
-            logger.LogDebug(
-                "Using XDG_CACHE_HOME '{XDG_CACHE_HOME}' as cache location",
-                xdgCacheHome
-            );
-            var cacheDir = fileSystem.DirectoryInfo.New(
-                Path.Combine(xdgCacheHome, "bycrookie", "discord-music")
-            );
-            logger.LogDebug("Final XDG cache location {Location}", cacheDir);
-            return cacheDir;
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            logger.LogDebug("Using windows local app data location as cache location");
-            var windows = fileSystem.DirectoryInfo.New(
-                Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "bycrookie",
-                    "discord-music",
-                    "cache"
-                )
-            );
-            logger.LogDebug("Final windows location {Location}", windows);
-            return windows;
-        }
-
-        logger.LogDebug("Using unix home as cache location");
-        var unix = fileSystem.DirectoryInfo.New(
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".cache",
-                "bycrookie",
-                "discord-music"
-            )
-        );
-        logger.LogDebug("Final unix location {Location}", unix);
-        return unix;
     }
 }

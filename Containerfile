@@ -61,17 +61,20 @@ RUN case "$TARGETARCH" in \
 COPY . .
 
 RUN case "$TARGETARCH" in \
-    amd64)  RID="linux-x64";   LIB="linux-x86_64/libopus.so" ;; \
-    arm64)  RID="linux-arm64"; LIB="linux-aarch64/libopus.so" ;; \
+    amd64)  RID="linux-x64" ;; \
+    arm64)  RID="linux-arm64" ;; \
     *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
     esac && echo "RID: $RID" && \
-    dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -c Release -r "$RID" -o /build/publish --no-restore -v minimal && \
-    cp "natives/$LIB" "/build/publish/$(basename $LIB)"
+    dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj -c Release -r "$RID" -o /build/publish --no-restore -v minimal
 
 RUN printf '#!/usr/bin/env sh\nset -e\n( while true; do /usr/bin/yt-dlp -U || true; sleep 86400; done ) &\nexec /app/dm "$@"\n' > /build/publish/entrypoint.sh && chmod +x /build/publish/entrypoint.sh
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    libstdc++6 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /build/publish .
 COPY --from=build \

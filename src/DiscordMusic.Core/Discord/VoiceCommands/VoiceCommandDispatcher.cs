@@ -6,13 +6,10 @@ namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 internal sealed class VoiceCommandDispatcher(
     GuildSessionManager guildSessionManager,
-    ILogger<VoiceCommandDispatcher> logger)
+    ILogger<VoiceCommandDispatcher> logger
+)
 {
-    public async ValueTask DispatchAsync(
-        VoiceCommand command,
-        ulong guildId,
-        CancellationToken ct
-    )
+    public async ValueTask DispatchAsync(VoiceCommand command, ulong guildId, CancellationToken ct)
     {
         if (command.Intent == VoiceCommandIntent.None)
             return;

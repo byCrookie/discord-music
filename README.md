@@ -12,6 +12,7 @@ Another music bot for Discord with playback/voice controls, song lyrics and queu
   yt-dlp.
 - [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET): For Spotify integration.
 - [Genius](https://genius.com): For lyrics fetching.
+- [whisper.net](https://github.com/sandrohanea/whisper.net) For local speech recognition.
 
 > **Important**: This bot uses `yt-dlp` to fetch YouTube audio streams. Since YouTube may block IP
 > ranges from cloud > providers, it's recommended to run the bot on a residential IP for reliable

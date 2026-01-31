@@ -19,10 +19,11 @@ internal class NowPlayingAction(
     public async Task NowPlaying()
     {
         logger.LogTrace("Nowplaying");
-        
-        var session =
-            await guildSessionManager.GetSessionAsync(Context.Guild!.Id,
-                cancellation.CancellationToken);
+
+        var session = await guildSessionManager.GetSessionAsync(
+            Context.Guild!.Id,
+            cancellation.CancellationToken
+        );
 
         if (session.IsError)
         {
@@ -37,7 +38,7 @@ internal class NowPlayingAction(
             );
             return;
         }
-        
+
         var nowPlaying = await session.Value.NowPlayingAsync(cancellation.CancellationToken);
 
         if (nowPlaying.IsError)

@@ -14,9 +14,8 @@ public record AudioUpdate(Track? Track, Track? NextTrack, AudioStatus AudioStatu
 
         if (Track is not null)
         {
-            var length = AudioStatus.Length == TimeSpan.Zero
-                ? "live"
-                : AudioStatus.Length.HumanizeSecond();
+            var length =
+                AudioStatus.Length == TimeSpan.Zero ? "live" : AudioStatus.Length.HumanizeSecond();
 
             content.AppendLine($"**{Track.Name}** — **{Track.Artists}**");
             content.AppendLine(
@@ -34,9 +33,10 @@ public record AudioUpdate(Track? Track, Track? NextTrack, AudioStatus AudioStatu
 
         if (NextTrack is not null)
         {
-            var duration = NextTrack.Duration == TimeSpan.Zero
-                ? "unknown"
-                : NextTrack.Duration.HumanizeSecond();
+            var duration =
+                NextTrack.Duration == TimeSpan.Zero
+                    ? "unknown"
+                    : NextTrack.Duration.HumanizeSecond();
 
             content.AppendLine($"**{NextTrack.Name}** — **{NextTrack.Artists}**");
             content.AppendLine($"-# Duration: {duration}");

@@ -31,18 +31,6 @@
         <File Path="..\.github\workflows\test_osx_x64.yml" />
         <File Path="..\.github\workflows\test_win_x64.yml" />
     </Folder>
-    <Folder Name="/_/natives/">
-        <File Path="..\natives\LICENSE.opus" />
-    </Folder>
-    <Folder Name="/_/natives/linux-aarch64/">
-        <File Path="..\natives\linux-aarch64\libopus.so" />
-    </Folder>
-    <Folder Name="/_/natives/linux-x86_64/">
-        <File Path="..\natives\linux-x86_64\libopus.so" />
-    </Folder>
-    <Folder Name="/_/natives/win-x86_64/">
-        <File Path="..\natives\win-x86_64\opus.dll" />
-    </Folder>
     <Project Path="DiscordMusic.Client\DiscordMusic.Client.csproj" />
     <Project Path="DiscordMusic.Core.Tests\DiscordMusic.Core.Tests.csproj" />
     <Project Path="DiscordMusic.Core\DiscordMusic.Core.csproj" />

@@ -46,12 +46,12 @@ internal sealed class VoiceCommandService(
                             continue;
 
                         var lastAppendUtc = buffer.GetLastAppendUtc(ssrc);
-                        var silentFor =
-                            lastAppendUtc is null
-                                ? TimeSpan.Zero
-                                : (DateTimeOffset.UtcNow - lastAppendUtc.Value);
+                        var silentFor = lastAppendUtc is null
+                            ? TimeSpan.Zero
+                            : (DateTimeOffset.UtcNow - lastAppendUtc.Value);
 
-                        var shouldFlush = silentFor >= flushAfterSilence || buffered >= maxUtteranceBytes;
+                        var shouldFlush =
+                            silentFor >= flushAfterSilence || buffered >= maxUtteranceBytes;
                         if (!shouldFlush)
                             continue;
 
@@ -74,11 +74,20 @@ internal sealed class VoiceCommandService(
                             var transcript = await transcriber.TranscribeAsync(data, stoppingToken);
                             if (string.IsNullOrWhiteSpace(transcript))
                             {
-                                logger.LogInformation("Transcribed no speech from Guild {GuildId} SSRC {Ssrc}", guildId, ssrc);
+                                logger.LogInformation(
+                                    "Transcribed no speech from Guild {GuildId} SSRC {Ssrc}",
+                                    guildId,
+                                    ssrc
+                                );
                                 continue;
                             }
 
-                            logger.LogInformation("Voice transcript (Guild {GuildId} SSRC {Ssrc}): {Transcript}", guildId, ssrc, transcript);
+                            logger.LogInformation(
+                                "Voice transcript (Guild {GuildId} SSRC {Ssrc}): {Transcript}",
+                                guildId,
+                                ssrc,
+                                transcript
+                            );
 
                             var command = parser.Parse(transcript);
                             if (command.Intent == VoiceCommandIntent.None)
