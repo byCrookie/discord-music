@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Flurl;
 using Flurl.Http;
@@ -30,38 +31,73 @@ internal partial class LyricsSearch(
             return Error.Validation(description: "Token required to search for lyrics");
         }
 
-        var searchResponse = await "https://api.genius.com/search"
-            .SetQueryParam("q", $"{title} {artist}")
-            .WithOAuthBearerToken(lyricOptions.Value.Token)
-            .GetJsonAsync<SearchResponse>(cancellationToken: ct);
-
-        if (
-            searchResponse.Response.Hits == null
-            || searchResponse.Response.Hits.Count == 0
-            || searchResponse.Response.Hits.All(hit => hit.Type != "song")
-        )
+        try
         {
-            logger.LogWarning("No lyrics found for {Title} - {Artist}", title, artist);
-            return Error.NotFound(description: $"No lyrics found for {title} - {artist}");
+            var searchResponse = await "https://api.genius.com/search"
+                .SetQueryParam("q", $"{title} {artist}")
+                .WithOAuthBearerToken(lyricOptions.Value.Token)
+                .GetJsonAsync<SearchResponse>(cancellationToken: ct);
+
+            if (
+                searchResponse.Response.Hits == null
+                || searchResponse.Response.Hits.Count == 0
+                || searchResponse.Response.Hits.All(hit => hit.Type != "song")
+            )
+            {
+                logger.LogWarning("No lyrics found for {Title} - {Artist}", title, artist);
+                return Error.NotFound(description: $"No lyrics found for {title} - {artist}");
+            }
+
+            logger.LogDebug("Lyrics found for {Title} - {Artist}", title, artist);
+
+            var firstHit = BestMatchingHit(searchResponse.Response.Hits, title, artist);
+            var lyricsPageUrl = new Url($"https://genius.com{firstHit.Result.Path}");
+            var lyrics = await ScrapeLyricsAsync(logger, lyricsPageUrl, ct);
+
+            if (lyrics.IsError)
+            {
+                return lyrics.Errors;
+            }
+
+            return new Lyrics(
+                firstHit.Result.Title,
+                firstHit.Result.ArtistNames,
+                lyrics.Value,
+                lyricsPageUrl
+            );
         }
-
-        logger.LogDebug("Lyrics found for {Title} - {Artist}", title, artist);
-
-        var firstHit = BestMatchingHit(searchResponse.Response.Hits, title, artist);
-        var lyricsPageUrl = new Url($"https://genius.com{firstHit.Result.Path}");
-        var lyrics = await ScrapeLyricsAsync(logger, lyricsPageUrl, ct);
-
-        if (lyrics.IsError)
+        catch (FlurlHttpException e)
         {
-            return lyrics.Errors;
+            logger.LogError(e, "Genius API error. Title={Title} Artist={Artist}", title, artist);
+            return Error
+                .Unexpected(
+                    code: "Lyrics.ApiError",
+                    description: "Failed to search for lyrics on Genius."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "lyrics.search")
+                .WithMetadata("title", title)
+                .WithMetadata("artist", artist)
+                .WithMetadata("statusCode", e.StatusCode)
+                .WithException(e);
         }
-
-        return new Lyrics(
-            firstHit.Result.Title,
-            firstHit.Result.ArtistNames,
-            lyrics.Value,
-            lyricsPageUrl
-        );
+        catch (Exception e)
+        {
+            logger.LogError(
+                e,
+                "Lyrics search failed. Title={Title} Artist={Artist}",
+                title,
+                artist
+            );
+            return Error
+                .Unexpected(
+                    code: "Lyrics.SearchFailed",
+                    description: "Failed to search for lyrics."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "lyrics.search")
+                .WithMetadata("title", title)
+                .WithMetadata("artist", artist)
+                .WithException(e);
+        }
     }
 
     private static Hit BestMatchingHit(List<Hit> hits, string title, string artist)

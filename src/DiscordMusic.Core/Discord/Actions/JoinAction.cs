@@ -15,10 +15,7 @@ internal class JoinAction(
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    [SlashCommand(
-        "join",
-        "The bot will join the voice channel you are in. Session for guild will be replaced."
-    )]
+    [SlashCommand("join", "The bot will join the voice channel you are in.")]
     [RequireBotPermissions<ApplicationCommandContext>(
         Permissions.Connect | Permissions.PrioritySpeaker | Permissions.Speak
     )]

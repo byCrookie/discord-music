@@ -6,38 +6,61 @@ using Whisper.net.Ggml;
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
 
-internal sealed class WhisperVoiceTranscriber : IVoiceTranscriber, IDisposable
+internal sealed class WhisperVoiceTranscriber(
+    ILogger<WhisperVoiceTranscriber> logger,
+    AppPaths appPaths
+) : IVoiceTranscriber
 {
-    private readonly ILogger<WhisperVoiceTranscriber> _logger;
-    private readonly AppPaths _appPaths;
-    private readonly WhisperFactory _factory;
+    private readonly Lazy<Task<WhisperFactory>> _factory = new(() =>
+        DownloadModel(logger, appPaths)
+    );
 
-    public WhisperVoiceTranscriber(ILogger<WhisperVoiceTranscriber> logger, AppPaths appPaths)
+    private static async Task<WhisperFactory> DownloadModel(
+        ILogger<WhisperVoiceTranscriber> logger,
+        AppPaths appPaths
+    )
     {
-        _logger = logger;
-        _appPaths = appPaths;
+        var cache = appPaths.Cache();
+        var modelPath = Path.Combine(cache.FullName, "ggml-base.bin");
 
-        _factory = DownloadModel().GetAwaiter().GetResult();
+        if (!File.Exists(modelPath))
+        {
+            logger.LogInformation(
+                "Whisper model {ModelPath} not found; downloading {Type}...",
+                modelPath,
+                GgmlType.Base
+            );
+            await using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(
+                GgmlType.Base,
+                cancellationToken: CancellationToken.None
+            );
+            await using var fileWriter = File.OpenWrite(modelPath);
+            await modelStream.CopyToAsync(fileWriter, CancellationToken.None);
+        }
+
+        return WhisperFactory.FromPath(modelPath);
     }
 
     public async Task<string> TranscribeAsync(
-        ReadOnlyMemory<byte> pcm16kMonoS16,
+        ReadOnlyMemory<byte> pcm16KMonoS16,
         CancellationToken ct
     )
     {
-        // Whisper.net expects a WAV stream for ProcessAsync, easiest is to wrap our PCM in a minimal WAV header.
-        await using var wav = new MemoryStream(capacity: pcm16kMonoS16.Length + 64);
+        await using var wav = new MemoryStream(capacity: pcm16KMonoS16.Length + 64);
         WriteWavHeader(
             wav,
-            pcm16kMonoS16.Length,
+            pcm16KMonoS16.Length,
             sampleRate: 16000,
             channels: 1,
             bitsPerSample: 16
         );
-        await wav.WriteAsync(pcm16kMonoS16, ct);
+        await wav.WriteAsync(pcm16KMonoS16, ct);
         wav.Position = 0;
 
-        await using var processor = _factory.CreateBuilder().WithLanguage("auto").Build();
+        await using var processor = (await _factory.Value)
+            .CreateBuilder()
+            .WithLanguage("auto")
+            .Build();
 
         var sb = new System.Text.StringBuilder();
         await foreach (var segment in processor.ProcessAsync(wav, ct))
@@ -50,30 +73,6 @@ internal sealed class WhisperVoiceTranscriber : IVoiceTranscriber, IDisposable
         }
 
         return sb.ToString().Trim();
-    }
-
-    public void Dispose() => _factory.Dispose();
-
-    private async Task<WhisperFactory> DownloadModel()
-    {
-        var cache = _appPaths.Cache();
-        var modelPath = Path.Combine(cache.FullName, "ggml-base.bin");
-
-        if (!File.Exists(modelPath))
-        {
-            _logger.LogInformation(
-                "Whisper model {ModelPath} not found; downloading {Type}...",
-                modelPath,
-                GgmlType.Base
-            );
-            await using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(
-                GgmlType.Base
-            );
-            await using var fileWriter = File.OpenWrite(modelPath);
-            await modelStream.CopyToAsync(fileWriter);
-        }
-
-        return WhisperFactory.FromPath(modelPath);
     }
 
     private static void WriteWavHeader(

@@ -119,7 +119,15 @@ internal sealed class VoiceCommandService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Voice command loop crashed; continuing");
+                logger.LogError(ex, "Voice command loop crashed; continuing after backoff");
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                }
+                catch
+                {
+                    // ignore
+                }
             }
         }
     }

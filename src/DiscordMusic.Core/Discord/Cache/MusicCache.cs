@@ -107,16 +107,27 @@ internal class MusicCache(
             if (!cacheLocation.Exists())
             {
                 logger.LogDebug(
-                    "Cache location {Location} does not exist. Creating directory.",
-                    cacheLocation
+                    "Cache location missing; creating directory. Path={CachePath}",
+                    cacheLocation.FullName
                 );
                 cacheLocation.Create();
             }
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to initialize cache location");
-            return Error.Unexpected(description: "I couldn't access the cache directory.");
+            logger.LogError(
+                e,
+                "Failed to initialize cache location. Path={CachePath}",
+                cacheLocation.FullName
+            );
+            return Error
+                .Unexpected(
+                    code: "Cache.InitFailed",
+                    description: "I couldn't access the cache directory."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "cache.init")
+                .WithMetadata("cachePath", cacheLocation.FullName)
+                .WithException(e);
         }
 
         return await _fileCache.IndexAsync(cacheLocation, ct);

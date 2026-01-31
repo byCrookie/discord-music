@@ -35,7 +35,10 @@ public class FileCache<TKey, TItem>(
 
         if (!_indexed)
         {
-            return Error.Unexpected(description: "Cache must be indexed");
+            return Error
+                .Unexpected(code: "Cache.NotIndexed", description: "Cache isn't ready yet.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "fileCache")
+                .WithMetadata("action", "addOrUpdate");
         }
 
         if (!_cache.Remove(key, out var fileCacheItem))
@@ -74,7 +77,10 @@ public class FileCache<TKey, TItem>(
 
         if (!_indexed)
         {
-            return Error.Unexpected(description: "Cache must be indexed");
+            return Error
+                .Unexpected(code: "Cache.NotIndexed", description: "Cache isn't ready yet.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "fileCache")
+                .WithMetadata("action", "getSize");
         }
 
         var size = _location!
@@ -91,7 +97,10 @@ public class FileCache<TKey, TItem>(
 
         if (!_indexed)
         {
-            return Error.Unexpected(description: "Cache must be indexed");
+            return Error
+                .Unexpected(code: "Cache.NotIndexed", description: "Cache isn't ready yet.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "fileCache")
+                .WithMetadata("action", "clear");
         }
 
         var files = fileSystem
@@ -156,7 +165,10 @@ public class FileCache<TKey, TItem>(
 
         if (!_indexed)
         {
-            return Error.Unexpected(description: "Cache must be indexed");
+            return Error
+                .Unexpected(code: "Cache.NotIndexed", description: "Cache isn't ready yet.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "fileCache")
+                .WithMetadata("action", "getOrAdd");
         }
 
         if (_cache.TryGetValue(key, out var fileCacheItem))
@@ -220,9 +232,15 @@ public class FileCache<TKey, TItem>(
 
         if (maxToFree <= approxSize)
         {
-            return Error.Unexpected(
-                description: $"Cannot free enough space for {approxSize}. Not enough files to delete. Only {maxToFree} can be freed."
-            );
+            return Error
+                .Unexpected(
+                    code: "Cache.InsufficientSpace",
+                    description: "Cache is full and can't free enough space."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "fileCache.clearOldest")
+                .WithMetadata("capacity", capacity.ToString())
+                .WithMetadata("required", approxSize.ToString())
+                .WithMetadata("maxFreeable", maxToFree.ToString());
         }
 
         var freed = 0.Bytes();
@@ -273,9 +291,15 @@ public class FileCache<TKey, TItem>(
 
         if (size - freed + approxSize > capacity)
         {
-            return Error.Unexpected(
-                description: $"Only freed {freed} bytes, still not enough space for {approxSize} below capacity {capacity}"
-            );
+            return Error
+                .Unexpected(
+                    code: "Cache.InsufficientSpace",
+                    description: "Cache couldn't free enough space."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "fileCache.clearOldest")
+                .WithMetadata("capacity", capacity.ToString())
+                .WithMetadata("required", approxSize.ToString())
+                .WithMetadata("freed", freed.ToString());
         }
 
         logger.LogDebug(

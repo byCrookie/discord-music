@@ -10,7 +10,11 @@ public static class TaskExtensions
         {
             if (task.IsFaulted)
             {
-                logger.LogError(task.Exception, "Error in fire and forget task");
+                logger.LogError(
+                    task.Exception,
+                    "Fire-and-forget task faulted immediately. TaskStatus={Status}",
+                    task.Status
+                );
             }
 
             return;
@@ -27,7 +31,7 @@ public static class TaskExtensions
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error in fire and forget task");
+            logger.LogError(e, "Fire-and-forget task crashed. TaskStatus={Status}", task.Status);
         }
     }
 }

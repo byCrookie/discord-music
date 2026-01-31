@@ -1,9 +1,9 @@
-﻿using DiscordMusic.Core.Utils;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 
 namespace DiscordMusic.Core.Tests.Utils;
 
-public class ErrorOrExtensionsTests
+public class ErrorExtensionsTests
 {
     [Test]
     public Task ToErrorContent_SingleError_Snapshot()
@@ -48,6 +48,26 @@ public class ErrorOrExtensionsTests
         };
 
         ErrorOr<Success> result = errors;
+
+        var content = result.ToErrorContent();
+
+        return Verify(content);
+    }
+
+    [Test]
+    public Task ToErrorContent_SingleErrorWithMetadata_IncludesMetadataDetails_Snapshot()
+    {
+        var error = Error.Unexpected(code: "Audio.StreamError", description: "Playback failed.");
+        error = error.WithMetadata(ErrorExtensions.MetadataKeys.Operation, "audio.update");
+        error = error.WithMetadata("guild.id", 123UL);
+        error = error.WithMetadata("textChannel.id", 456UL);
+        error = error.WithMetadata(
+            "track.url",
+            "https://example.com/track"
+        );
+        error = error.WithException(new InvalidOperationException("boom"));
+
+        ErrorOr<Success> result = error;
 
         var content = result.ToErrorContent();
 

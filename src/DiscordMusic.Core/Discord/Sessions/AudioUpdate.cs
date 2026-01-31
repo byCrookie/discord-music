@@ -28,7 +28,6 @@ public record AudioUpdate(Track? Track, Track? NextTrack, AudioStatus AudioStatu
             content.AppendLine($"-# Status: {AudioStatus.State}");
         }
 
-        content.AppendLine();
         content.AppendLine("### Up next");
 
         if (NextTrack is not null)

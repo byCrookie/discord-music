@@ -69,7 +69,7 @@ internal class SkipAction(
                 {
                     Content = $"""
                     ### Skipping…
-                    -# Skipping {skipCount} track(s). This may take a moment...
+                    -# Skipping {skipCount + 1} track(s). This may take a moment...
                     """,
                 }
             ),

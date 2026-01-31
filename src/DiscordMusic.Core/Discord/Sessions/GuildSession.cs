@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord.Cache;
 using DiscordMusic.Core.Spotify;
@@ -21,7 +21,8 @@ internal class GuildSession(
     ILogger<Queue.Queue<Track>> queueLogger,
     Guild guild,
     TextChannel textChannel,
-    GuildVoiceSession guildVoiceSession
+    GuildVoiceSession guildVoiceSession,
+    GatewayClient gatewayClient
 )
 {
     private readonly AsyncLock _commandLock = new();
@@ -151,18 +152,37 @@ internal class GuildSession(
         CancellationToken ct
     )
     {
+        var baseMetadata = new Dictionary<string, object?>
+        {
+            [ErrorExtensions.MetadataKeys.Operation] = append ? "play" : "playNext",
+            ["guild.id"] = Guild.Id,
+            ["textChannel.id"] = textChannel.Id,
+            ["query"] = query,
+        };
+
         if (spotifySearch.IsSpotifyQuery(query))
         {
             var searchSpotify = await spotifySearch.SearchAsync(query, ct);
 
             if (searchSpotify.IsError)
             {
-                return searchSpotify.Errors;
+                logger.LogWarning(
+                    "Spotify search failed. GuildId={GuildId} TextChannelId={TextChannelId} Query={Query} ErrorCode={ErrorCode}",
+                    Guild.Id,
+                    textChannel.Id,
+                    query,
+                    searchSpotify.FirstError.Code
+                );
+
+                return searchSpotify.WithMetadata(baseMetadata).Errors;
             }
 
             if (searchSpotify.Value.Count == 0)
             {
-                return Error.NotFound(description: "No tracks found");
+                return Error
+                    .NotFound(description: "No tracks found")
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("source", "spotify");
             }
 
             var spotifyTracks = searchSpotify
@@ -192,12 +212,23 @@ internal class GuildSession(
         var search = await youtubeSearch.SearchAsync(query, ct);
         if (search.IsError)
         {
-            return search.Errors;
+            logger.LogWarning(
+                "YouTube search failed. GuildId={GuildId} TextChannelId={TextChannelId} Query={Query} ErrorCode={ErrorCode}",
+                Guild.Id,
+                textChannel.Id,
+                query,
+                search.FirstError.Code
+            );
+
+            return search.WithMetadata(baseMetadata).Errors;
         }
 
         if (search.Value.Count == 0)
         {
-            return Error.NotFound(description: "No tracks found");
+            return Error
+                .NotFound(description: "No tracks found")
+                .WithMetadata(baseMetadata)
+                .WithMetadata("source", "youtube");
         }
 
         var tracks = search
@@ -226,22 +257,46 @@ internal class GuildSession(
 
     private async Task UpdateAsync(AudioEvent item, Exception? exception, CancellationToken ct)
     {
-        logger.LogTrace("Update {Item}", item);
+        logger.LogTrace(
+            "Audio event received. Event={AudioEvent} GuildId={GuildId} TextChannelId={TextChannelId} CurrentTrack={CurrentTrackUrl}",
+            item,
+            Guild.Id,
+            textChannel.Id,
+            _currentTrack?.Url
+        );
 
         switch (item)
         {
             case AudioEvent.Error:
-                logger.LogError(exception, "Error in audio stream");
+            {
+                logger.LogError(
+                    exception,
+                    "Error in audio stream. GuildId={GuildId} TextChannelId={TextChannelId} CurrentTrack={CurrentTrackUrl}",
+                    Guild.Id,
+                    textChannel.Id,
+                    _currentTrack?.Url
+                );
+
+                var error = Error
+                    .Unexpected(
+                        code: "Audio.StreamError",
+                        description: "Playback failed. I'll try the next track."
+                    )
+                    .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "audio.update")
+                    .WithMetadata("guild.id", Guild.Id)
+                    .WithMetadata("textChannel.id", textChannel.Id)
+                    .WithMetadata("track.url", _currentTrack?.Url);
+
+                if (exception is not null)
+                {
+                    error = error.WithException(exception);
+                }
+
                 await textChannel.SendMessageAsync(
-                    new MessageProperties
-                    {
-                        Content = ExceptionToContent(
-                            "Error in audio stream. Trying to play the next track.",
-                            exception
-                        ),
-                    },
+                    new MessageProperties { Content = ((ErrorOr<Success>)error).ToErrorContent() },
                     cancellationToken: ct
                 );
+
                 _currentTrack = null;
 
                 var nextFromError = await PlayNextTrackFromQueueAsync(true, ct);
@@ -249,8 +304,10 @@ internal class GuildSession(
                 if (nextFromError.IsError)
                 {
                     logger.LogError(
-                        "Failed to play next track: {Error}",
-                        nextFromError.ToErrorContent()
+                        "Failed to play next track after stream error. GuildId={GuildId} TextChannelId={TextChannelId} ErrorCode={ErrorCode}",
+                        Guild.Id,
+                        textChannel.Id,
+                        nextFromError.FirstError.Code
                     );
                     await textChannel.SendMessageAsync(
                         new MessageProperties { Content = nextFromError.ToErrorContent() },
@@ -261,7 +318,7 @@ internal class GuildSession(
 
                 if (nextFromError.Value.Track is null)
                 {
-                    logger.LogTrace("No more tracks in queue");
+                    logger.LogTrace("No more tracks in queue. GuildId={GuildId}", Guild.Id);
                     await textChannel.SendMessageAsync(
                         new MessageProperties
                         {
@@ -272,14 +329,26 @@ internal class GuildSession(
                 }
 
                 return;
+            }
             case AudioEvent.Ended:
             {
-                logger.LogTrace("Track ended");
+                logger.LogTrace(
+                    "Track ended. GuildId={GuildId} TextChannelId={TextChannelId} LastTrack={CurrentTrackUrl}",
+                    Guild.Id,
+                    textChannel.Id,
+                    _currentTrack?.Url
+                );
+
                 var next = await PlayNextTrackFromQueueAsync(true, ct);
 
                 if (next.IsError)
                 {
-                    logger.LogError("Failed to play next track: {Error}", next.ToErrorContent());
+                    logger.LogError(
+                        "Failed to play next track. GuildId={GuildId} TextChannelId={TextChannelId} ErrorCode={ErrorCode}",
+                        Guild.Id,
+                        textChannel.Id,
+                        next.FirstError.Code
+                    );
                     await textChannel.SendMessageAsync(
                         new MessageProperties { Content = next.ToErrorContent() },
                         cancellationToken: ct
@@ -289,7 +358,7 @@ internal class GuildSession(
 
                 if (next.Value.Track is null)
                 {
-                    logger.LogTrace("No more tracks in queue");
+                    logger.LogTrace("No more tracks in queue. GuildId={GuildId}", Guild.Id);
                     await textChannel.SendMessageAsync(
                         new MessageProperties
                         {
@@ -305,19 +374,6 @@ internal class GuildSession(
                 break;
             default:
                 throw new UnreachableException($"Unknown audio event: {item}");
-        }
-
-        return;
-
-        string ExceptionToContent(string message, Exception? ex)
-        {
-            return ex is null
-                ? message
-                : $"""
-                    ### Playback error
-                    {message}
-                    -# {ex.GetType().Name}: {ex.Message}
-                    """;
         }
     }
 
@@ -336,13 +392,28 @@ internal class GuildSession(
 
         if (!_queue.TryDequeue(out var firstTrack))
         {
+            logger.LogTrace(
+                "Queue empty on PlayNext. GuildId={GuildId} TextChannelId={TextChannelId}",
+                Guild.Id,
+                textChannel.Id
+            );
             return await BuildAudioUpdateAsync();
         }
+
+        logger.LogInformation(
+            "Starting playback. GuildId={GuildId} TextChannelId={TextChannelId} TrackUrl={TrackUrl} TrackName={TrackName} TrackArtists={TrackArtists}",
+            Guild.Id,
+            textChannel.Id,
+            firstTrack.Url,
+            firstTrack.Name,
+            firstTrack.Artists
+        );
 
         if (spotifySearch.IsSpotifyQuery(firstTrack.Url))
         {
             logger.LogDebug(
-                "Use YouTube to search for Spotify track {Name} {Artists}",
+                "Spotify track detected, searching on YouTube. GuildId={GuildId} TrackName={TrackName} TrackArtists={TrackArtists}",
+                Guild.Id,
                 firstTrack.Name,
                 firstTrack.Artists
             );
@@ -354,12 +425,32 @@ internal class GuildSession(
 
             if (search.IsError)
             {
-                return search.Errors;
+                return search
+                    .WithMetadata(
+                        ErrorExtensions.MetadataKeys.Operation,
+                        "queue.next.spotify.youtubeSearch"
+                    )
+                    .WithMetadata("guild.id", Guild.Id)
+                    .WithMetadata("textChannel.id", textChannel.Id)
+                    .WithMetadata("track.url", firstTrack.Url)
+                    .WithMetadata("track.name", firstTrack.Name)
+                    .WithMetadata("track.artists", firstTrack.Artists)
+                    .Errors;
             }
 
             if (search.Value.Count == 0)
             {
-                return Error.NotFound(description: "Did not find next track");
+                return Error
+                    .NotFound(description: "Did not find next track")
+                    .WithMetadata(
+                        ErrorExtensions.MetadataKeys.Operation,
+                        "queue.next.spotify.youtubeSearch"
+                    )
+                    .WithMetadata("guild.id", Guild.Id)
+                    .WithMetadata("textChannel.id", textChannel.Id)
+                    .WithMetadata("track.url", firstTrack.Url)
+                    .WithMetadata("track.name", firstTrack.Name)
+                    .WithMetadata("track.artists", firstTrack.Artists);
             }
 
             var track = new Track(
@@ -378,7 +469,17 @@ internal class GuildSession(
 
             if (update.IsError)
             {
-                return update.Errors;
+                return update
+                    .WithMetadata(
+                        ErrorExtensions.MetadataKeys.Operation,
+                        "queue.next.spotify.cache.update"
+                    )
+                    .WithMetadata("guild.id", Guild.Id)
+                    .WithMetadata("textChannel.id", textChannel.Id)
+                    .WithMetadata("track.url", track.Url)
+                    .WithMetadata("track.name", track.Name)
+                    .WithMetadata("track.artists", track.Artists)
+                    .Errors;
             }
 
             firstTrack = track;
@@ -392,15 +493,22 @@ internal class GuildSession(
 
         if (cache.IsError)
         {
-            return cache.Errors;
+            return cache
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "queue.next.cache.getOrAdd")
+                .WithMetadata("guild.id", Guild.Id)
+                .WithMetadata("textChannel.id", textChannel.Id)
+                .WithMetadata("track.url", firstTrack.Url)
+                .WithMetadata("track.name", firstTrack.Name)
+                .WithMetadata("track.artists", firstTrack.Artists)
+                .Errors;
         }
 
         if (cache.Value.Exists())
         {
             logger.LogDebug(
-                "Playing existing track {Name} {Artists}",
-                firstTrack.Name,
-                firstTrack.Artists
+                "Playing cached track. GuildId={GuildId} TrackUrl={TrackUrl}",
+                Guild.Id,
+                firstTrack.Url
             );
 
             var playExisting = await GuildVoiceSession.AudioPlayer.PlayAsync(
@@ -411,7 +519,17 @@ internal class GuildSession(
 
             if (playExisting.IsError)
             {
-                return playExisting.Errors;
+                return playExisting
+                    .WithMetadata(
+                        ErrorExtensions.MetadataKeys.Operation,
+                        "queue.next.player.play.cached"
+                    )
+                    .WithMetadata("guild.id", Guild.Id)
+                    .WithMetadata("textChannel.id", textChannel.Id)
+                    .WithMetadata("track.url", firstTrack.Url)
+                    .WithMetadata("track.name", firstTrack.Name)
+                    .WithMetadata("track.artists", firstTrack.Artists)
+                    .Errors;
             }
 
             _currentTrack = firstTrack;
@@ -427,14 +545,30 @@ internal class GuildSession(
 
         if (download.IsError)
         {
-            return download.Errors;
+            return download
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "queue.next.youtube.download")
+                .WithMetadata("guild.id", Guild.Id)
+                .WithMetadata("textChannel.id", textChannel.Id)
+                .WithMetadata("track.url", firstTrack.Url)
+                .WithMetadata("track.name", firstTrack.Name)
+                .WithMetadata("track.artists", firstTrack.Artists)
+                .Errors;
         }
 
         var play = await GuildVoiceSession.AudioPlayer.PlayAsync(cache.Value, UpdateAsync, ct);
 
         if (play.IsError)
         {
-            return play.Errors;
+            return play.WithMetadata(
+                    ErrorExtensions.MetadataKeys.Operation,
+                    "queue.next.player.play.downloaded"
+                )
+                .WithMetadata("guild.id", Guild.Id)
+                .WithMetadata("textChannel.id", textChannel.Id)
+                .WithMetadata("track.url", firstTrack.Url)
+                .WithMetadata("track.name", firstTrack.Name)
+                .WithMetadata("track.artists", firstTrack.Artists)
+                .Errors;
         }
 
         _currentTrack = firstTrack;
@@ -454,9 +588,10 @@ internal class GuildSession(
         if (_queue.TryPeek(out var nextTrack))
         {
             logger.LogDebug(
-                "Downloading next track {Name} {Artists} in the background",
-                nextTrack.Name,
-                nextTrack.Artists
+                "Pre-downloading next track. GuildId={GuildId} TextChannelId={TextChannelId} TrackUrl={TrackUrl}",
+                Guild.Id,
+                textChannel.Id,
+                nextTrack.Url
             );
 
             if (spotifySearch.IsSpotifyQuery(nextTrack.Url))
@@ -469,15 +604,41 @@ internal class GuildSession(
                 if (search.IsError)
                 {
                     logger.LogError(
-                        "Failed to download next track: {Error}",
-                        search.ToErrorContent()
+                        "Failed to pre-download next track (YouTube search). GuildId={GuildId} TrackUrl={TrackUrl} ErrorCode={ErrorCode}",
+                        Guild.Id,
+                        nextTrack.Url,
+                        search.FirstError.Code
+                    );
+
+                    _queue.TryDequeue(out _);
+                    var audioUpdate = await BuildAudioUpdateAsync();
+                    await gatewayClient.Rest.SendMessageAsync(
+                        textChannel.Id,
+                        new MessageProperties
+                        {
+                            Content = $"""
+                                       {search
+                                           .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "queue.predownload.spotify.youtubeSearch")
+                                           .WithMetadata("guild.id", Guild.Id)
+                                           .WithMetadata("textChannel.id", textChannel.Id)
+                                           .WithMetadata("track.url", nextTrack.Url)
+                                           .ToErrorContent()}
+                                       {audioUpdate.ToValueContent()}
+                                       """,
+                        },
+                        cancellationToken: ct
                     );
                     return;
                 }
 
                 if (search.Value.Count == 0)
                 {
-                    logger.LogError("Did not find next track");
+                    logger.LogError(
+                        "Did not find next track during pre-download. GuildId={GuildId} TrackName={TrackName} TrackArtists={TrackArtists}",
+                        Guild.Id,
+                        nextTrack.Name,
+                        nextTrack.Artists
+                    );
                     return;
                 }
 
@@ -498,8 +659,27 @@ internal class GuildSession(
                 if (update.IsError)
                 {
                     logger.LogError(
-                        "Failed to update next track: {Error}",
-                        update.ToErrorContent()
+                        "Failed to update next track during pre-download. GuildId={GuildId} ErrorCode={ErrorCode}",
+                        Guild.Id,
+                        update.FirstError.Code
+                    );
+                    _queue.TryDequeue(out _);
+                    var audioUpdate = await BuildAudioUpdateAsync();
+                    await gatewayClient.Rest.SendMessageAsync(
+                        textChannel.Id,
+                        new MessageProperties
+                        {
+                            Content = $"""
+                                       {update
+                                           .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "queue.predownload.spotify.cache.update")
+                                           .WithMetadata("guild.id", Guild.Id)
+                                           .WithMetadata("textChannel.id", textChannel.Id)
+                                           .WithMetadata("track.url", track.Url)
+                                           .ToErrorContent()}
+                                       {audioUpdate.ToValueContent()}
+                                       """,
+                        },
+                        cancellationToken: ct
                     );
                     return;
                 }
@@ -516,9 +696,30 @@ internal class GuildSession(
             if (nextCache.IsError)
             {
                 logger.LogError(
-                    "Failed to get or add next track to cache: {Error}",
-                    nextCache.ToErrorContent()
+                    "Failed to get or add next track to cache during pre-download. GuildId={GuildId} TrackUrl={TrackUrl} ErrorCode={ErrorCode}",
+                    Guild.Id,
+                    nextTrack.Url,
+                    nextCache.FirstError.Code
                 );
+                _queue.TryDequeue(out _);
+                var audioUpdate = await BuildAudioUpdateAsync();
+                await gatewayClient.Rest.SendMessageAsync(
+                    textChannel.Id,
+                    new MessageProperties
+                    {
+                        Content = $"""
+                                   {nextCache
+                                       .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "queue.predownload.cache.getOrAdd")
+                                       .WithMetadata("guild.id", Guild.Id)
+                                       .WithMetadata("textChannel.id", textChannel.Id)
+                                       .WithMetadata("track.url", nextTrack.Url)
+                                       .ToErrorContent()}
+                                   {audioUpdate.ToValueContent()}
+                                   """,
+                    },
+                    cancellationToken: ct
+                );
+
                 return;
             }
 
@@ -533,17 +734,37 @@ internal class GuildSession(
                 if (download.IsError)
                 {
                     logger.LogError(
-                        "Failed to download next track: {Error}",
-                        download.ToErrorContent()
+                        "Failed to download next track during pre-download. GuildId={GuildId} TrackUrl={TrackUrl} ErrorCode={ErrorCode}",
+                        Guild.Id,
+                        nextTrack.Url,
+                        download.FirstError.Code
+                    );
+                    _queue.TryDequeue(out _);
+                    var audioUpdate = await BuildAudioUpdateAsync();
+                    await gatewayClient.Rest.SendMessageAsync(
+                        textChannel.Id,
+                        new MessageProperties
+                        {
+                            Content = $"""
+                                       {download
+                                           .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "queue.predownload.youtube.download")
+                                           .WithMetadata("guild.id", Guild.Id)
+                                           .WithMetadata("textChannel.id", textChannel.Id)
+                                           .WithMetadata("track.url", nextTrack.Url)
+                                           .ToErrorContent()}
+                                       {audioUpdate.ToValueContent()}
+                                       """,
+                        },
+                        cancellationToken: ct
                     );
                     return;
                 }
             }
 
             logger.LogDebug(
-                "Downloaded next track {Name} {Artists} in the background",
-                nextTrack.Name,
-                nextTrack.Artists
+                "Pre-download completed. GuildId={GuildId} TrackUrl={TrackUrl}",
+                Guild.Id,
+                nextTrack.Url
             );
         }
     }

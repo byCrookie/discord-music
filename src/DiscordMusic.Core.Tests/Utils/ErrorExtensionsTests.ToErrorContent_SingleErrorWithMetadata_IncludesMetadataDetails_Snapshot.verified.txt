@@ -1,0 +1,12 @@
+﻿### Something went wrong
+Playback failed.
+-# Code: `Audio.StreamError`
+-# Details:
+```
+operation: audio.update
+exception.type: System.InvalidOperationException
+exception.message: boom
+guild.id: 123
+textChannel.id: 456
+track.url: https://example.com/track
+```

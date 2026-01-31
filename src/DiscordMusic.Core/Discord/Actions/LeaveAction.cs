@@ -13,7 +13,7 @@ internal class LeaveAction(
     Cancellation cancellation
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
-    [SlashCommand("leave", "The bot will leave the voice channel.")]
+    [SlashCommand("leave", "The bot will leave the voice channel. Deletes guild session.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task Leave()
