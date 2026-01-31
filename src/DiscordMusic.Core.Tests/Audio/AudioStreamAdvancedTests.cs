@@ -263,8 +263,10 @@ public class AudioStreamAdvancedTests
         );
 
         await using var output = new MemoryStream();
+
+        // Create in Stopped state first so we can register handlers before playback starts
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
-            AudioStream.AudioState.Playing,
+            AudioStream.AudioState.Stopped,
             fs,
             path,
             output,
@@ -280,8 +282,11 @@ public class AudioStreamAdvancedTests
             return Task.CompletedTask;
         };
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(2)));
-        await Assert.That(completed).IsEqualTo(tcs.Task);
+        // Now start playback
+        audioStream.Resume();
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        await Assert.That(completed == tcs.Task).IsTrue();
 
         // Wait a moment more to catch duplicate invocations.
         await Task.Delay(100);
@@ -326,8 +331,9 @@ public class AudioStreamAdvancedTests
 
         await using var output = new ThrowingWriteStream();
 
+        // Create in Stopped state first so we can register handlers before playback starts
         var streamOrError = AudioStream.Load(
-            AudioStream.AudioState.Playing,
+            AudioStream.AudioState.Stopped,
             fs.FileInfo.New(path),
             output,
             fs,
@@ -345,8 +351,11 @@ public class AudioStreamAdvancedTests
             return Task.CompletedTask;
         };
 
-        var completed = await Task.WhenAny(failedTcs.Task, Task.Delay(TimeSpan.FromSeconds(2)));
-        await Assert.That(completed).IsEqualTo(failedTcs.Task);
+        // Now start playback - this will trigger the failure
+        audioStream.Resume();
+
+        var completed = await Task.WhenAny(failedTcs.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        await Assert.That(completed == failedTcs.Task).IsTrue();
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Stopped);
     }
 
@@ -486,7 +495,7 @@ public class AudioStreamAdvancedTests
             endedTcs.Task,
             Task.Delay(TimeSpan.FromMilliseconds(300))
         );
-        await Assert.That(completed).IsNotEqualTo(endedTcs.Task);
+        await Assert.That(completed != endedTcs.Task).IsTrue();
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Stopped);
     }
 
@@ -628,8 +637,10 @@ public class AudioStreamAdvancedTests
         );
 
         await using var output = new MemoryStream();
+        
+        // Create in Stopped state first so we can register handlers before playback starts
         var audioStream = await AudioStreamTestHelpers.LoadAsync(
-            AudioStream.AudioState.Playing,
+            AudioStream.AudioState.Stopped,
             fs,
             path,
             output,
@@ -649,14 +660,17 @@ public class AudioStreamAdvancedTests
             await allowHandlerToComplete.Task;
         };
 
+        // Now start playback
+        audioStream.Resume();
+
         try
         {
             // Wait for handler to start, then dispose while it's blocked.
             var entered = await Task.WhenAny(
                 handlerEntered.Task,
-                Task.Delay(TimeSpan.FromSeconds(2))
+                Task.Delay(TimeSpan.FromSeconds(10))
             );
-            await Assert.That(entered).IsEqualTo(handlerEntered.Task);
+            await Assert.That(entered == handlerEntered.Task).IsTrue();
 
             // Dispose should not deadlock even though the state machine is awaiting the handler.
             audioStream.Dispose();

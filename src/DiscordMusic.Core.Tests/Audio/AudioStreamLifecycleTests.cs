@@ -84,8 +84,8 @@ public class AudioStreamLifecycleTests
             return Task.CompletedTask;
         };
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(2)));
-        await Assert.That(completed).IsEqualTo(tcs.Task);
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        await Assert.That(completed == tcs.Task).IsTrue();
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Ended);
 
         await Assert.That(output.Length).IsGreaterThan(0);
@@ -133,8 +133,8 @@ public class AudioStreamLifecycleTests
         }
 
         // It must eventually end (either while paused or after resume).
-        var completed = await Task.WhenAny(endedTcs.Task, Task.Delay(TimeSpan.FromSeconds(2)));
-        await Assert.That(completed).IsEqualTo(endedTcs.Task);
+        var completed = await Task.WhenAny(endedTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        await Assert.That(completed == endedTcs.Task).IsTrue();
         await Assert.That(audioStream.State).IsEqualTo(AudioStream.AudioState.Ended);
     }
 

@@ -6,28 +6,28 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ErrorOr"/>
-        <PackageReference Include="Flurl.Http"/>
-        <PackageReference Include="HtmlAgilityPack"/>
-        <PackageReference Include="Humanizer.Core"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Ini"/>
-        <PackageReference Include="Microsoft.Extensions.Options"/>
-        <PackageReference Include="NetCord.Hosting.AspNetCore"/>
-        <PackageReference Include="NetCord.Hosting.Services"/>
-        <PackageReference Include="SpotifyAPI.Web"/>
-        <PackageReference Include="Testably.Abstractions"/>
-        <PackageReference Include="ValueOf"/>
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="Flurl.Http" />
+        <PackageReference Include="HtmlAgilityPack" />
+        <PackageReference Include="Humanizer.Core" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Ini" />
+        <PackageReference Include="Microsoft.Extensions.Options" />
+        <PackageReference Include="NetCord.Hosting.AspNetCore" />
+        <PackageReference Include="NetCord.Hosting.Services" />
+        <PackageReference Include="SpotifyAPI.Web" />
+        <PackageReference Include="Testably.Abstractions" />
+        <PackageReference Include="ValueOf" />
         <PackageReference Update="Nerdbank.GitVersioning">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Whisper.net"/>
-        <PackageReference Include="Whisper.net.Runtime"/>
+        <PackageReference Include="Whisper.net" />
+        <PackageReference Include="Whisper.net.Runtime" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageVersion Update="SpotifyAPI.Web" Version="7.2.1"/>
+        <PackageVersion Update="SpotifyAPI.Web" Version="7.2.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,7 +37,8 @@
             Condition="
       '$(RuntimeIdentifier)' == '' OR
       $(RuntimeIdentifier.StartsWith('win-'))
-    ">
+    "
+        >
             <Link>opus.dll</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
@@ -50,7 +51,8 @@
       $(RuntimeIdentifier.StartsWith('linux-x64')) OR
       $(RuntimeIdentifier.StartsWith('linux-musl-x64')) OR
       $(RuntimeIdentifier.StartsWith('osx-x64'))
-    ">
+    "
+        >
             <Link>libopus.so</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
@@ -64,11 +66,11 @@
       $(RuntimeIdentifier.StartsWith('linux-arm64')) OR
       $(RuntimeIdentifier.StartsWith('linux-musl-arm64')) OR
       $(RuntimeIdentifier.StartsWith('osx-arm64'))
-    ">
+    "
+        >
             <Link>libopus.so</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
         </Content>
     </ItemGroup>
-
 </Project>

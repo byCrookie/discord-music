@@ -21,10 +21,10 @@ public static class ErrorExtensions
                 return error;
             }
 
-            var metadata = error.Metadata is not null 
-                ? new Dictionary<string, object>(error.Metadata) 
+            var metadata = error.Metadata is not null
+                ? new Dictionary<string, object>(error.Metadata)
                 : new Dictionary<string, object>();
-            
+
             metadata[key] = value;
 
             return Error.Custom(
@@ -42,8 +42,8 @@ public static class ErrorExtensions
                 return error;
             }
 
-            var newMetadata = error.Metadata is not null 
-                ? new Dictionary<string, object>(error.Metadata) 
+            var newMetadata = error.Metadata is not null
+                ? new Dictionary<string, object>(error.Metadata)
                 : new Dictionary<string, object>();
 
             foreach (var (key, value) in metadata)
@@ -64,8 +64,8 @@ public static class ErrorExtensions
 
         public Error WithException(Exception exception, bool includeStackTrace = false)
         {
-            var metadata = error.Metadata is not null 
-                ? new Dictionary<string, object>(error.Metadata) 
+            var metadata = error.Metadata is not null
+                ? new Dictionary<string, object>(error.Metadata)
                 : new Dictionary<string, object>();
 
             metadata[MetadataKeys.ExceptionType] =
@@ -95,7 +95,9 @@ public static class ErrorExtensions
                 return value;
             }
 
-            var updatedErrors = value.Errors.Select(e => e.WithMetadata(key, metadataValue)).ToList();
+            var updatedErrors = value
+                .Errors.Select(e => e.WithMetadata(key, metadataValue))
+                .ToList();
             return updatedErrors;
         }
 
@@ -220,7 +222,7 @@ public static class ErrorExtensions
         MetadataKeys.Operation,
         MetadataKeys.ExceptionType,
         MetadataKeys.ExceptionMessage,
-        MetadataKeys.ExceptionStack
+        MetadataKeys.ExceptionStack,
     ];
 
     private static string FormatDetailFromDescription(string? description)
