@@ -17,7 +17,7 @@ internal sealed class VoiceCommandDispatcher(
         var sessionResult = await guildSessionManager.GetSessionAsync(guildId, ct);
         if (sessionResult.IsError)
         {
-            logger.LogInformation("Voice command ignored: {Error}", sessionResult.ToErrorContent());
+            logger.LogInformation("Voice command ignored: {Error}", sessionResult);
             return;
         }
 

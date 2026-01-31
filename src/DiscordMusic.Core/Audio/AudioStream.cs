@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using System.IO.Pipelines;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
 
@@ -307,9 +308,9 @@ public class AudioStream : IDisposable
                 _pipe.Writer.Complete();
                 _pipe.Reader.Complete();
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                _logger.LogTrace(e, "Failed to complete pipe in Seek");
             }
 
             _inputStream.Position = seekPosition;
@@ -370,9 +371,9 @@ public class AudioStream : IDisposable
                 _pipe.Writer.Complete();
                 _pipe.Reader.Complete();
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                _logger.LogTrace(e, "Failed to complete pipe in Dispose");
             }
 
             _inputStream.Dispose();
@@ -399,8 +400,27 @@ public class AudioStream : IDisposable
             return Error.NotFound(description: "Audio file not found.");
         }
 
-        var stream = fileSystem.FileStream.New(audioFile.FullName, FileMode.Open, FileAccess.Read);
-        logger.LogDebug("Audio stream loaded from {AudioFile}", audioFile.FullName);
-        return new AudioStream(initialState, stream, outputStream, logger, ct);
+        try
+        {
+            var stream = fileSystem.FileStream.New(
+                audioFile.FullName,
+                FileMode.Open,
+                FileAccess.Read
+            );
+            logger.LogDebug("Audio stream loaded from {AudioFile}", audioFile.FullName);
+            return new AudioStream(initialState, stream, outputStream, logger, ct);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to load audio stream from {AudioFile}", audioFile.FullName);
+            return Error
+                .Unexpected(
+                    description: "Failed to load audio file.",
+                    code: "AudioStream.LoadFailed"
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "audioStream.load")
+                .WithMetadata("audioFile", audioFile.FullName)
+                .WithException(e);
+        }
     }
 }

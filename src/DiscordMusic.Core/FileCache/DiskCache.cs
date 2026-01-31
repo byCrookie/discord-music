@@ -46,42 +46,55 @@ internal class DiskCache<T>(
         _cacheDir = dir.Value;
 
         var cacheSize = new ByteSize();
-        foreach (
-            var metadataFile in fileSystem
-                .Directory.EnumerateFiles(dir.Value.FullName)
-                .Where(file => file.EndsWith(MetadataExtension))
-        )
+
+        try
         {
-            var dataFile = Path.Combine(
-                Path.GetFileNameWithoutExtension(metadataFile),
-                BinExtension
-            );
-
-            var metadata = jsonSerializer.Deserialize<T>(
-                await fileSystem.File.ReadAllTextAsync(metadataFile, ct)
-            );
-
-            if (metadata is null)
+            foreach (
+                var metadataFile in fileSystem
+                    .Directory.EnumerateFiles(dir.Value.FullName)
+                    .Where(file => file.EndsWith(MetadataExtension))
+            )
             {
-                logger.LogWarning("Invalid metadata file {MetadataFile}", metadataFile);
+                var dataFile = Path.Combine(
+                    Path.GetFileNameWithoutExtension(metadataFile),
+                    BinExtension
+                );
 
-                if (fileSystem.File.Exists(dataFile))
+                var metadata = jsonSerializer.Deserialize<T>(
+                    await fileSystem.File.ReadAllTextAsync(metadataFile, ct)
+                );
+
+                if (metadata is null)
                 {
-                    logger.LogDebug(
-                        "Delete data file {DataFile} because of invalid metadata {MetadataFile}",
-                        dataFile,
-                        metadataFile
-                    );
-                    fileSystem.File.Delete(dataFile);
+                    logger.LogWarning("Invalid metadata file {MetadataFile}", metadataFile);
+
+                    if (fileSystem.File.Exists(dataFile))
+                    {
+                        logger.LogDebug(
+                            "Delete data file {DataFile} because of invalid metadata {MetadataFile}",
+                            dataFile,
+                            metadataFile
+                        );
+                        fileSystem.File.Delete(dataFile);
+                    }
+
+                    logger.LogDebug("Delete invalid metadata file {MetadataFile}", metadataFile);
+                    fileSystem.File.Delete(metadataFile);
+                    continue;
                 }
 
-                logger.LogDebug("Delete invalid metadata file {MetadataFile}", metadataFile);
-                fileSystem.File.Delete(metadataFile);
-                continue;
+                cacheSize += fileSystem.FileInfo.New(metadataFile).Length.Bytes();
+                cacheSize += fileSystem.FileInfo.New(dataFile).Length.Bytes();
             }
-
-            cacheSize += fileSystem.FileInfo.New(metadataFile).Length.Bytes();
-            cacheSize += fileSystem.FileInfo.New(dataFile).Length.Bytes();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to inspect cache directory {CacheDir}", dir.Value.FullName);
+            return Error
+                .Unexpected(code: "Cache.InitFailed", description: "Failed to read existing cache.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "diskCache.init")
+                .WithMetadata("cacheDir", dir.Value.FullName)
+                .WithException(e);
         }
 
         _cacheSize = cacheSize;
@@ -106,8 +119,24 @@ internal class DiskCache<T>(
         var id = KeyToId(key);
         var serialized = jsonSerializer.Serialize(metadata);
         var metadataFilePath = Path.Combine(_cacheDir!.FullName, id, MetadataExtension);
-        await fileSystem.File.WriteAllTextAsync(metadataFilePath, serialized, ct);
-        _cacheSize += fileSystem.FileInfo.New(metadataFilePath).Length.Bytes();
+
+        try
+        {
+            await fileSystem.File.WriteAllTextAsync(metadataFilePath, serialized, ct);
+            _cacheSize += fileSystem.FileInfo.New(metadataFilePath).Length.Bytes();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to save metadata to {MetadataPath}", metadataFilePath);
+            return Error
+                .Unexpected(
+                    code: "Cache.SaveMetadataFailed",
+                    description: "Failed to save cache metadata."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "diskCache.saveMetadata")
+                .WithMetadata("metadataFilePath", metadataFilePath)
+                .WithException(e);
+        }
 
         await ShrinkToMaxSizeAsync(ct);
         return Result.Success;
@@ -132,16 +161,31 @@ internal class DiskCache<T>(
             );
         }
 
-        var content = await fileSystem.File.ReadAllTextAsync(metadataFilePath, ct);
-        var metadata = jsonSerializer.Deserialize<T>(content);
-        if (metadata is null)
+        try
         {
-            return Error.Unexpected(
-                description: $"Failed to deserialize metadata for id {id} at path {metadataFilePath}"
-            );
-        }
+            var content = await fileSystem.File.ReadAllTextAsync(metadataFilePath, ct);
+            var metadata = jsonSerializer.Deserialize<T>(content);
+            if (metadata is null)
+            {
+                return Error.Unexpected(
+                    description: $"Failed to deserialize metadata for id {id} at path {metadataFilePath}"
+                );
+            }
 
-        return metadata;
+            return metadata;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to retrieve metadata from {MetadataPath}", metadataFilePath);
+            return Error
+                .Unexpected(
+                    code: "Cache.RetrieveMetadataFailed",
+                    description: "Failed to retrieve cache metadata."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "diskCache.retrieveMetadata")
+                .WithMetadata("metadataFilePath", metadataFilePath)
+                .WithException(e);
+        }
     }
 
     public async Task<ErrorOr<IFileInfo>> GetMetadataPathAsync(Key key, CancellationToken ct)
@@ -195,28 +239,40 @@ internal class DiskCache<T>(
             return Error.Unexpected(description: "DiskCache not initialized.");
         }
 
-        foreach (
-            var metadataFile in fileSystem
-                .Directory.EnumerateFiles(_cacheDir!.FullName)
-                .Where(file => file.EndsWith(MetadataExtension))
-        )
+        try
         {
-            var dataFile = Path.Combine(
-                Path.GetFileNameWithoutExtension(metadataFile),
-                BinExtension
-            );
+            foreach (
+                var metadataFile in fileSystem
+                    .Directory.EnumerateFiles(_cacheDir!.FullName)
+                    .Where(file => file.EndsWith(MetadataExtension))
+            )
+            {
+                var dataFile = Path.Combine(
+                    Path.GetFileNameWithoutExtension(metadataFile),
+                    BinExtension
+                );
 
-            logger.LogDebug(
-                "Delete metadata {MetaDataFile} and {DataFile} to clear cache.",
-                metadataFile,
-                dataFile
-            );
-            fileSystem.File.Delete(dataFile);
-            fileSystem.File.Delete(metadataFile);
+                logger.LogDebug(
+                    "Delete metadata {MetaDataFile} and {DataFile} to clear cache.",
+                    metadataFile,
+                    dataFile
+                );
+                fileSystem.File.Delete(dataFile);
+                fileSystem.File.Delete(metadataFile);
+            }
+
+            _cacheSize = ByteSize.FromBytes(0);
+            return Result.Success;
         }
-
-        _cacheSize = ByteSize.FromBytes(0);
-        return Result.Success;
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to clear cache at {CacheDir}", _cacheDir!.FullName);
+            return Error
+                .Unexpected(code: "Cache.ClearFailed", description: "Failed to clear cache.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "diskCache.clear")
+                .WithMetadata("cacheDir", _cacheDir!.FullName)
+                .WithException(e);
+        }
     }
 
     private static ID KeyToId(Key key)
@@ -231,51 +287,58 @@ internal class DiskCache<T>(
     {
         await using var _ = await _lock.AquireAsync(ct);
 
-        if (_cacheSize > ByteSize.Parse(cacheOptions.Value.MaxSize))
+        try
         {
-            logger.LogWarning(
-                "Cache size {CacheSize} exceeds capacity {ByteSize}. Deleting old data.",
-                _cacheSize,
-                ByteSize.Parse(cacheOptions.Value.MaxSize)
-            );
-            var diff = ByteSize.FromBytes(
-                Math.Abs((_cacheSize - ByteSize.Parse(cacheOptions.Value.MaxSize)).Bytes)
-            );
-
-            var deletedSize = ByteSize.FromBytes(0);
-            foreach (
-                var metadataFile in fileSystem
-                    .Directory.EnumerateFiles(_cacheDir!.FullName)
-                    .Where(file => file.EndsWith(MetadataExtension))
-                    .OrderByDescending(file => fileSystem.FileInfo.New(file).LastAccessTimeUtc)
-            )
+            if (_cacheSize > ByteSize.Parse(cacheOptions.Value.MaxSize))
             {
-                var dataFile = Path.Combine(
-                    Path.GetFileNameWithoutExtension(metadataFile),
-                    BinExtension
+                logger.LogWarning(
+                    "Cache size {CacheSize} exceeds capacity {ByteSize}. Deleting old data.",
+                    _cacheSize,
+                    ByteSize.Parse(cacheOptions.Value.MaxSize)
+                );
+                var diff = ByteSize.FromBytes(
+                    Math.Abs((_cacheSize - ByteSize.Parse(cacheOptions.Value.MaxSize)).Bytes)
                 );
 
-                var entrySize = (
-                    fileSystem.FileInfo.New(metadataFile).Length
-                    + fileSystem.FileInfo.New(dataFile).Length
-                ).Bytes();
-                deletedSize += entrySize;
-
-                if (deletedSize >= diff)
+                var deletedSize = ByteSize.FromBytes(0);
+                foreach (
+                    var metadataFile in fileSystem
+                        .Directory.EnumerateFiles(_cacheDir!.FullName)
+                        .Where(file => file.EndsWith(MetadataExtension))
+                        .OrderByDescending(file => fileSystem.FileInfo.New(file).LastAccessTimeUtc)
+                )
                 {
-                    continue;
-                }
+                    var dataFile = Path.Combine(
+                        Path.GetFileNameWithoutExtension(metadataFile),
+                        BinExtension
+                    );
 
-                logger.LogDebug(
-                    "Delete metadata {MetaDataFile} and {DataFile} to reduce cache size by {EntrySize}.",
-                    metadataFile,
-                    dataFile,
-                    entrySize
-                );
-                fileSystem.File.Delete(dataFile);
-                fileSystem.File.Delete(metadataFile);
-                _cacheSize -= entrySize;
+                    var entrySize = (
+                        fileSystem.FileInfo.New(metadataFile).Length
+                        + fileSystem.FileInfo.New(dataFile).Length
+                    ).Bytes();
+                    deletedSize += entrySize;
+
+                    if (deletedSize >= diff)
+                    {
+                        continue;
+                    }
+
+                    logger.LogDebug(
+                        "Delete metadata {MetaDataFile} and {DataFile} to reduce cache size by {EntrySize}.",
+                        metadataFile,
+                        dataFile,
+                        entrySize
+                    );
+                    fileSystem.File.Delete(dataFile);
+                    fileSystem.File.Delete(metadataFile);
+                    _cacheSize -= entrySize;
+                }
             }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to shrink cache.");
         }
     }
 
@@ -303,7 +366,19 @@ internal class DiskCache<T>(
         }
         catch (Exception e)
         {
-            return Error.Unexpected(e.Message);
+            logger.LogError(
+                e,
+                "Failed to create or access cache directory. Path={CachePath}",
+                cacheLocation.FullName
+            );
+            return Error
+                .Unexpected(
+                    code: "Cache.DirectoryInitFailed",
+                    description: "I couldn't initialize the cache directory."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "diskCache.init")
+                .WithMetadata("cachePath", cacheLocation.FullName)
+                .WithException(e);
         }
     }
 

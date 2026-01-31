@@ -53,13 +53,20 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             }
 
             logger.LogError(
-                "Binary {DefaultBinaryName} not found in current directory {CurrentDirectory}.",
+                "Binary not found in current directory. BinaryName={BinaryName} CurrentDirectory={CurrentDirectory}",
                 defaultBinaryName,
                 current.Directory!.FullName
             );
-            return Error.Unexpected(
-                description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
-            );
+
+            return Error
+                .Unexpected(
+                    code: "Binary.NotFound",
+                    description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
+                .WithMetadata("binaryName", defaultBinaryName)
+                .WithMetadata("path", path)
+                .WithMetadata("currentDirectory", current.Directory!.FullName);
         }
 
         if (fileSystem.File.Exists(path))
@@ -98,21 +105,36 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             }
 
             logger.LogError(
-                "Binary {DefaultBinaryName} not found in directory {Path}.",
+                "Binary not found in directory. BinaryName={BinaryName} Directory={Directory}",
                 defaultBinaryName,
                 path
             );
-            return Error.Unexpected(
-                description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
-            );
+
+            return Error
+                .Unexpected(
+                    code: "Binary.NotFound",
+                    description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
+                .WithMetadata("binaryName", defaultBinaryName)
+                .WithMetadata("path", path)
+                .WithMetadata("directory", path);
         }
 
         logger.LogError(
-            "Path {Path} is not a valid path or directory for binary {DefaultBinaryName}.",
-            path,
-            defaultBinaryName
+            "Invalid binary path configuration. BinaryName={BinaryName} Path={Path}",
+            defaultBinaryName,
+            path
         );
-        return Error.Unexpected(description: $"Invalid configuration for `{defaultBinaryName}`.");
+
+        return Error
+            .Unexpected(
+                code: "Binary.InvalidPath",
+                description: $"Invalid configuration for `{defaultBinaryName}`."
+            )
+            .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
+            .WithMetadata("binaryName", defaultBinaryName)
+            .WithMetadata("path", path);
     }
 
     public record BinaryLocation(

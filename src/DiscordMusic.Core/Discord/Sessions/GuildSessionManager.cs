@@ -80,10 +80,22 @@ internal class GuildSessionManager(
             return session;
         }
 
-        var guild = await gatewayClient.Rest.GetGuildAsync(guildId, cancellationToken: ct);
-        return Error.NotFound(
-            description: $"No active music session for **{guild.Name}**. Use `/join` first."
-        );
+        try
+        {
+            var guild = await gatewayClient.Rest.GetGuildAsync(guildId, cancellationToken: ct);
+            return Error.NotFound(
+                description: $"No active music session for **{guild.Name}**. Use `/join` first."
+            );
+        }
+        catch (Exception e)
+        {
+            logger.LogDebug(e, "Failed to get guild info for {GuildId}", guildId);
+            return Error
+                .NotFound(description: "No active music session. Use `/join` first.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "guildSession.getGuildInfo")
+                .WithMetadata("guildId", guildId)
+                .WithException(e);
+        }
     }
 
     private async Task<ErrorOr<Success>> LeaveAndDisposeVoiceClientAsync(
@@ -99,17 +111,13 @@ internal class GuildSessionManager(
                 existingSession.Guild.Name
             );
 
+            _sessions.Remove(guildId);
             voiceCommandSubscriptions.Remove(guildId);
             await existingSession.GuildVoiceSession.DisposeAsync();
-
             await gatewayClient.CloseAsync(cancellationToken: ct);
             await gatewayClient.StartAsync(cancellationToken: ct);
-
             return Result.Success;
         }
-
-        await gatewayClient.CloseAsync(cancellationToken: ct);
-        await gatewayClient.StartAsync(cancellationToken: ct);
 
         logger.LogDebug("No existing session for guild {Guild}", guildId);
         return Error.NotFound(description: "I’m not connected in this server.");
@@ -136,15 +144,34 @@ internal class GuildSessionManager(
 
                 if (existingSession.GuildVoiceSession.VoiceClient.Status != WebSocketStatus.Ready)
                 {
-                    logger.LogDebug(
-                        "Voice client for guild {Guild} is not ready, starting it",
-                        guild.Name
-                    );
-                    await existingSession.GuildVoiceSession.VoiceClient.StartAsync(ct);
-                    await existingSession.GuildVoiceSession.VoiceClient.EnterSpeakingStateAsync(
-                        new SpeakingProperties(SpeakingFlags.Priority),
-                        cancellationToken: ct
-                    );
+                    try
+                    {
+                        logger.LogDebug(
+                            "Voice client for guild {Guild} is not ready, starting it",
+                            guild.Name
+                        );
+                        await existingSession.GuildVoiceSession.VoiceClient.StartAsync(ct);
+                        await existingSession.GuildVoiceSession.VoiceClient.EnterSpeakingStateAsync(
+                            new SpeakingProperties(SpeakingFlags.Priority),
+                            cancellationToken: ct
+                        );
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(
+                            e,
+                            "Failed to restart voice client for guild {Guild}",
+                            guild.Name
+                        );
+                        return Error
+                            .Unexpected(description: "Failed to connect to voice channel.")
+                            .WithMetadata(
+                                ErrorExtensions.MetadataKeys.Operation,
+                                "guildSession.voiceClientRestart"
+                            )
+                            .WithMetadata("guild", guild.Name)
+                            .WithException(e);
+                    }
                 }
 
                 UpdateListenBasedOnSession(
@@ -188,11 +215,30 @@ internal class GuildSessionManager(
                 guild.Name,
                 voiceChannel.Name
             );
-            await voiceClientForExisting.StartAsync(ct);
-            await voiceClientForExisting.EnterSpeakingStateAsync(
-                new SpeakingProperties(SpeakingFlags.Priority),
-                cancellationToken: ct
-            );
+
+            try
+            {
+                await voiceClientForExisting.StartAsync(ct);
+                await voiceClientForExisting.EnterSpeakingStateAsync(
+                    new SpeakingProperties(SpeakingFlags.Priority),
+                    cancellationToken: ct
+                );
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to start voice client for guild {Guild}", guild.Name);
+                await voiceClientForExisting.CloseAsync();
+                voiceClientForExisting.Dispose();
+                return Error
+                    .Unexpected(description: "Failed to connect to voice channel.")
+                    .WithMetadata(
+                        ErrorExtensions.MetadataKeys.Operation,
+                        "guildSession.voiceClientMove"
+                    )
+                    .WithMetadata("guild", guild.Name)
+                    .WithMetadata("voiceChannel", voiceChannel.Name)
+                    .WithException(e);
+            }
 
             UpdateListenBasedOnSession(voiceCommandSetting, guild, voiceClientForExisting);
 
@@ -250,11 +296,30 @@ internal class GuildSessionManager(
             guild.Name,
             voiceChannel.Name
         );
-        await voiceClient.StartAsync(ct);
-        await voiceClient.EnterSpeakingStateAsync(
-            new SpeakingProperties(SpeakingFlags.Priority),
-            cancellationToken: ct
-        );
+
+        try
+        {
+            await voiceClient.StartAsync(ct);
+            await voiceClient.EnterSpeakingStateAsync(
+                new SpeakingProperties(SpeakingFlags.Priority),
+                cancellationToken: ct
+            );
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to start voice client for guild {Guild}", guild.Name);
+            await voiceClient.CloseAsync();
+            voiceClient.Dispose();
+            return Error
+                .Unexpected(description: "Failed to connect to voice channel.")
+                .WithMetadata(
+                    ErrorExtensions.MetadataKeys.Operation,
+                    "guildSession.voiceClientConnect"
+                )
+                .WithMetadata("guild", guild.Name)
+                .WithMetadata("voiceChannel", voiceChannel.Name)
+                .WithException(e);
+        }
 
         UpdateListenBasedOnSession(voiceCommandSetting, guild, voiceClient);
 
@@ -305,9 +370,17 @@ internal class GuildSessionManager(
                 userId,
                 guildId
             );
-            return Error.NotFound(
-                description: "I couldn’t figure out which voice channel you’re in. Please join a voice channel and try again."
-            );
+            return Error
+                .NotFound(
+                    "I couldn’t figure out which voice channel you’re in. Please join a voice channel and try again."
+                )
+                .WithMetadata(
+                    ErrorExtensions.MetadataKeys.Operation,
+                    "guildSession.join.getVoiceState"
+                )
+                .WithMetadata("guildId", guildId)
+                .WithMetadata("userId", userId)
+                .WithException(ex);
         }
     }
 

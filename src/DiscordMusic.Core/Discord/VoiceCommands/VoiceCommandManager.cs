@@ -59,7 +59,13 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Failed decoding/buffering voice frame");
+                _logger.LogWarning(
+                    ex,
+                    "Failed decoding/buffering voice frame. GuildId={GuildId} SSRC={Ssrc} FrameLength={FrameLength}",
+                    guildId,
+                    args.Ssrc,
+                    args.Frame.Length
+                );
             }
 
             return ValueTask.CompletedTask;

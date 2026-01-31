@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Runtime.CompilerServices;
+using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Flurl;
 using Microsoft.Extensions.Logging;
@@ -45,12 +46,52 @@ internal class SpotifySearch(
 
         var spotify = new SpotifyClient(config);
 
-        if (Url.IsValid(query))
+        try
         {
-            return await SearchByUrlAsync(spotify, new Url(query), ct).ToListAsync(ct);
-        }
+            if (Url.IsValid(query))
+            {
+                return await SearchByUrlAsync(spotify, new Url(query), ct).ToListAsync(ct);
+            }
 
-        return await SearchByQueryAsync(spotify, query, ct).ToListAsync(ct);
+            return await SearchByQueryAsync(spotify, query, ct).ToListAsync(ct);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogDebug(e, "Invalid Spotify URL {Query}", query);
+            return Error.Validation(description: e.Message);
+        }
+        catch (APITooManyRequestsException e)
+        {
+            logger.LogWarning(e, "Spotify API rate limit exceeded");
+            return Error
+                .Unexpected(
+                    code: "Spotify.RateLimited",
+                    description: "Spotify is currently unavailable."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "spotify.search")
+                .WithMetadata("retryAfter", e.RetryAfter.TotalSeconds)
+                .WithException(e);
+        }
+        catch (APIException e)
+        {
+            logger.LogError(e, "Spotify API error. Query={Query}", query);
+            return Error
+                .Unexpected(code: "Spotify.ApiError", description: "Spotify search failed.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "spotify.search")
+                .WithMetadata("query", query)
+                .WithMetadata("responseBody", e.Response?.Body?.ToString())
+                .WithMetadata("statusCode", e.Response?.StatusCode)
+                .WithException(e);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Spotify search failed. Query={Query}", query);
+            return Error
+                .Unexpected(code: "Spotify.SearchFailed", description: "Spotify search failed.")
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "spotify.search")
+                .WithMetadata("query", query)
+                .WithException(e);
+        }
     }
 
     private static async IAsyncEnumerable<SpotifyTrack> SearchByQueryAsync(

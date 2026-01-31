@@ -18,106 +18,155 @@ internal partial class YoutubeSearch(
 {
     public async Task<ErrorOr<List<YouTubeTrack>>> SearchAsync(string query, CancellationToken ct)
     {
-        logger.LogDebug("Searching YouTube for {Query}.", query);
-
-        var ytdlp = binaryLocator.LocateAndValidate(youTubeOptions.Value.Ytdlp, "yt-dlp");
-
-        if (ytdlp.IsError)
+        try
         {
-            logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToErrorContent());
-            return Error.Unexpected(
-                description: "YouTube search isn't available. `yt-dlp` was not found."
+            logger.LogDebug("Searching YouTube. Query={Query}", query);
+
+            var ytdlp = binaryLocator.LocateAndValidate(youTubeOptions.Value.Ytdlp, "yt-dlp");
+
+            if (ytdlp.IsError)
+            {
+                logger.LogError(
+                    "YouTube search dependency missing: yt-dlp. Query={Query} Error={Error}",
+                    query,
+                    ytdlp.ToErrorContent()
+                );
+
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DependencyMissing",
+                        description: "YouTube search isn't available right now."
+                    )
+                    .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "youtube.search")
+                    .WithMetadata("query", query)
+                    .WithMetadata("missingBinary", "yt-dlp");
+            }
+
+            var deno = binaryLocator.LocateAndValidate(youTubeOptions.Value.Deno, "deno");
+
+            if (deno.IsError)
+            {
+                logger.LogError(
+                    "YouTube search dependency missing: deno. Query={Query} Error={Error}",
+                    query,
+                    deno.ToErrorContent()
+                );
+
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DependencyMissing",
+                        description: "YouTube search isn't available right now."
+                    )
+                    .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "youtube.search")
+                    .WithMetadata("query", query)
+                    .WithMetadata("missingBinary", "deno");
+            }
+
+            var command = new StringBuilder();
+            command.Append($"--default-search auto \"{query}\"");
+            command.Append(" --no-download");
+            command.Append(" --flat-playlist");
+            command.Append(" -j");
+
+            YtdlpArgumentWriter.AppendRuntimeArguments(command, youTubeOptions.Value);
+
+            var commandText = command.ToString();
+            logger.LogTrace(
+                "Starting yt-dlp for YouTube search. Ytdlp={Ytdlp} Args={Args} Query={Query}",
+                ytdlp.Value.PathToFile,
+                commandText,
+                query
             );
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = ytdlp.Value.PathToFile,
+                Arguments = commandText,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            AppendBinaryDirectoryToPath(startInfo, deno.Value);
+
+            using var process = Process.Start(startInfo);
+
+            if (process is null)
+            {
+                logger.LogError(
+                    "Failed to start yt-dlp process for YouTube search. Ytdlp={Ytdlp} Args={Args} Query={Query}",
+                    ytdlp.Value.PathToFile,
+                    commandText,
+                    query
+                );
+
+                return Error
+                    .Unexpected(
+                        code: "YouTube.SearchStartFailed",
+                        description: "I couldn't start the YouTube search process."
+                    )
+                    .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "youtube.search")
+                    .WithMetadata("query", query)
+                    .WithMetadata("ytdlp", ytdlp.Value.PathToFile)
+                    .WithMetadata("args", commandText);
+            }
+
+            var lines = new List<string>();
+            var errors = new List<string>();
+
+            process.OutputDataReceived += (_, args) => ProcessOutput(args, lines);
+            process.ErrorDataReceived += (_, args) => ProcessError(args, errors);
+
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            await process.WaitForExitAsync(ct);
+
+            process.CancelOutputRead();
+            process.CancelErrorRead();
+
+            if (process.ExitCode != 0)
+            {
+                var errorMessage = string.Join(Environment.NewLine, errors);
+
+                logger.LogError(
+                    "YouTube search failed. ExitCode={ExitCode} Query={Query} Error={Error}",
+                    process.ExitCode,
+                    query,
+                    errorMessage
+                );
+
+                return Error
+                    .Unexpected(code: "YouTube.SearchFailed", description: "YouTube search failed.")
+                    .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "youtube.search")
+                    .WithMetadata("query", query)
+                    .WithMetadata("exitCode", process.ExitCode)
+                    .WithMetadata("stderr", errorMessage)
+                    .WithMetadata("ytdlp", ytdlp.Value.PathToFile);
+            }
+
+            var tracks = lines
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .Select(jsonSerializer.Deserialize<YouTubeTrack>)
+                .DistinctBy(e => e.Url)
+                .ToList();
+
+            logger.LogDebug("Found {Count} tracks on YouTube for {Query}.", tracks.Count, query);
+            return tracks.Count != 0 ? tracks : [];
         }
-
-        var deno = binaryLocator.LocateAndValidate(youTubeOptions.Value.Deno, "deno");
-
-        if (deno.IsError)
+        catch (Exception e)
         {
-            logger.LogError("Failed to locate deno: {Error}", deno.ToErrorContent());
-            return Error.Unexpected(
-                description: "YouTube search isn't available. `deno` was not found."
-            );
+            logger.LogError(e, "YouTube search crashed. Query={Query}", query);
+
+            return Error
+                .Unexpected(
+                    code: "YouTube.SearchCrashed",
+                    description: "YouTube search failed unexpectedly."
+                )
+                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "youtube.search")
+                .WithMetadata("query", query)
+                .WithException(e);
         }
-
-        var command = new StringBuilder();
-        command.Append($"--default-search auto \"{query}\"");
-        command.Append(" --no-download");
-        command.Append(" --flat-playlist");
-        command.Append(" -j");
-
-        YtdlpArgumentWriter.AppendRuntimeArguments(command, youTubeOptions.Value);
-
-        var commandText = command.ToString();
-        logger.LogTrace(
-            "Start process {Ytdlp} with command {Command}.",
-            ytdlp.Value.PathToFile,
-            commandText
-        );
-
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = ytdlp.Value.PathToFile,
-            Arguments = commandText,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        AppendBinaryDirectoryToPath(startInfo, deno.Value);
-
-        using var process = Process.Start(startInfo);
-
-        if (process is null)
-        {
-            logger.LogError(
-                "Failed to start process {Ytdlp} with command {Command}.",
-                ytdlp,
-                commandText
-            );
-            return Error.Unexpected(description: "I couldn't start the YouTube search process.");
-        }
-
-        var lines = new List<string>();
-        var errors = new List<string>();
-
-        process.OutputDataReceived += (_, args) => ProcessOutput(args, lines);
-        process.ErrorDataReceived += (_, args) => ProcessError(args, errors);
-
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync(ct);
-
-        process.CancelOutputRead();
-        process.CancelErrorRead();
-
-        if (process.ExitCode != 0)
-        {
-            var errorMessage = string.Join(Environment.NewLine, errors);
-            logger.LogError(
-                "YouTube search failed with exit code {ExitCode}. {Error}",
-                process.ExitCode,
-                errorMessage
-            );
-
-            return Error.Unexpected(
-                description: $"""
-                YouTube search failed.
-                Exit code: {process.ExitCode}
-                {errorMessage}
-                """
-            );
-        }
-
-        var tracks = lines
-            .Where(l => !string.IsNullOrWhiteSpace(l))
-            .Select(jsonSerializer.Deserialize<YouTubeTrack>)
-            .DistinctBy(e => e.Url)
-            .ToList();
-
-        logger.LogDebug("Found {Count} tracks on YouTube for {Query}.", tracks.Count, query);
-        return tracks.Count != 0 ? tracks : [];
     }
 
     private void ProcessError(DataReceivedEventArgs e, List<string> errors)

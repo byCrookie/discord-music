@@ -26,43 +26,75 @@ internal partial class YouTubeDownload(
         var tempFile = $"{output}.tmp";
         var opusTempFile = $"{tempFile}.opus";
 
+        var baseMetadata = new Dictionary<string, object?>
+        {
+            [ErrorExtensions.MetadataKeys.Operation] = "youtube.download",
+            ["query"] = query,
+            ["output"] = output.FullName,
+            ["tempFile"] = tempFile,
+            ["opusTempFile"] = opusTempFile,
+        };
+
         try
         {
             logger.LogDebug(
-                "Downloading audio from YouTube for {Query} to {Output} with temporary file {TempFile}.",
+                "Downloading audio from YouTube. Query={Query} Output={Output}",
                 query,
-                output.FullName,
-                tempFile
+                output.FullName
             );
 
             var ytdlp = binaryLocator.LocateAndValidate(options.Value.Ytdlp, "yt-dlp");
 
             if (ytdlp.IsError)
             {
-                logger.LogError("Failed to locate yt-dlp: {Error}", ytdlp.ToErrorContent());
-                return Error.Unexpected(
-                    description: "YouTube playback isn't available. `yt-dlp` was not found."
+                logger.LogError(
+                    "YouTube download dependency missing: yt-dlp. Query={Query} Error={Error}",
+                    query,
+                    ytdlp.ToErrorContent()
                 );
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DependencyMissing",
+                        description: "YouTube playback isn't available right now."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("missingBinary", "yt-dlp");
             }
 
             var deno = binaryLocator.LocateAndValidate(options.Value.Deno, "deno");
 
             if (deno.IsError)
             {
-                logger.LogError("Failed to locate deno: {Error}", deno.ToErrorContent());
-                return Error.Unexpected(
-                    description: "YouTube playback isn't available. `deno` was not found."
+                logger.LogError(
+                    "YouTube download dependency missing: deno. Query={Query} Error={Error}",
+                    query,
+                    deno.ToErrorContent()
                 );
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DependencyMissing",
+                        description: "YouTube playback isn't available right now."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("missingBinary", "deno");
             }
 
             var ffmpeg = binaryLocator.LocateAndValidate(options.Value.Ffmpeg, "ffmpeg");
 
             if (ffmpeg.IsError)
             {
-                logger.LogError("Failed to locate ffmpeg: {Error}", ffmpeg.ToErrorContent());
-                return Error.Unexpected(
-                    description: "YouTube playback isn't available. `ffmpeg` was not found."
+                logger.LogError(
+                    "YouTube download dependency missing: ffmpeg. Query={Query} Error={Error}",
+                    query,
+                    ffmpeg.ToErrorContent()
                 );
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DependencyMissing",
+                        description: "YouTube playback isn't available right now."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("missingBinary", "ffmpeg");
             }
 
             var command = new StringBuilder();
@@ -104,10 +136,20 @@ internal partial class YouTubeDownload(
 
             if (ytdlpProcess is null)
             {
-                logger.LogError("Failed to start process yt-dlp with command {Command}.", command);
-                return Error.Unexpected(
-                    description: "I couldn't start the YouTube download process."
+                logger.LogError(
+                    "Failed to start yt-dlp process. Query={Query} Output={Output} Args={Args}",
+                    query,
+                    output.FullName,
+                    command.ToString()
                 );
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DownloadStartFailed",
+                        description: "I couldn't start the YouTube download process."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("ytdlp", ytdlp.Value.PathToFile)
+                    .WithMetadata("args", command.ToString());
             }
 
             var ytdlpLines = new List<string>();
@@ -128,17 +170,21 @@ internal partial class YouTubeDownload(
             {
                 var errorMessage = string.Join(Environment.NewLine, ytdlpErrors);
                 logger.LogError(
-                    "YouTube download failed with exit code {ExitCode}. {Error}",
+                    "YouTube download failed. ExitCode={ExitCode} Query={Query} Output={Output} Error={Error}",
                     ytdlpProcess.ExitCode,
+                    query,
+                    output.FullName,
                     errorMessage
                 );
-                return Error.Unexpected(
-                    description: $"""
-                    Downloading from YouTube failed.
-                    Exit code: {ytdlpProcess.ExitCode}
-                    {errorMessage}
-                    """
-                );
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DownloadFailed",
+                        description: "Downloading from YouTube failed."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("exitCode", ytdlpProcess.ExitCode)
+                    .WithMetadata("stderr", errorMessage)
+                    .WithMetadata("ytdlp", ytdlp.Value.PathToFile);
             }
 
             logger.LogDebug(
@@ -169,12 +215,20 @@ internal partial class YouTubeDownload(
             if (ffmpegProcess is null)
             {
                 logger.LogError(
-                    "Failed to start process ffmpeg with arguments {FfmpegArgs}.",
+                    "Failed to start ffmpeg process. Query={Query} Output={Output} Args={Args}",
+                    query,
+                    output.FullName,
                     ffmpegArgs
                 );
-                return Error.Unexpected(
-                    description: "I couldn't start the audio converter (ffmpeg)."
-                );
+
+                return Error
+                    .Unexpected(
+                        code: "Audio.ConvertStartFailed",
+                        description: "I couldn't start the audio converter (ffmpeg)."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("ffmpeg", ffmpeg.Value.PathToFile)
+                    .WithMetadata("ffmpegArgs", ffmpegArgs);
             }
 
             var ffmpegLines = new List<string>();
@@ -195,24 +249,49 @@ internal partial class YouTubeDownload(
             {
                 var errorMessage = string.Join(Environment.NewLine, ffmpegErrors);
                 logger.LogError(
-                    "Audio conversion failed with exit code {ExitCode}. {Error}",
+                    "Audio conversion failed. ExitCode={ExitCode} Query={Query} Output={Output} Error={Error}",
                     ffmpegProcess.ExitCode,
+                    query,
+                    output.FullName,
                     errorMessage
                 );
-                return Error.Unexpected(
-                    description: $"""
-                    Converting the downloaded audio failed.
-                    Exit code: {ffmpegProcess.ExitCode}
-                    {errorMessage}
-                    """
-                );
+
+                return Error
+                    .Unexpected(
+                        code: "Audio.ConvertFailed",
+                        description: "Converting the downloaded audio failed."
+                    )
+                    .WithMetadata(baseMetadata)
+                    .WithMetadata("exitCode", ffmpegProcess.ExitCode)
+                    .WithMetadata("stderr", errorMessage)
+                    .WithMetadata("ffmpeg", ffmpeg.Value.PathToFile)
+                    .WithMetadata("ffmpegArgs", ffmpegArgs);
             }
 
-            logger.LogDebug(
-                "YouTube download completed. Audio file saved at {Output}.",
+            logger.LogInformation(
+                "YouTube download succeeded. Query={Query} Output={Output}",
+                query,
                 output.FullName
             );
+
             return Result.Success;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(
+                e,
+                "YouTube download crashed. Query={Query} Output={Output}",
+                query,
+                output.FullName
+            );
+
+            return Error
+                .Unexpected(
+                    code: "YouTube.DownloadCrashed",
+                    description: "An error occurred while downloading from YouTube."
+                )
+                .WithMetadata(baseMetadata)
+                .WithException(e);
         }
         finally
         {
