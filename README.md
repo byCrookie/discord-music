@@ -48,10 +48,15 @@ The bot is tested on an ubuntu N100 server with the following specifications:
 
 The bot has the following average resource usage:
 
-- **CPU**: ~10% during playback, ~150% during search/download, 300% during transcribing (very often), ~0.5% idle
-- **RAM**: ~800 MB during playback, ~1 GB during search/download, ~850 MB during transcribing (very often), ~700 MB idle
+- **Voice Commands**: Disabled
+  - **CPU**: ~10% during playback, ~200% during search/download, ~1% idle
+  - **RAM**: ~100 MB during playback, ~300 MB during search/download
+- **Voice Commands**: Enabled (Local Whisper Model loaded)
+  - **CPU**: ~15% during playback, ~200% during search/download, 400% during transcribing (very often), ~1% idle
+  - **RAM**: ~900 MB during playback, ~1.2 GB during search/download
 
-It is recommended that you join the bot without voice commands enabled if you have a less powerful cpu.
+It is recommended that you join the bot without voice commands enabled if you have a less powerful cpu and
+less memory available.
 
 ## Installation
 
