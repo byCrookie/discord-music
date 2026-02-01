@@ -99,7 +99,6 @@ internal class LyricsAction(
                     m.Content = $"""
                     ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
                     {specificLyrics.Value.Text}
-                    -# {specificLyrics.Value.Url}
                     """,
                 cancellationToken: ct
             );
@@ -143,7 +142,6 @@ internal class LyricsAction(
                 m.Content = $"""
                 ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
                 {lyrics.Value.Text}
-                -# {lyrics.Value.Url}
                 """,
             cancellationToken: ct
         );

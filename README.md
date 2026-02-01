@@ -17,7 +17,6 @@ Another music bot for Discord with playback/voice controls, song lyrics and queu
 - [yt-dlp-ejs](https://github.com/yt-dlp/ejs): External JavaScript challenge solver scripts used by
   yt-dlp.
 - [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET): For Spotify integration.
-- [Genius](https://genius.com): For lyrics fetching.
 - [whisper.net](https://github.com/sandrohanea/whisper.net) For local speech recognition.
 
 > **Important**: This bot uses `yt-dlp` to fetch YouTube audio streams. Since YouTube may block IP
@@ -55,13 +54,15 @@ The bot is tested on an ubuntu N100 server with the following specifications:
 The bot has the following average resource usage:
 
 - **Voice Commands**: Disabled
-  - **CPU**: ~10% during playback, ~200% during search/download, ~1% idle
-  - **RAM**: ~100 MB during playback, ~300 MB during search/download
+    - **CPU**: ~10% during playback, ~200% during search/download, ~1% idle
+    - **RAM**: ~100 MB during playback, ~300 MB during search/download
 - **Voice Commands**: Enabled (Local Whisper Model loaded)
-  - **CPU**: ~15% during playback, ~200% during search/download, 400% during transcribing (very often), ~1% idle
-  - **RAM**: ~900 MB during playback, ~1.2 GB during search/download
+    - **CPU**: ~15% during playback, ~200% during search/download, 400% during transcribing (very
+      often), ~1% idle
+    - **RAM**: ~900 MB during playback, ~1.2 GB during search/download
 
-It is recommended that you join the bot without voice commands enabled if you have a less powerful cpu and
+It is recommended that you join the bot without voice commands enabled if you have a less powerful
+cpu and
 less memory available.
 
 ## Installation
@@ -214,3 +215,8 @@ like [dotnet user-secrets](https://learn.microsoft.com/en-us/aspnet/core/securit
 ```bash
 dotnet user-secrets set --project ./src/DiscordMusic.Client/DiscordMusic.Client.csproj "discord:token" "your-discord-bot-token"
 ```
+
+## Disclaimer
+
+This project is for educational purposes only. All third-party materials remain the property of
+their respective owners.

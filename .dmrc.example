@@ -21,11 +21,6 @@ Microsoft.Hosting.Lifetime = Information
 ; clientId = YOUR_SPOTIFY_CLIENT_ID
 ; clientSecret = YOUR_SPOTIFY_CLIENT_SECRET
 
-[lyrics]
-; Token from Genius Api Developer Dashboard at https://genius.com/api-clients.
-; Recommended to use env variable DISCORD_MUSIC_LYRICS__TOKEN instead.
-; token = YOUR_GENIUS_API_TOKEN
-
 [youtube]
 ; Path to ffmpeg, yt-dlp, and deno binaries.
 ; Can be a file or directory path. If a directory path is used, the binary name is appended to the path.

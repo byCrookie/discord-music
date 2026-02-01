@@ -27,10 +27,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageVersion Update="SpotifyAPI.Web" Version="7.2.1" />
-    </ItemGroup>
-
-    <ItemGroup>
         <!-- Windows -->
         <Content
             Include="Natives/win-x86_64/opus.dll"

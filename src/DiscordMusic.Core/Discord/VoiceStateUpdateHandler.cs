@@ -64,7 +64,8 @@ internal class VoiceStateUpdateHandler(
             return;
         }
 
-        var voiceStatesInChannel = guild.VoiceStates.Where(vs =>
+        var voiceStatesInChannel = guild
+            .VoiceStates.Where(vs =>
                 vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id
             )
             .ToList();

@@ -35,7 +35,7 @@
         },
         "Lyrics Search": {
             "commandName": "Project",
-            "commandLineArgs": "lyrics search --title \"Imagine Dragons - Thunder\" --artist \"ImagineDragons\"",
+            "commandLineArgs": "lyrics search --title \"Diamonds\" --artist \"Rihanna\"",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"

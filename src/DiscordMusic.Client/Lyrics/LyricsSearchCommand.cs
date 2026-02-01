@@ -60,9 +60,7 @@ public static class LyricsSearchCommand
         }
 
         var lyricsOutput = new StringBuilder();
-        lyricsOutput.AppendLine(
-            $"Lyrics for {search.Value.Title} - {search.Value.Artist} ({search.Value.Url})"
-        );
+        lyricsOutput.AppendLine($"Lyrics for {search.Value.Title} - {search.Value.Artist}");
         lyricsOutput.AppendLine(search.Value.Text);
         await parseResult.InvocationConfiguration.Output.WriteLineAsync(lyricsOutput.ToString());
     }

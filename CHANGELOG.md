@@ -1,3 +1,3 @@
 **Changes:**
 
-- fix auto leave channel when all members leave
+- replaced lyrics api with new one (lyrics is still very unreliable/incomplete)
