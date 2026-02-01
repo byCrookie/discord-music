@@ -85,28 +85,28 @@ jobs:
             matrix:
                 include:
                     # Windows
-                    - os: windows-latest
-                      runtime: win-x64
-                    - os: windows-latest
-                      runtime: win-x86
-                    - os: windows-latest
-                      runtime: win-arm64
+                    -   os: windows-latest
+                        runtime: win-x64
+                    -   os: windows-latest
+                        runtime: win-x86
+                    -   os: windows-latest
+                        runtime: win-arm64
                     # Linux
-                    - os: ubuntu-latest
-                      runtime: linux-x64
-                    - os: ubuntu-latest
-                      runtime: linux-musl-x64
-                    - os: ubuntu-latest
-                      runtime: linux-musl-arm64
-                    - os: ubuntu-latest
-                      runtime: linux-arm
-                    - os: ubuntu-latest
-                      runtime: linux-arm64
+                    -   os: ubuntu-latest
+                        runtime: linux-x64
+                    -   os: ubuntu-latest
+                        runtime: linux-musl-x64
+                    -   os: ubuntu-latest
+                        runtime: linux-musl-arm64
+                    -   os: ubuntu-latest
+                        runtime: linux-arm
+                    -   os: ubuntu-latest
+                        runtime: linux-arm64
                     # macOS
-                    - os: macos-latest
-                      runtime: osx-x64
-                    - os: macos-latest
-                      runtime: osx-arm64
+                    -   os: macos-latest
+                        runtime: osx-x64
+                    -   os: macos-latest
+                        runtime: osx-arm64
         runs-on: ${{ matrix.os }}
         steps:
             -   uses: actions/checkout@v4
