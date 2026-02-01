@@ -1,3 +1,3 @@
 **Changes:**
 
-- add voice commands
+- fix auto leave channel when all members leave

@@ -38,6 +38,21 @@ Supports single channel per guild with the following features:
 - **Container Support**: Easily deploy the bot in a containerized environment.
 - **Permission System**: Role-based access control for commands.
 
+## Requirements
+
+The bot is tested on an ubuntu N100 server with the following specifications:
+
+- **OS**: Ubuntu 24.04.3 LTS
+- **CPU**: Intel(R) N100 (4) @ 3.40 GHz
+- **RAM**: 16 GB
+
+The bot has the following average resource usage:
+
+- **CPU**: ~10% during playback, ~150% during search/download, 300% during transcribing (very often), ~0.5% idle
+- **RAM**: ~800 MB during playback, ~1 GB during search/download, ~850 MB during transcribing (very often), ~700 MB idle
+
+It is recommended that you join the bot without voice commands enabled if you have a less powerful cpu.
+
 ## Installation
 
 ### Discord Bot-Token

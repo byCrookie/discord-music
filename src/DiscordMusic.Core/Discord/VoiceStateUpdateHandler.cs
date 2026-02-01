@@ -10,14 +10,14 @@ namespace DiscordMusic.Core.Discord;
 internal class VoiceStateUpdateHandler(
     ILogger<VoiceStateUpdateHandler> logger,
     Cancellation cancellation,
-    RestClient restClient,
+    GatewayClient gatewayClient,
     GuildSessionManager guildSessionManager
 ) : IVoiceStateUpdateGatewayHandler
 {
     public async ValueTask HandleAsync(VoiceState voiceState)
     {
         var ct = cancellation.CancellationToken;
-        var bot = await restClient.GetCurrentUserAsync(cancellationToken: ct);
+        var bot = await gatewayClient.Rest.GetCurrentUserAsync(cancellationToken: ct);
 
         if (voiceState.UserId == bot.Id && voiceState.ChannelId is not null)
         {
@@ -52,14 +52,19 @@ internal class VoiceStateUpdateHandler(
             return;
         }
 
-        if (!session.Value.Guild.VoiceStates.TryGetValue(bot.Id, out var voiceStateBot))
+        if (!gatewayClient.Cache.Guilds.TryGetValue(voiceState.GuildId, out var guild))
+        {
+            logger.LogInformation("Guild {GuildId} not found in cache", voiceState.GuildId);
+            return;
+        }
+
+        if (!guild.VoiceStates.TryGetValue(bot.Id, out var voiceStateBot))
         {
             logger.LogInformation("Bot is not in a voice channel.");
             return;
         }
 
-        var voiceStatesInChannel = session
-            .Value.Guild.VoiceStates.Where(vs =>
+        var voiceStatesInChannel = guild.VoiceStates.Where(vs =>
                 vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id
             )
             .ToList();
