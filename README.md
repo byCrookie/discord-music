@@ -2,6 +2,12 @@
 
 Another music bot for Discord with playback/voice controls, song lyrics and queue management.
 
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/bycrookie/discord-music/total)
+![GitHub Actions Workflow Status Linux](https://img.shields.io/github/actions/workflow/status/bycrookie/discord-music/.github%2Fworkflows%2Ftest_linux_x64.yml?label=linux&link=https%3A%2F%2Fgithub.com%2FbyCrookie%2Fdiscord-music%2Factions%2Fworkflows%2Ftest_linux_x64.yml)
+![GitHub Actions Workflow Status OSX](https://img.shields.io/github/actions/workflow/status/bycrookie/discord-music/.github%2Fworkflows%2Ftest_osx_x64.yml?label=osx&link=https%3A%2F%2Fgithub.com%2FbyCrookie%2Fdiscord-music%2Factions%2Fworkflows%2Ftest_osx_x64.yml)
+![GitHub Actions Workflow Status Windows](https://img.shields.io/github/actions/workflow/status/bycrookie/discord-music/.github%2Fworkflows%2Ftest_win_x64.yml?label=windows&link=https%3A%2F%2Fgithub.com%2FbyCrookie%2Fdiscord-music%2Factions%2Fworkflows%2Ftest_win_x64.yml)
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/bycrookie/discord-music/latest)
+
 **Libraries & APIs**:
 
 - [NetCord](https://github.com/NetCordDev/NetCord): For Discord interaction.
