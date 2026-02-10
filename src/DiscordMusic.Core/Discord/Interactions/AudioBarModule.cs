@@ -1,14 +1,18 @@
 using DiscordMusic.Core.Audio;
 using DiscordMusic.Core.Discord.Sessions;
 using DiscordMusic.Core.Utils;
+using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
 
 namespace DiscordMusic.Core.Discord.Interactions;
 
-internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellation cancellation)
-    : ComponentInteractionModule<ButtonInteractionContext>
+internal class AudioBarModule(
+    GuildSessionManager guildSessionManager,
+    Cancellation cancellation,
+    ILogger<AudioBarModule> logger
+) : ComponentInteractionModule<ButtonInteractionContext>
 {
     public const string FastBackwardButton = "fastBackward";
     public const string BackwardButton = "backward";
@@ -47,21 +51,37 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
     [ComponentInteraction(PlayPauseButton)]
     public async Task PlayPause()
     {
+        if (Context.Guild is null)
+        {
+            await SafeRespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = "This interaction can only be used in a server.",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                ),
+                cancellation.CancellationToken
+            );
+            return;
+        }
+
         var session = await guildSessionManager.GetSessionAsync(
-            Context.Guild!.Id,
+            Context.Guild.Id,
             cancellation.CancellationToken
         );
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                cancellation.CancellationToken
             );
             return;
         }
@@ -70,14 +90,15 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
 
         if (nowPlaying.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = nowPlaying.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                cancellation.CancellationToken
             );
 
             return;
@@ -89,16 +110,16 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
 
             if (resume.IsError)
             {
-                await RespondAsync(
+                await SafeRespondAsync(
                     InteractionCallback.Message(resume.ToErrorContent()),
-                    cancellationToken: cancellation.CancellationToken
+                    cancellation.CancellationToken
                 );
                 return;
             }
 
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(resume.Value.ToValueContent()),
-                cancellationToken: cancellation.CancellationToken
+                cancellation.CancellationToken
             );
         }
         else
@@ -107,42 +128,58 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
 
             if (pause.IsError)
             {
-                await RespondAsync(
+                await SafeRespondAsync(
                     InteractionCallback.Message(pause.ToErrorContent()),
-                    cancellationToken: cancellation.CancellationToken
+                    cancellation.CancellationToken
                 );
                 return;
             }
 
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(pause.Value.ToValueContent()),
-                cancellationToken: cancellation.CancellationToken
+                cancellation.CancellationToken
             );
         }
     }
 
     private async Task ForwardAsync(TimeSpan durationTs)
     {
+        if (Context.Guild is null)
+        {
+            await SafeRespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = "This interaction can only be used in a server.",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                ),
+                cancellation.CancellationToken
+            );
+            return;
+        }
+
         var session = await guildSessionManager.GetSessionAsync(
-            Context.Guild!.Id,
+            Context.Guild.Id,
             cancellation.CancellationToken
         );
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -152,7 +189,7 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            cancellation.CancellationToken
         );
 
         var seek = await session.Value.SeekAsync(
@@ -163,9 +200,9 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
 
         if (seek.IsError)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = seek.ToErrorContent(),
-                cancellationToken: cancellation.CancellationToken
+                cancellation.CancellationToken
             );
             return;
         }
@@ -175,22 +212,37 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
             {seek.Value.ToValueContent()}
             """;
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m => m.Content = seekedMessage,
-            cancellationToken: cancellation.CancellationToken
+            cancellation.CancellationToken
         );
     }
 
     private async Task BackwardAsync(TimeSpan durationTs)
     {
+        if (Context.Guild is null)
+        {
+            await SafeRespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Content = "This interaction can only be used in a server.",
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                ),
+                cancellation.CancellationToken
+            );
+            return;
+        }
+
         var session = await guildSessionManager.GetSessionAsync(
-            Context.Guild!.Id,
+            Context.Guild.Id,
             cancellation.CancellationToken
         );
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
@@ -198,13 +250,13 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
                         Flags = MessageFlags.Ephemeral,
                     }
                 ),
-                cancellationToken: cancellation.CancellationToken
+                cancellation.CancellationToken
             );
 
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -214,7 +266,7 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            cancellation.CancellationToken
         );
 
         var seek = await session.Value.SeekAsync(
@@ -225,9 +277,9 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
 
         if (seek.IsError)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = seek.ToErrorContent(),
-                cancellationToken: cancellation.CancellationToken
+                cancellation.CancellationToken
             );
             return;
         }
@@ -237,9 +289,56 @@ internal class AudioBarModule(GuildSessionManager guildSessionManager, Cancellat
             {seek.Value.ToValueContent()}
             """;
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m => m.Content = seekedMessage,
-            cancellationToken: cancellation.CancellationToken
+            cancellation.CancellationToken
         );
+    }
+
+    private async Task SafeRespondAsync(
+        InteractionCallbackProperties callback,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            await RespondAsync(callback, cancellationToken: ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // ignore
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "AudioBarModule respond failed (GuildId={GuildId}, ChannelId={ChannelId}, UserId={UserId})",
+                Context.Guild?.Id,
+                Context.Channel?.Id,
+                Context.User?.Id
+            );
+        }
+    }
+
+    private async Task SafeModifyResponseAsync(Action<MessageOptions> modify, CancellationToken ct)
+    {
+        try
+        {
+            await ModifyResponseAsync(modify, cancellationToken: ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // ignore
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "AudioBarModule modify failed (GuildId={GuildId}, ChannelId={ChannelId}, UserId={UserId})",
+                Context.Guild?.Id,
+                Context.Channel?.Id,
+                Context.User?.Id
+            );
+        }
     }
 }

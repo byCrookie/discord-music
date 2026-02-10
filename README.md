@@ -216,6 +216,18 @@ like [dotnet user-secrets](https://learn.microsoft.com/en-us/aspnet/core/securit
 dotnet user-secrets set --project ./src/DiscordMusic.Client/DiscordMusic.Client.csproj "discord:token" "your-discord-bot-token"
 ```
 
+### Build & Test
+
+Run from `./src` so the repository's `global.json` (and its test-runner selection) is picked up:
+
+```bash
+cd ./src
+
+dotnet restore DiscordMusic.slnx
+dotnet build DiscordMusic.slnx --configuration Release --no-restore
+dotnet test --solution DiscordMusic.slnx --configuration Release --no-restore
+```
+
 ## Disclaimer
 
 This project is for educational purposes only. All third-party materials remain the property of

@@ -11,7 +11,7 @@ internal class PlayAction(
     GuildSessionManager guildSessionManager,
     ILogger<PlayAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("play", "Play a track. Direct link or search query. Appended to queue.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -28,19 +28,21 @@ internal class PlayAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -51,17 +53,26 @@ internal class PlayAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
 
         var play = await session.Value.PlayAsync(query, cancellation.CancellationToken);
 
         if (play.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = play.ToErrorContent());
+            await SafeModifyResponseAsync(
+                m => m.Content = play.ToErrorContent(),
+                logger,
+                cancellation.CancellationToken
+            );
             return;
         }
 
-        await ModifyResponseAsync(m => m.Content = play.Value.ToValueContent());
+        await SafeModifyResponseAsync(
+            m => m.Content = play.Value.ToValueContent(),
+            logger,
+            cancellation.CancellationToken
+        );
     }
 }

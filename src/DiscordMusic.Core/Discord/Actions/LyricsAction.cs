@@ -13,7 +13,7 @@ internal class LyricsAction(
     ILogger<LyricsAction> logger,
     ILyricsSearch lyricsSearch,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand(
         "lyrics",
@@ -33,7 +33,7 @@ internal class LyricsAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
@@ -41,12 +41,13 @@ internal class LyricsAction(
                         Flags = MessageFlags.Ephemeral,
                     }
                 ),
-                cancellationToken: ct
+                logger,
+                ct
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -57,93 +58,94 @@ internal class LyricsAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            ct
         );
 
         var nowPlaying = await session.Value.NowPlayingAsync(ct);
 
         if (nowPlaying.IsError)
         {
-            await ModifyResponseAsync(
-                m => m.Content = nowPlaying.ToErrorContent(),
-                cancellationToken: ct
-            );
+            await SafeModifyResponseAsync(m => m.Content = nowPlaying.ToErrorContent(), logger, ct);
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(artists))
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m =>
                     m.Content = $"""
                     ### Searching for lyrics
                     **{title}** — **{artists}**
                     -# This may take a moment...
                     """,
-                cancellationToken: ct
+                logger,
+                ct
             );
 
             var specificLyrics = await lyricsSearch.SearchAsync(title, artists, ct);
 
             if (specificLyrics.IsError)
             {
-                await ModifyResponseAsync(
+                await SafeModifyResponseAsync(
                     m => m.Content = specificLyrics.ToErrorContent(),
-                    cancellationToken: ct
+                    logger,
+                    ct
                 );
                 return;
             }
 
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m =>
                     m.Content = $"""
                     ### **{specificLyrics.Value.Title}** by **{specificLyrics.Value.Artist}**
                     {specificLyrics.Value.Text}
                     """,
-                cancellationToken: ct
+                logger,
+                ct
             );
             return;
         }
 
         if (nowPlaying.Value.Track is null)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = "Nothing is playing right now.",
-                cancellationToken: ct
+                logger,
+                ct
             );
             return;
         }
 
         var track = nowPlaying.Value.Track;
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m =>
                 m.Content = $"""
                 ### Searching for lyrics
                 **{track.Name}** — **{track.Artists}**
                 -# This may take a moment...
                 """,
-            cancellationToken: ct
+            logger,
+            ct
         );
 
         var lyrics = await lyricsSearch.SearchAsync(track.Name, track.Artists, ct);
 
         if (lyrics.IsError)
         {
-            await ModifyResponseAsync(
-                m => m.Content = lyrics.ToErrorContent(),
-                cancellationToken: ct
-            );
+            await SafeModifyResponseAsync(m => m.Content = lyrics.ToErrorContent(), logger, ct);
             return;
         }
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m =>
                 m.Content = $"""
                 ### **{lyrics.Value.Title}** by **{lyrics.Value.Artist}**
                 {lyrics.Value.Text}
                 """,
-            cancellationToken: ct
+            logger,
+            ct
         );
     }
 }

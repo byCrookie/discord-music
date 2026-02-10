@@ -31,6 +31,8 @@ internal sealed class VoiceCommandService(
             {
                 await Task.Delay(pollInterval, stoppingToken);
 
+                var nowUtc = DateTimeOffset.UtcNow;
+
                 foreach (var guildPair in manager.Guilds)
                 {
                     var guildId = guildPair.Key;
@@ -41,21 +43,21 @@ internal sealed class VoiceCommandService(
                         var ssrc = bufferPair.Key;
                         var buffer = bufferPair.Value;
 
-                        var buffered = buffer.PeekLength(ssrc);
+                        var buffered = buffer.PeekLength();
                         if (buffered == 0)
                             continue;
 
-                        var lastAppendUtc = buffer.GetLastAppendUtc(ssrc);
+                        var lastAppendUtc = buffer.GetLastAppendUtc();
                         var silentFor = lastAppendUtc is null
                             ? TimeSpan.Zero
-                            : (DateTimeOffset.UtcNow - lastAppendUtc.Value);
+                            : (nowUtc - lastAppendUtc.Value);
 
                         var shouldFlush =
                             silentFor >= flushAfterSilence || buffered >= maxUtteranceBytes;
                         if (!shouldFlush)
                             continue;
 
-                        var data = buffer.SnapshotAndClear(ssrc);
+                        var data = buffer.SnapshotAndClear();
                         if (data.Length < minTranscribeBytes)
                             continue;
 

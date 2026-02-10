@@ -13,7 +13,7 @@ internal class JoinAction(
     GuildSessionManager guildSessionManager,
     ILogger<JoinAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("join", "The bot will join the voice channel you are in.")]
     [RequireBotPermissions<ApplicationCommandContext>(
@@ -41,19 +41,21 @@ internal class JoinAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -64,7 +66,9 @@ internal class JoinAction(
                     """,
                     Flags = MessageFlags.Ephemeral,
                 }
-            )
+            ),
+            logger,
+            cancellation.CancellationToken
         );
     }
 

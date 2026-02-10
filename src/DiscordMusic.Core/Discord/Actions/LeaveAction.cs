@@ -11,7 +11,7 @@ internal class LeaveAction(
     GuildSessionManager guildSessionManager,
     ILogger<LeaveAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("leave", "The bot will leave the voice channel. Deletes guild session.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -27,19 +27,21 @@ internal class LeaveAction(
 
         if (leave.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = leave.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -49,7 +51,9 @@ internal class LeaveAction(
                     """,
                     Flags = MessageFlags.Ephemeral,
                 }
-            )
+            ),
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

@@ -11,7 +11,7 @@ internal class SkipAction(
     GuildSessionManager guildSessionManager,
     ILogger<SkipAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand(
         "skip",
@@ -34,9 +34,10 @@ internal class SkipAction(
         {
             if (position.Value < 1)
             {
-                await RespondAsync(
+                await SafeRespondAsync(
                     InteractionCallback.Message("Invalid position. It must be 1 or higher."),
-                    cancellationToken: cancellation.CancellationToken
+                    logger,
+                    cancellation.CancellationToken
                 );
                 return;
             }
@@ -51,19 +52,21 @@ internal class SkipAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -73,23 +76,26 @@ internal class SkipAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
 
         var skip = await session.Value.SkipAsync(skipCount, cancellation.CancellationToken);
 
         if (skip.IsError)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = skip.ToErrorContent(),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m => m.Content = skip.Value.ToValueContent(),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

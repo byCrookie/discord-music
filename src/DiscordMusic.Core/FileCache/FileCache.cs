@@ -31,7 +31,7 @@ public class FileCache<TKey, TItem>(
         CancellationToken ct
     )
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_indexed)
         {
@@ -73,7 +73,7 @@ public class FileCache<TKey, TItem>(
 
     public async Task<ErrorOr<ByteSize>> GetSizeAsync(CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_indexed)
         {
@@ -93,7 +93,7 @@ public class FileCache<TKey, TItem>(
 
     public async Task<ErrorOr<Success>> ClearAsync(CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_indexed)
         {
@@ -119,7 +119,7 @@ public class FileCache<TKey, TItem>(
 
     public async Task<ErrorOr<Success>> IndexAsync(IDirectoryInfo location, CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (_indexed)
         {
@@ -161,7 +161,7 @@ public class FileCache<TKey, TItem>(
         CancellationToken ct
     )
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_indexed)
         {

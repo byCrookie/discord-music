@@ -11,7 +11,7 @@ internal class PauseAction(
     GuildSessionManager guildSessionManager,
     ILogger<PauseAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("pause", "Pause the current track.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -27,14 +27,16 @@ internal class PauseAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -43,16 +45,18 @@ internal class PauseAction(
 
         if (pause.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(pause.ToErrorContent()),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(pause.Value.ToValueContent()),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

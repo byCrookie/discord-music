@@ -13,8 +13,8 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            logger.LogTrace("Clear queue");
             _queue.Clear();
+            logger.LogTrace("Queue cleared");
         }
     }
 
@@ -22,16 +22,25 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            if (index < 0 || index >= _queue.Count)
+            if ((uint)index >= (uint)_queue.Count)
             {
-                logger.LogTrace("Invalid index {Index} to skip to", index);
+                logger.LogTrace(
+                    "Invalid index {Index} to skip to (count={Count})",
+                    index,
+                    _queue.Count
+                );
+                return;
+            }
+
+            if (index == 0)
+            {
+                logger.LogTrace("SkipTo(0) no-op");
                 return;
             }
 
             logger.LogTrace("Skip to item at index {Index}", index);
-            for (var i = 0; i < index; i++)
+            for (var i = 0; i < index && _queue.First is not null; i++)
             {
-                logger.LogTrace("Skip item {Item}", _queue.First?.Value);
                 _queue.RemoveFirst();
             }
         }
@@ -41,7 +50,6 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            logger.LogTrace("Queue count is {Count}", _queue.Count);
             return _queue.Count;
         }
     }
@@ -50,14 +58,22 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            logger.LogTrace("Shuffle queue");
+            if (_queue.Count <= 1)
+            {
+                logger.LogTrace("Shuffle no-op (count={Count})", _queue.Count);
+                return;
+            }
+
             var items = _queue.ToArray();
             Random.Shared.Shuffle(items.AsSpan());
+
             _queue.Clear();
             foreach (var item in items)
             {
                 _queue.AddLast(item);
             }
+
+            logger.LogTrace("Queue shuffled");
         }
     }
 
@@ -65,8 +81,8 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            logger.LogTrace("Enqueue item {Item}", item);
             _queue.AddLast(item);
+            logger.LogTrace("Enqueued item (last)");
         }
     }
 
@@ -74,8 +90,8 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            logger.LogTrace("Enqueue next item {Item}", item);
             _queue.AddFirst(item);
+            logger.LogTrace("Enqueued item (first)");
         }
     }
 
@@ -83,16 +99,16 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            if (_queue.Count == 0)
+            var first = _queue.First;
+            if (first is null)
             {
-                logger.LogTrace("No items to dequeue");
                 item = null;
                 return false;
             }
 
-            item = _queue.First!.Value;
-            logger.LogTrace("Dequeue item {Item}", item);
+            item = first.Value;
             _queue.RemoveFirst();
+            logger.LogTrace("Dequeued item");
             return true;
         }
     }
@@ -101,15 +117,14 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            if (_queue.Count == 0)
+            var first = _queue.First;
+            if (first is null)
             {
-                logger.LogTrace("No items to peek");
                 item = null;
                 return false;
             }
 
-            item = _queue.First!.Value;
-            logger.LogTrace("Peek item {Item}", item);
+            item = first.Value;
             return true;
         }
     }
@@ -118,7 +133,7 @@ internal class Queue<T>(ILogger<Queue<T>> logger) : IQueue<T>
     {
         lock (_lock)
         {
-            logger.LogTrace("Get all items");
+            // Snapshot to a list so callers can enumerate without holding our lock.
             return _queue.ToList();
         }
     }

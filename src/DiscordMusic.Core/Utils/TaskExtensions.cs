@@ -29,6 +29,10 @@ public static class TaskExtensions
         {
             await task.ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is a normal outcome for background work (e.g. shutdown or user command cancellation).
+        }
         catch (Exception e)
         {
             logger.LogError(e, "Fire-and-forget task crashed. TaskStatus={Status}", task.Status);

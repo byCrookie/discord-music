@@ -59,8 +59,8 @@ public class AudioStream : IDisposable
 
     private Pipe _pipe = null!;
     private CancellationTokenSource _producerCts = null!;
-    private CancellationTokenSource _consumerCts;
-    private bool _disposed;
+    private CancellationTokenSource _consumerCts = null!;
+    private volatile bool _disposed;
 
     private long _playbackGeneration;
 
@@ -82,16 +82,10 @@ public class AudioStream : IDisposable
 
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _lock = new Lock();
-        _consumerCts = new CancellationTokenSource();
 
         SetupPipeAndTasks();
 
-        _ = Task.Factory.StartNew(
-            StateMachineLoop,
-            _cts.Token,
-            TaskCreationOptions.LongRunning,
-            TaskScheduler.Default
-        );
+        _ = Task.Run(StateMachineLoop, _cts.Token);
     }
 
     private void SetupPipeAndTasks()
@@ -117,42 +111,71 @@ public class AudioStream : IDisposable
     {
         var writer = _pipe.Writer;
 
-        while (!ct.IsCancellationRequested)
+        try
         {
-            // Allocate a large buffer for efficient disk IO
-            var memory = writer.GetMemory(DiskReadSize);
-            try
+            while (!ct.IsCancellationRequested)
             {
+                // Allocate a large buffer for efficient disk IO
+                var memory = writer.GetMemory(DiskReadSize);
+
                 // Read 0.3s worth of audio at once
-                var bytesRead = await _inputStream.ReadAsync(memory, ct);
+                int bytesRead;
+                try
+                {
+                    bytesRead = await _inputStream.ReadAsync(memory, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    await writer.CompleteAsync(ex);
+                    return;
+                }
+
                 if (bytesRead == 0 || ct.IsCancellationRequested)
                 {
                     break;
                 }
 
                 writer.Advance(bytesRead);
-            }
-            catch (Exception ex)
-            {
-                await writer.CompleteAsync(ex);
-                return;
-            }
 
-            // FlushAsync will pause here if the pipe is full.
-            // This effectively throttles the disk reader to match the playback speed.
-            var result = await writer.FlushAsync(ct);
-            if (result.IsCompleted)
-            {
-                break;
+                // FlushAsync will pause here if the pipe is full.
+                // This effectively throttles the disk reader to match the playback speed.
+                FlushResult result;
+                try
+                {
+                    result = await writer.FlushAsync(ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (result.IsCompleted)
+                {
+                    break;
+                }
             }
         }
-
-        await writer.CompleteAsync();
+        finally
+        {
+            try
+            {
+                await writer.CompleteAsync();
+            }
+            catch
+            {
+                // Ignore: pipe might already be completed during Seek/Dispose.
+            }
+        }
     }
 
     private async Task HandlePlayingAsync()
     {
         var generation = Volatile.Read(ref _playbackGeneration);
+        var pipe = _pipe;
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
             _cts.Token,
@@ -163,17 +186,15 @@ public class AudioStream : IDisposable
 
         try
         {
-            // If the pipe has already been completed due to a Seek/Dispose, trying to read will throw.
-            // Fast-fail instead and let the state machine loop decide what to do next.
             if (token.IsCancellationRequested)
             {
                 return;
             }
 
-            var sourceStream = _pipe.Reader.AsStream(true);
+            var sourceStream = pipe.Reader.AsStream(true);
             await sourceStream.CopyToAsync(_outputStream, NetworkFrameSize, token);
 
-            // If a Seek happened while we were copying, we must not transition to Ended.
+            // If a Seek/Dispose happened while we were copying, we must not transition to Ended.
             if (generation != Volatile.Read(ref _playbackGeneration))
             {
                 return;
@@ -181,19 +202,28 @@ public class AudioStream : IDisposable
 
             State = AudioState.Ended;
             _logger.LogStreamEnded(_id);
-            if (StreamEnded is not null)
+
+            var handler = StreamEnded;
+            if (handler is not null && !_disposed)
             {
-                await StreamEnded(this, EventArgs.Empty);
+                try
+                {
+                    await handler(this, EventArgs.Empty);
+                }
+                catch (Exception ex)
+                {
+                    // Never let subscriber exceptions crash the stream loop.
+                    _logger.LogError(ex, "[{Id}] StreamEnded handler threw", _id);
+                }
             }
         }
         catch (InvalidOperationException)
         {
             // Can happen if a Seek/Dispose completed the reader while we're (re)entering playback.
-            // Treat as a normal control-flow interruption.
         }
         catch (OperationCanceledException)
         {
-            // Expected during Seek or Stop
+            // Expected during Seek/Stop/Pause.
         }
     }
 
@@ -211,7 +241,7 @@ public class AudioStream : IDisposable
                     case AudioState.Silence:
                     case AudioState.Ended:
                     case AudioState.Stopped:
-                        await Task.Delay(100);
+                        await Task.Delay(100, _cts.Token);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(State), State, null);
@@ -226,9 +256,18 @@ public class AudioStream : IDisposable
         {
             _logger.LogStreamFailed(_id);
             State = AudioState.Stopped;
-            if (StreamFailed is not null)
+
+            var handler = StreamFailed;
+            if (handler is not null && !_disposed)
             {
-                await StreamFailed(e, this, EventArgs.Empty);
+                try
+                {
+                    await handler(e, this, EventArgs.Empty);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[{Id}] StreamFailed handler threw", _id);
+                }
             }
         }
     }
@@ -357,9 +396,12 @@ public class AudioStream : IDisposable
 
             _disposed = true;
             State = AudioState.Stopped;
+
+            // Prevent callbacks after disposal.
             StreamEnded = null;
             StreamFailed = null;
 
+            // Bump generation so any in-flight playback won't transition to Ended.
             Interlocked.Increment(ref _playbackGeneration);
 
             _cts.Cancel();

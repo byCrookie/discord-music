@@ -13,7 +13,7 @@ internal class QueueAction(
     GuildSessionManager guildSessionManager,
     ILogger<QueueAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     private const int PageSize = 20;
 
@@ -29,14 +29,16 @@ internal class QueueAction(
 
         if (page <= 0)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = "Invalid page number. It must be 1 or higher.",
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -48,14 +50,16 @@ internal class QueueAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -64,28 +68,32 @@ internal class QueueAction(
 
         if (tracks.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = tracks.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
         if (tracks.Value.Count == 0)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = "The queue is empty.",
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -93,14 +101,16 @@ internal class QueueAction(
         var pageCount = tracks.Value.Count / PageSize + 1;
         if (page > pageCount)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = $"Invalid page number. There are only {pageCount} pages.",
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -125,7 +135,7 @@ internal class QueueAction(
             }
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -135,7 +145,9 @@ internal class QueueAction(
                     """,
                     Flags = MessageFlags.Ephemeral,
                 }
-            )
+            ),
+            logger,
+            cancellation.CancellationToken
         );
     }
 
@@ -153,14 +165,16 @@ internal class QueueAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -169,11 +183,19 @@ internal class QueueAction(
 
         if (clear.IsError)
         {
-            await RespondAsync(InteractionCallback.Message(clear.ToErrorContent()));
+            await SafeRespondAsync(
+                InteractionCallback.Message(clear.ToErrorContent()),
+                logger,
+                cancellation.CancellationToken
+            );
             return;
         }
 
-        await RespondAsync(InteractionCallback.Message("Queue cleared."));
+        await SafeRespondAsync(
+            InteractionCallback.Message("Queue cleared."),
+            logger,
+            cancellation.CancellationToken
+        );
     }
 
     [SubSlashCommand("shuffle", "Shuffle the queue.")]
@@ -190,14 +212,16 @@ internal class QueueAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -206,30 +230,33 @@ internal class QueueAction(
 
         if (shuffle.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(shuffle.ToErrorContent()),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
         if (shuffle.Value.Track is null)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message("The queue is empty."),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 $"""
                 ### Next
                 **{shuffle.Value.Track!.Name}** by **{shuffle.Value.Track!.Artists}** ({shuffle.Value.Track!.Duration.HumanizeSecond()})
                 """
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

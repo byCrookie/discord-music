@@ -13,7 +13,7 @@ internal class SeekAction(
     GuildSessionManager guildSessionManager,
     ILogger<SeekAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SubSlashCommand("position", "Seek to a specific time in the current track.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -27,9 +27,10 @@ internal class SeekAction(
     {
         if (!TimeSpanParser.TryParse(position, out var positionTs))
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message("Not a valid position. Example: 00:01:23"),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -43,19 +44,21 @@ internal class SeekAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -65,7 +68,8 @@ internal class SeekAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
 
         var seek = await session.Value.SeekAsync(
@@ -76,9 +80,10 @@ internal class SeekAction(
 
         if (seek.IsError)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = seek.ToErrorContent(),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -88,7 +93,11 @@ internal class SeekAction(
             {seek.Value.ToValueContent()}
             """;
 
-        await ModifyResponseAsync(m => m.Content = seekedMessage);
+        await SafeModifyResponseAsync(
+            m => m.Content = seekedMessage,
+            logger,
+            cancellation.CancellationToken
+        );
     }
 
     [SubSlashCommand("backward", "Seek backward by a duration in the current track.")]
@@ -101,8 +110,10 @@ internal class SeekAction(
     {
         if (!TimeSpanParser.TryParse(duration, out var durationTs))
         {
-            await RespondAsync(
-                InteractionCallback.Message("Not a valid duration. Example: 00:00:10")
+            await SafeRespondAsync(
+                InteractionCallback.Message("Not a valid duration. Example: 00:00:10"),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -116,19 +127,21 @@ internal class SeekAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -138,7 +151,8 @@ internal class SeekAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
 
         var seek = await session.Value.SeekAsync(
@@ -149,9 +163,10 @@ internal class SeekAction(
 
         if (seek.IsError)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = seek.ToErrorContent(),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -161,9 +176,10 @@ internal class SeekAction(
             {seek.Value.ToValueContent()}
             """;
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m => m.Content = seekedMessage,
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
     }
 
@@ -177,9 +193,10 @@ internal class SeekAction(
     {
         if (!TimeSpanParser.TryParse(duration, out var durationTs))
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message("Not a valid duration. Example: 00:00:10"),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -193,19 +210,21 @@ internal class SeekAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -215,7 +234,8 @@ internal class SeekAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
 
         var seek = await session.Value.SeekAsync(
@@ -226,9 +246,10 @@ internal class SeekAction(
 
         if (seek.IsError)
         {
-            await ModifyResponseAsync(
+            await SafeModifyResponseAsync(
                 m => m.Content = seek.ToErrorContent(),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -238,9 +259,10 @@ internal class SeekAction(
             {seek.Value.ToValueContent()}
             """;
 
-        await ModifyResponseAsync(
+        await SafeModifyResponseAsync(
             m => m.Content = seekedMessage,
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

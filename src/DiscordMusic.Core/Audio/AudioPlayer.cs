@@ -18,7 +18,7 @@ public class AudioPlayer(
     public async Task<ErrorOr<AudioStatus>> ResumeAsync(CancellationToken ct)
     {
         logger.LogTrace("Resuming audio");
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (_audioStream is null)
         {
@@ -40,7 +40,7 @@ public class AudioPlayer(
     )
     {
         logger.LogTrace("Seek audio");
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (_audioStream is null)
         {
@@ -64,7 +64,7 @@ public class AudioPlayer(
     public async Task<AudioStatus> StatusAsync(CancellationToken ct)
     {
         logger.LogTrace("Status of audio");
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
         return _audioStream is null
             ? AudioStatus.Stopped
             : new AudioStatus(
@@ -77,14 +77,14 @@ public class AudioPlayer(
     public async Task<bool> IsPlayingAsync(CancellationToken ct)
     {
         logger.LogTrace("Is audio playing");
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
         return _audioStream?.State == AudioStream.AudioState.Playing;
     }
 
     public async Task<ErrorOr<AudioStatus>> PauseAsync(CancellationToken ct)
     {
         logger.LogTrace("Pause audio");
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (_audioStream is null)
         {
@@ -106,7 +106,7 @@ public class AudioPlayer(
     )
     {
         logger.LogTrace("Play audio from file");
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         var audioStream = AudioStream.Load(
             AudioStream.AudioState.Playing,
@@ -125,16 +125,18 @@ public class AudioPlayer(
         _audioStream?.Dispose();
         _audioStream = audioStream.Value;
 
+        // Don't capture the caller's cancellation token here.
+        // These callbacks can fire long after PlayAsync returned (e.g. natural end of a track).
         _audioStream.StreamEnded += async (_, _) =>
         {
-            await output.FlushAsync(ct);
-            updateAsync(AudioEvent.Ended, null, ct).FireAndForget(logger);
+            await output.FlushAsync(CancellationToken.None);
+            updateAsync(AudioEvent.Ended, null, CancellationToken.None).FireAndForget(logger);
         };
 
         _audioStream.StreamFailed += async (e, _, _) =>
         {
-            await output.FlushAsync(ct);
-            updateAsync(AudioEvent.Error, e, ct).FireAndForget(logger);
+            await output.FlushAsync(CancellationToken.None);
+            updateAsync(AudioEvent.Error, e, CancellationToken.None).FireAndForget(logger);
         };
 
         return new AudioStatus(

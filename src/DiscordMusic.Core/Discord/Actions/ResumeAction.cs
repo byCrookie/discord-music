@@ -11,7 +11,7 @@ internal class ResumeAction(
     GuildSessionManager guildSessionManager,
     ILogger<ResumeAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("resume", "Resume the current track.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -27,14 +27,16 @@ internal class ResumeAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -43,16 +45,18 @@ internal class ResumeAction(
 
         if (resume.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(resume.ToErrorContent()),
-                cancellationToken: cancellation.CancellationToken
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(resume.Value.ToValueContent()),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

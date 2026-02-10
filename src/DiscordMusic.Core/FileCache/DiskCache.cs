@@ -30,7 +30,7 @@ internal class DiskCache<T>(
 
     public async Task<ErrorOr<Success>> InitAsync(CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (_initialized)
         {
@@ -109,7 +109,7 @@ internal class DiskCache<T>(
         CancellationToken ct
     )
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_initialized)
         {
@@ -144,7 +144,7 @@ internal class DiskCache<T>(
 
     public async Task<ErrorOr<T>> RetrieveAsync(Key key, CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_initialized)
         {
@@ -190,7 +190,7 @@ internal class DiskCache<T>(
 
     public async Task<ErrorOr<IFileInfo>> GetMetadataPathAsync(Key key, CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_initialized)
         {
@@ -205,7 +205,7 @@ internal class DiskCache<T>(
 
     public async Task<ErrorOr<IFileInfo>> GetDataPathAsync(Key key, CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_initialized)
         {
@@ -220,7 +220,7 @@ internal class DiskCache<T>(
 
     public async Task<ErrorOr<ByteSize>> GetSizeAsync(CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_initialized)
         {
@@ -232,7 +232,7 @@ internal class DiskCache<T>(
 
     public async Task<ErrorOr<Success>> ClearAsync(CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         if (!_initialized)
         {
@@ -285,7 +285,7 @@ internal class DiskCache<T>(
 
     private async Task ShrinkToMaxSizeAsync(CancellationToken ct)
     {
-        await using var _ = await _lock.AquireAsync(ct);
+        await using var _ = await _lock.AcquireAsync(ct);
 
         try
         {

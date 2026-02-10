@@ -11,7 +11,7 @@ internal class PlayNextAction(
     GuildSessionManager guildSessionManager,
     ILogger<PlayNextAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("playnext", "Play a track. Direct link or search query. Prepended to queue.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -33,19 +33,21 @@ internal class PlayNextAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
@@ -56,17 +58,26 @@ internal class PlayNextAction(
                     """,
                 }
             ),
-            cancellationToken: cancellation.CancellationToken
+            logger,
+            cancellation.CancellationToken
         );
 
         var play = await session.Value.PlayNextAsync(query, cancellation.CancellationToken);
 
         if (play.IsError)
         {
-            await ModifyResponseAsync(m => m.Content = play.ToErrorContent());
+            await SafeModifyResponseAsync(
+                m => m.Content = play.ToErrorContent(),
+                logger,
+                cancellation.CancellationToken
+            );
             return;
         }
 
-        await ModifyResponseAsync(m => m.Content = play.Value.ToValueContent());
+        await SafeModifyResponseAsync(
+            m => m.Content = play.Value.ToValueContent(),
+            logger,
+            cancellation.CancellationToken
+        );
     }
 }

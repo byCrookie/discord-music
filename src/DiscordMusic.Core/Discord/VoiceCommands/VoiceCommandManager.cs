@@ -54,7 +54,7 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
                     Resample48KTo16KBy3(guild.Mono48KSamples, guild.Mono16KSamples);
 
                     var buffer = guild.Buffers.GetOrAdd(args.Ssrc, _ => new VoiceCommandBuffer());
-                    buffer.Append(args.Ssrc, MemoryMarshal.AsBytes(guild.Mono16KSamples.AsSpan()));
+                    buffer.Append(MemoryMarshal.AsBytes(guild.Mono16KSamples.AsSpan()));
                 }
             }
             catch (Exception ex)
@@ -79,6 +79,14 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
     {
         if (_guilds.TryRemove(guildId, out var state))
         {
+            foreach (var pair in state.Buffers)
+            {
+                if (state.Buffers.TryRemove(pair.Key, out var buffer))
+                {
+                    buffer.Dispose();
+                }
+            }
+
             state.OpusDecoder.Dispose();
         }
     }

@@ -3,7 +3,7 @@
 [Oo]bj/
 
 # Intellj
-.idea
+.idea/
 
 # Testing
 *.received.*
@@ -11,4 +11,4 @@
 # User-specific files
 *.user
 
-artifacts
+artifacts/

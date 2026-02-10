@@ -3,7 +3,6 @@ using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
-using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 
@@ -14,21 +13,51 @@ internal class VoiceStateUpdateHandler(
     GuildSessionManager guildSessionManager
 ) : IVoiceStateUpdateGatewayHandler
 {
+    private ulong? _botId;
+
     public async ValueTask HandleAsync(VoiceState voiceState)
     {
         var ct = cancellation.CancellationToken;
-        var bot = await gatewayClient.Rest.GetCurrentUserAsync(cancellationToken: ct);
 
-        if (voiceState.UserId == bot.Id && voiceState.ChannelId is not null)
-        {
-            logger.LogInformation("Bot joined voice channel {ChannelId}", voiceState.ChannelId);
-            return;
-        }
+        // Cache the bot id (REST call) so we don't fetch it on every gateway event.
+        var botId = _botId ??= (
+            await gatewayClient.Rest.GetCurrentUserAsync(cancellationToken: ct)
+        ).Id;
 
-        if (voiceState.UserId == bot.Id && voiceState.ChannelId is not null)
+        var previousChannelId =
+            gatewayClient.Cache.Guilds.TryGetValue(voiceState.GuildId, out var g)
+            && g.VoiceStates.TryGetValue(voiceState.UserId, out var vs)
+                ? vs.ChannelId
+                : null;
+
+        var change = VoiceStateChangeClassifier.Classify(
+            voiceState.UserId,
+            botId,
+            previousChannelId,
+            voiceState.ChannelId
+        );
+
+        if (voiceState.UserId == botId)
         {
-            logger.LogInformation("Bot left voice channel");
-            return;
+            switch (change)
+            {
+                case VoiceStateChange.Joined:
+                    logger.LogInformation(
+                        "Bot joined voice channel {ChannelId}",
+                        voiceState.ChannelId
+                    );
+                    return;
+                case VoiceStateChange.Left:
+                    logger.LogInformation("Bot left voice channel");
+                    return;
+                case VoiceStateChange.Moved:
+                    logger.LogInformation(
+                        "Bot moved voice channels {FromChannelId} -> {ToChannelId}",
+                        previousChannelId,
+                        voiceState.ChannelId
+                    );
+                    return;
+            }
         }
 
         if (voiceState.ChannelId is not null)
@@ -58,15 +87,15 @@ internal class VoiceStateUpdateHandler(
             return;
         }
 
-        if (!guild.VoiceStates.TryGetValue(bot.Id, out var voiceStateBot))
+        if (!guild.VoiceStates.TryGetValue(botId, out var voiceStateBot))
         {
             logger.LogInformation("Bot is not in a voice channel.");
             return;
         }
 
         var voiceStatesInChannel = guild
-            .VoiceStates.Where(vs =>
-                vs.Value.ChannelId == voiceStateBot.ChannelId && vs.Value.UserId != bot.Id
+            .VoiceStates.Where(vsLocal =>
+                vsLocal.Value.ChannelId == voiceStateBot.ChannelId && vsLocal.Value.UserId != botId
             )
             .ToList();
 
@@ -76,7 +105,7 @@ internal class VoiceStateUpdateHandler(
                 "Channel {ChannelId} is still active. {Count} members are still in the channel. Active: {Members}",
                 voiceStateBot.ChannelId,
                 voiceStatesInChannel.Count,
-                string.Join(", ", voiceStatesInChannel.Select(vs => vs.Value.UserId))
+                string.Join(", ", voiceStatesInChannel.Select(vsLocal => vsLocal.Value.UserId))
             );
             return;
         }

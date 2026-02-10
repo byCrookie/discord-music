@@ -11,7 +11,7 @@ internal class NowPlayingAction(
     GuildSessionManager guildSessionManager,
     ILogger<NowPlayingAction> logger,
     Cancellation cancellation
-) : ApplicationCommandModule<ApplicationCommandContext>
+) : SafeApplicationCommandModule
 {
     [SlashCommand("nowplaying", "Shows the currently playing track.")]
     [RequireChannelMusicAttribute<ApplicationCommandContext>]
@@ -27,14 +27,16 @@ internal class NowPlayingAction(
 
         if (session.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = session.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
@@ -43,26 +45,30 @@ internal class NowPlayingAction(
 
         if (nowPlaying.IsError)
         {
-            await RespondAsync(
+            await SafeRespondAsync(
                 InteractionCallback.Message(
                     new InteractionMessageProperties
                     {
                         Content = nowPlaying.ToErrorContent(),
                         Flags = MessageFlags.Ephemeral,
                     }
-                )
+                ),
+                logger,
+                cancellation.CancellationToken
             );
             return;
         }
 
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = nowPlaying.Value.ToValueContent(),
                     Flags = MessageFlags.Ephemeral,
                 }
-            )
+            ),
+            logger,
+            cancellation.CancellationToken
         );
     }
 }

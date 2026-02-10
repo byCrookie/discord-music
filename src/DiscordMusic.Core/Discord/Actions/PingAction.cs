@@ -5,21 +5,21 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Actions;
 
-internal class PingAction(ILogger<SeekAction> logger)
-    : ApplicationCommandModule<ApplicationCommandContext>
+internal class PingAction(ILogger<PingAction> logger) : SafeApplicationCommandModule
 {
     [SlashCommand("ping", "Ping the bot. It will pong back.")]
     public async Task Ping()
     {
         logger.LogTrace("Ping");
-        await RespondAsync(
+        await SafeRespondAsync(
             InteractionCallback.Message(
                 new InteractionMessageProperties
                 {
                     Content = "Pong!",
                     Flags = MessageFlags.Ephemeral,
                 }
-            )
+            ),
+            logger
         );
     }
 }

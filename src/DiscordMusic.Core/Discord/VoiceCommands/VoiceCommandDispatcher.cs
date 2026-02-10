@@ -1,5 +1,4 @@
 ﻿using DiscordMusic.Core.Discord.Sessions;
-using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
@@ -27,37 +26,65 @@ internal sealed class VoiceCommandDispatcher(
         {
             case VoiceCommandIntent.Play:
                 if (!string.IsNullOrWhiteSpace(command.Argument))
-                    _ = await session.PlayAsync(command.Argument!, ct);
+                {
+                    var play = await session.PlayAsync(command.Argument!, ct);
+                    await session.ReportIfErrorAsync(play, ct);
+                }
                 break;
             case VoiceCommandIntent.PlayNext:
                 if (!string.IsNullOrWhiteSpace(command.Argument))
-                    _ = await session.PlayNextAsync(command.Argument!, ct);
+                {
+                    var playNext = await session.PlayNextAsync(command.Argument!, ct);
+                    await session.ReportIfErrorAsync(playNext, ct);
+                }
                 break;
             case VoiceCommandIntent.Pause:
-                _ = await session.PauseAsync(ct);
+            {
+                var pause = await session.PauseAsync(ct);
+                await session.ReportIfErrorAsync(pause, ct);
                 break;
+            }
             case VoiceCommandIntent.Resume:
-                _ = await session.ResumeAsync(ct);
+            {
+                var resume = await session.ResumeAsync(ct);
+                await session.ReportIfErrorAsync(resume, ct);
                 break;
+            }
             case VoiceCommandIntent.Skip:
-                _ = await session.SkipAsync(toIndex: 1, ct);
+            {
+                var skip = await session.SkipAsync(toIndex: 1, ct);
+                await session.ReportIfErrorAsync(skip, ct);
                 break;
+            }
             case VoiceCommandIntent.Queue:
-                _ = await session.QueueAsync(ct);
+            {
+                var queue = await session.QueueAsync(ct);
+                await session.ReportIfErrorAsync(queue, ct);
                 break;
+            }
             case VoiceCommandIntent.NowPlaying:
-                _ = await session.NowPlayingAsync(ct);
+            {
+                var nowPlaying = await session.NowPlayingAsync(ct);
+                await session.ReportIfErrorAsync(nowPlaying, ct);
                 break;
+            }
             case VoiceCommandIntent.Shuffle:
-                _ = await session.ShuffleAsync(ct);
+            {
+                var shuffle = await session.ShuffleAsync(ct);
+                await session.ReportIfErrorAsync(shuffle, ct);
                 break;
+            }
             case VoiceCommandIntent.QueueClear:
-                _ = await session.QueueClearAsync(ct);
+            {
+                var clear = await session.QueueClearAsync(ct);
+                await session.ReportIfErrorAsync(clear, ct);
                 break;
+            }
             case VoiceCommandIntent.Lyrics:
                 if (string.IsNullOrWhiteSpace(command.Argument))
                 {
-                    _ = await session.NowPlayingAsync(ct);
+                    var nowPlaying = await session.NowPlayingAsync(ct);
+                    await session.ReportIfErrorAsync(nowPlaying, ct);
                 }
                 else
                 {
