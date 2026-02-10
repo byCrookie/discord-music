@@ -2,10 +2,6 @@
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
 
-/// <summary>
-/// Super simple per-SSRC audio buffer.
-/// Collects raw received frames and allows snapshot+clear.
-/// </summary>
 internal sealed class VoiceCommandBuffer
 {
     private sealed class Entry
@@ -19,7 +15,9 @@ internal sealed class VoiceCommandBuffer
     public void Append(uint ssrc, ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length == 0)
+        {
             return;
+        }
 
         var entry = _buffers.GetOrAdd(ssrc, _ => new Entry());
         lock (entry)
@@ -32,7 +30,9 @@ internal sealed class VoiceCommandBuffer
     public int PeekLength(uint ssrc)
     {
         if (!_buffers.TryGetValue(ssrc, out var entry))
+        {
             return 0;
+        }
 
         lock (entry)
         {
@@ -43,7 +43,9 @@ internal sealed class VoiceCommandBuffer
     public DateTimeOffset? GetLastAppendUtc(uint ssrc)
     {
         if (!_buffers.TryGetValue(ssrc, out var entry))
+        {
             return null;
+        }
 
         lock (entry)
         {
@@ -54,7 +56,9 @@ internal sealed class VoiceCommandBuffer
     public byte[] SnapshotAndClear(uint ssrc)
     {
         if (!_buffers.TryGetValue(ssrc, out var entry))
-            return Array.Empty<byte>();
+        {
+            return [];
+        }
 
         lock (entry)
         {
@@ -64,7 +68,9 @@ internal sealed class VoiceCommandBuffer
             // If the stream is now empty, attempt to remove it to avoid holding onto many idle entries.
             // Best effort: if another thread appends concurrently, TryRemove will fail and that's fine.
             if (entry.Stream.Length == 0)
+            {
                 _buffers.TryRemove(new KeyValuePair<uint, Entry>(ssrc, entry));
+            }
 
             return data;
         }

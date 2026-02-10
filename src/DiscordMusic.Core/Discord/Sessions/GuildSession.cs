@@ -297,38 +297,51 @@ internal class GuildSession(
                     cancellationToken: ct
                 );
 
+                // We're in a terminal state for the current track after an error.
                 _currentTrack = null;
 
-                var nextFromError = await PlayNextTrackFromQueueAsync(true, ct);
-
-                if (nextFromError.IsError)
+                // Just like on Ended: keep skipping forward until we successfully start something
+                // or the queue is empty. This avoids getting "stuck" requiring a manual skip.
+                while (true)
                 {
-                    logger.LogError(
-                        "Failed to play next track after stream error. GuildId={GuildId} TextChannelId={TextChannelId} ErrorCode={ErrorCode}",
-                        Guild.Id,
-                        textChannel.Id,
-                        nextFromError.FirstError.Code
-                    );
-                    await textChannel.SendMessageAsync(
-                        new MessageProperties { Content = nextFromError.ToErrorContent() },
-                        cancellationToken: ct
-                    );
+                    var nextFromError = await PlayNextTrackFromQueueAsync(true, ct);
+
+                    if (nextFromError.IsError)
+                    {
+                        logger.LogError(
+                            "Failed to play next track after stream error. GuildId={GuildId} TextChannelId={TextChannelId} ErrorCode={ErrorCode}",
+                            Guild.Id,
+                            textChannel.Id,
+                            nextFromError.FirstError.Code
+                        );
+
+                        await textChannel.SendMessageAsync(
+                            new MessageProperties { Content = nextFromError.ToErrorContent() },
+                            cancellationToken: ct
+                        );
+
+                        if (_queue.Count() > 0)
+                        {
+                            continue;
+                        }
+
+                        return;
+                    }
+
+                    if (nextFromError.Value.Track is null)
+                    {
+                        logger.LogTrace("No more tracks in queue. GuildId={GuildId}", Guild.Id);
+                        await textChannel.SendMessageAsync(
+                            new MessageProperties
+                            {
+                                Content = "Queue is empty. No more tracks to play.",
+                            },
+                            cancellationToken: ct
+                        );
+                    }
+
                     return;
                 }
-
-                if (nextFromError.Value.Track is null)
-                {
-                    logger.LogTrace("No more tracks in queue. GuildId={GuildId}", Guild.Id);
-                    await textChannel.SendMessageAsync(
-                        new MessageProperties
-                        {
-                            Content = "Queue is empty. No more tracks to play.",
-                        },
-                        cancellationToken: ct
-                    );
-                }
-
-                return;
             }
             case AudioEvent.Ended:
             {
@@ -339,33 +352,50 @@ internal class GuildSession(
                     _currentTrack?.Url
                 );
 
-                var next = await PlayNextTrackFromQueueAsync(true, ct);
+                // Reached a terminal state for the current track.
+                // Clear it before attempting to start the next one so PlayNextTrackFromQueueAsync
+                // doesn't treat us as "still playing" when something goes wrong.
+                _currentTrack = null;
 
-                if (next.IsError)
+                while (true)
                 {
-                    logger.LogError(
-                        "Failed to play next track. GuildId={GuildId} TextChannelId={TextChannelId} ErrorCode={ErrorCode}",
-                        Guild.Id,
-                        textChannel.Id,
-                        next.FirstError.Code
-                    );
-                    await textChannel.SendMessageAsync(
-                        new MessageProperties { Content = next.ToErrorContent() },
-                        cancellationToken: ct
-                    );
-                    return;
-                }
+                    var next = await PlayNextTrackFromQueueAsync(true, ct);
 
-                if (next.Value.Track is null)
-                {
-                    logger.LogTrace("No more tracks in queue. GuildId={GuildId}", Guild.Id);
-                    await textChannel.SendMessageAsync(
-                        new MessageProperties
+                    if (next.IsError)
+                    {
+                        logger.LogError(
+                            "Failed to play next track. GuildId={GuildId} TextChannelId={TextChannelId} ErrorCode={ErrorCode}",
+                            Guild.Id,
+                            textChannel.Id,
+                            next.FirstError.Code
+                        );
+
+                        await textChannel.SendMessageAsync(
+                            new MessageProperties { Content = next.ToErrorContent() },
+                            cancellationToken: ct
+                        );
+
+                        if (_queue.Count() > 0)
                         {
-                            Content = "Queue is empty. No more tracks to play.",
-                        },
-                        cancellationToken: ct
-                    );
+                            continue;
+                        }
+
+                        return;
+                    }
+
+                    if (next.Value.Track is null)
+                    {
+                        logger.LogTrace("No more tracks in queue. GuildId={GuildId}", Guild.Id);
+                        await textChannel.SendMessageAsync(
+                            new MessageProperties
+                            {
+                                Content = "Queue is empty. No more tracks to play.",
+                            },
+                            cancellationToken: ct
+                        );
+                    }
+
+                    break;
                 }
 
                 break;

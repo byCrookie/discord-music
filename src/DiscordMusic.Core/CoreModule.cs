@@ -65,10 +65,6 @@ public static class CoreModule
 
         builder.Services.AddSingleton<IFileSystem>(new RealFileSystem());
         builder.Services.AddSingleton(new Cancellation(ct));
-
-        builder.Services.AddSingleton<VoiceCommandManager>();
-        builder.Services.AddSingleton<IVoiceCommandSubscriptions, VoiceCommandSubscriptions>();
-        builder.Services.AddHostedService<VoiceCommandService>();
     }
 
     private static void AddConfigFromOsSpecificDirs(IHostApplicationBuilder builder, ILogger logger)

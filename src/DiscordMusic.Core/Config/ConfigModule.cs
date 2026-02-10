@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using DiscordMusic.Core.Discord.Cache;
 using Humanizer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;

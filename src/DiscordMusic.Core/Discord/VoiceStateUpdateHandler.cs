@@ -3,7 +3,6 @@ using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
-using NetCord.Rest;
 
 namespace DiscordMusic.Core.Discord;
 

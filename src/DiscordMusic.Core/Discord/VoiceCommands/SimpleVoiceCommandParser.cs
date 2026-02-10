@@ -2,76 +2,54 @@
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
 
-/// <summary>
-/// Very small English parser intended for Whisper transcripts.
-/// Requires a wake word by default ("music").
-/// Examples:
-/// - "music play never gonna give you up"
-/// - "music pause"
-/// - "music skip"
-/// </summary>
-public sealed class SimpleVoiceCommandParser : IVoiceCommandParser
+public sealed partial class SimpleVoiceCommandParser
 {
-    private static readonly Regex WakeRegex = new(
-        @"\b(music|dj)\b",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled
-    );
+    private static readonly Regex WakeRegex = WakeRegexPattern();
 
     private sealed record Rule(Regex Regex, Func<Match, VoiceCommand> Build);
 
     private static readonly Rule[] Rules =
     [
-        // Play next <query>
         new(
             new Regex(@"^(?:please\s+)?play\s+next\s+(?<query>.+)$", RegexOptions.Compiled),
             m => new VoiceCommand(VoiceCommandIntent.PlayNext, m.Groups["query"].Value.Trim())
         ),
-        // Play <query>
         new(
             new Regex(@"^(?:please\s+)?play\s+(?<query>.+)$", RegexOptions.Compiled),
             m => new VoiceCommand(VoiceCommandIntent.Play, m.Groups["query"].Value.Trim())
         ),
-        // Pause/Stop
         new(
             new Regex("^(?:pause|stop)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Pause)
         ),
-        // "shut up" / quiet / silence (allow some filler words).
         new(
             new Regex(@"^(?:shut\s+up|quiet|silence)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Pause)
         ),
-        // Resume
         new(
             new Regex("^(?:resume|continue)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Resume)
         ),
-        // Skip
         new(
             new Regex("^(?:skip|next)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Skip)
         ),
-        // Queue
         new(
             new Regex("^(?:queue|list)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Queue)
         ),
-        // Shuffle
         new(
             new Regex("^shuffle$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Shuffle)
         ),
-        // Now playing
         new(
             new Regex(@"^(?:now\s+playing|nowplaying|what\s+is\s+playing)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.NowPlaying)
         ),
-        // Clear queue
         new(
             new Regex(@"^(?:clear\s+queue|queue\s+clear|clear)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.QueueClear)
         ),
-        // Lyrics: "lyrics" (use current track) OR "lyrics <query>"
         new(
             new Regex(@"^lyrics(?:\s+(?:for\s+)?)?(?<query>.+)?$", RegexOptions.Compiled),
             m =>
@@ -82,7 +60,6 @@ public sealed class SimpleVoiceCommandParser : IVoiceCommandParser
                     : new VoiceCommand(VoiceCommandIntent.Lyrics, q);
             }
         ),
-        // Ping
         new(
             new Regex(@"^(?:ping|are\s+you\s+there)$", RegexOptions.Compiled),
             _ => new VoiceCommand(VoiceCommandIntent.Ping)
@@ -92,13 +69,17 @@ public sealed class SimpleVoiceCommandParser : IVoiceCommandParser
     public VoiceCommand Parse(string transcript)
     {
         if (string.IsNullOrWhiteSpace(transcript))
+        {
             return VoiceCommand.None;
+        }
 
         var text = transcript.Trim();
 
         // Require wake word to reduce false positives in a voice channel.
         if (!WakeRegex.IsMatch(text))
+        {
             return VoiceCommand.None;
+        }
 
         // Normalize: drop wake word and punctuation-ish.
         text = WakeRegex.Replace(text, " ");
@@ -134,4 +115,7 @@ public sealed class SimpleVoiceCommandParser : IVoiceCommandParser
 
         return VoiceCommand.None;
     }
+
+    [GeneratedRegex(@"\b(music|dj)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-CH")]
+    private static partial Regex WakeRegexPattern();
 }

@@ -125,16 +125,16 @@ public class AudioPlayer(
         _audioStream?.Dispose();
         _audioStream = audioStream.Value;
 
-        _audioStream.StreamEnded += async (_, _) =>
+        _audioStream.StreamEnded += (_, _) =>
         {
-            await output.FlushAsync(ct);
             updateAsync(AudioEvent.Ended, null, ct).FireAndForget(logger);
+            return Task.CompletedTask;
         };
 
-        _audioStream.StreamFailed += async (e, _, _) =>
+        _audioStream.StreamFailed += (e, _, _) =>
         {
-            await output.FlushAsync(ct);
             updateAsync(AudioEvent.Error, e, ct).FireAndForget(logger);
+            return Task.CompletedTask;
         };
 
         return new AudioStatus(

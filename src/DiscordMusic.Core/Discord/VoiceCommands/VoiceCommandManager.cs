@@ -5,32 +5,26 @@ using NetCord.Gateway.Voice;
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
 
-/// <summary>
-/// Injectable, non-hosted component that owns per-guild voice buffers and subscription wiring.
-/// The hosted background service processes the buffers.
-/// </summary>
-internal sealed class VoiceCommandManager : IVoiceCommandService
+internal sealed class VoiceCommandManager(ILogger<VoiceCommandManager> logger)
 {
     internal sealed class GuildState
     {
+        // 60ms frames: lower CPU/bandwidth, slightly higher latency.
+        private const float FrameDurationMs = 60;
+        public static readonly int SamplesPerChannel = Opus.GetSamplesPerChannel(FrameDurationMs);
+
         public ConcurrentDictionary<uint, VoiceCommandBuffer> Buffers { get; } = new();
 
         // OpusDecoder/buffer reuse is guarded because VoiceReceive can be concurrent.
         public Lock DecodeLock { get; } = new();
         public OpusDecoder OpusDecoder { get; } = new(VoiceChannels.Stereo);
-        public byte[] Pcm48KStereo { get; } =
-            new byte[Opus.GetFrameSize(PcmFormat.Short, VoiceChannels.Stereo)];
-        public short[] Mono48KSamples { get; } = new short[Opus.SamplesPerChannel];
-        public short[] Mono16KSamples { get; } = new short[Opus.SamplesPerChannel / 3];
+
+        public short[] Pcm48KStereo { get; } = new short[SamplesPerChannel * 2];
+        public short[] Mono48KSamples { get; } = new short[SamplesPerChannel];
+        public short[] Mono16KSamples { get; } = new short[SamplesPerChannel / 3];
     }
 
-    private readonly ILogger<VoiceCommandManager> _logger;
     private readonly ConcurrentDictionary<ulong, GuildState> _guilds = new();
-
-    public VoiceCommandManager(ILogger<VoiceCommandManager> logger)
-    {
-        _logger = logger;
-    }
 
     internal IReadOnlyDictionary<ulong, GuildState> Guilds => _guilds;
 
@@ -38,28 +32,48 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
     {
         var guild = _guilds.GetOrAdd(guildId, _ => new GuildState());
 
+        voiceClient.VoiceReceive += Handler;
+        return new Subscription(() => voiceClient.VoiceReceive -= Handler);
+
         ValueTask Handler(VoiceReceiveEventArgs args)
         {
             try
             {
                 lock (guild.DecodeLock)
                 {
-                    guild.OpusDecoder.Decode(args.Frame, guild.Pcm48KStereo);
-
-                    DownmixStereoS16ToMono(
-                        MemoryMarshal.Cast<byte, short>(guild.Pcm48KStereo.AsSpan()),
-                        guild.Mono48KSamples
+                    var decodedSamplesPerChannel = guild.OpusDecoder.Decode(
+                        args.Frame,
+                        guild.Pcm48KStereo,
+                        GuildState.SamplesPerChannel
                     );
 
-                    Resample48KTo16KBy3(guild.Mono48KSamples, guild.Mono16KSamples);
+                    if (decodedSamplesPerChannel <= 0)
+                    {
+                        return ValueTask.CompletedTask;
+                    }
+
+                    var totalStereoSamples = decodedSamplesPerChannel * 2;
+
+                    DownmixStereoS16ToMono(
+                        guild.Pcm48KStereo.AsSpan(0, totalStereoSamples),
+                        guild.Mono48KSamples.AsSpan(0, decodedSamplesPerChannel)
+                    );
+
+                    var outSamples = Resample48KTo16KBy3(
+                        guild.Mono48KSamples.AsSpan(0, decodedSamplesPerChannel),
+                        guild.Mono16KSamples
+                    );
 
                     var buffer = guild.Buffers.GetOrAdd(args.Ssrc, _ => new VoiceCommandBuffer());
-                    buffer.Append(args.Ssrc, MemoryMarshal.AsBytes(guild.Mono16KSamples.AsSpan()));
+                    buffer.Append(
+                        args.Ssrc,
+                        MemoryMarshal.AsBytes(guild.Mono16KSamples.AsSpan(0, outSamples))
+                    );
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     ex,
                     "Failed decoding/buffering voice frame. GuildId={GuildId} SSRC={Ssrc} FrameLength={FrameLength}",
                     guildId,
@@ -70,9 +84,6 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
 
             return ValueTask.CompletedTask;
         }
-
-        voiceClient.VoiceReceive += Handler;
-        return new Subscription(() => voiceClient.VoiceReceive -= Handler);
     }
 
     public void UnsubscribeGuild(ulong guildId)
@@ -97,13 +108,15 @@ internal sealed class VoiceCommandManager : IVoiceCommandService
         }
     }
 
-    private static void Resample48KTo16KBy3(ReadOnlySpan<short> mono48K, Span<short> mono16KOut)
+    private static int Resample48KTo16KBy3(ReadOnlySpan<short> mono48K, Span<short> mono16KOut)
     {
         var outSamples = Math.Min(mono16KOut.Length, mono48K.Length / 3);
         for (var i = 0; i < outSamples; i++)
         {
             mono16KOut[i] = mono48K[i * 3];
         }
+
+        return outSamples;
     }
 
     private sealed class Subscription(Action dispose) : IDisposable

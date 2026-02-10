@@ -9,7 +9,7 @@ namespace DiscordMusic.Core.Discord.VoiceCommands;
 internal sealed class WhisperVoiceTranscriber(
     ILogger<WhisperVoiceTranscriber> logger,
     AppPaths appPaths
-) : IVoiceTranscriber
+)
 {
     private readonly Lazy<Task<WhisperFactory>> _factory = new(() =>
         DownloadModel(logger, appPaths)
@@ -23,21 +23,23 @@ internal sealed class WhisperVoiceTranscriber(
         var cache = appPaths.Cache();
         var modelPath = Path.Combine(cache.FullName, "ggml-base.bin");
 
-        if (!File.Exists(modelPath))
+        if (File.Exists(modelPath))
         {
-            logger.LogInformation(
-                "Whisper model {ModelPath} not found; downloading {Type}...",
-                modelPath,
-                GgmlType.Base
-            );
-            await using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(
-                GgmlType.Base,
-                cancellationToken: CancellationToken.None
-            );
-            await using var fileWriter = File.OpenWrite(modelPath);
-            await modelStream.CopyToAsync(fileWriter, CancellationToken.None);
+            return WhisperFactory.FromPath(modelPath);
         }
 
+        logger.LogInformation(
+            "Whisper model {ModelPath} not found; downloading {Type}...",
+            modelPath,
+            GgmlType.Base
+        );
+
+        await using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(
+            GgmlType.Base,
+            cancellationToken: CancellationToken.None
+        );
+        await using var fileWriter = File.OpenWrite(modelPath);
+        await modelStream.CopyToAsync(fileWriter, CancellationToken.None);
         return WhisperFactory.FromPath(modelPath);
     }
 
@@ -65,11 +67,13 @@ internal sealed class WhisperVoiceTranscriber(
         var sb = new System.Text.StringBuilder();
         await foreach (var segment in processor.ProcessAsync(wav, ct))
         {
-            if (!string.IsNullOrWhiteSpace(segment.Text))
+            if (string.IsNullOrWhiteSpace(segment.Text))
             {
-                sb.Append(segment.Text.Trim());
-                sb.Append(' ');
+                continue;
             }
+
+            sb.Append(segment.Text.Trim());
+            sb.Append(' ');
         }
 
         return sb.ToString().Trim();

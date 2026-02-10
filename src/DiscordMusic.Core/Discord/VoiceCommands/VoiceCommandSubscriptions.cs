@@ -3,12 +3,7 @@ using NetCord.Gateway.Voice;
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
 
-/// <summary>
-/// Thread-safe holder for per-guild voice command subscriptions.
-/// Owns the lifecycle of the underlying subscription tokens.
-/// </summary>
 internal sealed class VoiceCommandSubscriptions(VoiceCommandManager manager)
-    : IVoiceCommandSubscriptions
 {
     private readonly ConcurrentDictionary<ulong, IDisposable> _subscriptionTokens = new();
 
@@ -35,7 +30,7 @@ internal sealed class VoiceCommandSubscriptions(VoiceCommandManager manager)
         // If AddOrUpdate inserted (no existing), old == token. Nothing else to do.
         if (!ReferenceEquals(old, token))
         {
-            // We disposed existing inside update delegate.
+            // Disposed existing inside update delegate.
         }
     }
 

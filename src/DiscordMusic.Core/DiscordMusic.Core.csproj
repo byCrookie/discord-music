@@ -8,7 +8,6 @@
     <ItemGroup>
         <PackageReference Include="ErrorOr" />
         <PackageReference Include="Flurl.Http" />
-        <PackageReference Include="HtmlAgilityPack" />
         <PackageReference Include="Humanizer.Core" />
         <PackageReference Include="Microsoft.Extensions.Configuration" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Ini" />
@@ -26,45 +25,64 @@
         <PackageReference Include="Whisper.net.Runtime" />
     </ItemGroup>
 
-    <ItemGroup>
-        <!-- Windows -->
-        <Content
-            Include="Natives/win-x86_64/opus.dll"
-            Condition="
-      '$(RuntimeIdentifier)' == '' OR
-      $(RuntimeIdentifier.StartsWith('win-'))
+    <!-- Windows -->
+    <ItemGroup
+        Condition="
+        '$(RuntimeIdentifier)' == '' OR
+        $(RuntimeIdentifier.StartsWith('win-'))
     "
-        >
+    >
+        <Content Include="Natives/win-x64/opus.dll">
             <Link>opus.dll</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
         </Content>
 
-        <!-- Linux x64 + macOS x64 -->
-        <Content
-            Include="Natives/linux-x86_64/libopus.so"
-            Condition="
+        <Content Include="Natives/win-x64/libdave.dll">
+            <Link>libdave.dll</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
+        </Content>
+    </ItemGroup>
+
+    <!-- Linux x64 + macOS x64 -->
+    <ItemGroup
+        Condition="
       $(RuntimeIdentifier.StartsWith('linux-x64')) OR
       $(RuntimeIdentifier.StartsWith('linux-musl-x64')) OR
       $(RuntimeIdentifier.StartsWith('osx-x64'))
     "
-        >
+    >
+        <Content Include="Natives/linux-x64/libopus.so">
             <Link>libopus.so</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
         </Content>
 
-        <!-- Linux ARM + macOS ARM -->
-        <Content
-            Include="Natives/linux-aarch64/libopus.so"
-            Condition="
+        <Content Include="Natives/linux-x64/libdave.so">
+            <Link>libdave.so</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
+        </Content>
+    </ItemGroup>
+
+    <!-- Linux ARM + macOS ARM -->
+    <ItemGroup
+        Condition="
       $(RuntimeIdentifier.StartsWith('linux-arm')) OR
       $(RuntimeIdentifier.StartsWith('linux-arm64')) OR
       $(RuntimeIdentifier.StartsWith('linux-musl-arm64')) OR
       $(RuntimeIdentifier.StartsWith('osx-arm64'))
     "
-        >
+    >
+        <Content Include="Natives/linux-arm64/libopus.so">
             <Link>libopus.so</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
+        </Content>
+
+        <Content Include="Natives/linux-arm64/libdave.so">
+            <Link>libdave.so</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
         </Content>

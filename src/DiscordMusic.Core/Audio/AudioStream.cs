@@ -35,20 +35,19 @@ public class AudioStream : IDisposable
         Backward,
     }
 
-    // Send data to NetCord in small chunks.
-    // This allows to check for Cancellation (Seek/Stop) many times per second.
-    // If increased, the bot would feel "laggy" when skipping songs.
-    // 3840 bytes = 20ms of audio
-    private const int NetworkFrameSize = 3840 * 5;
+    // PCM frame matching the 60ms Opus frame duration configured in NetCord.
+    // 48kHz × 2 channels × 2 bytes × 0.06s = 11520 bytes
+    private const int FrameSize = 11520;
 
     // Read from disk in large 300ms chunks.
     // This is efficient for the OS and reduces CPU overhead.
     // 57600 bytes = 300ms of audio
     private const int DiskReadSize = 57600;
 
-    // Pipe buffer size is double the disk read size to allow
-    // some leeway between reading from disk and sending to network.
-    private const int PipeBufferSize = DiskReadSize * 20;
+    // Large read-ahead buffer (~10s) so playback is resilient
+    // against slow or unreliable filesystem access.
+    // Rate-limiting on the consumer side prevents flooding Discord.
+    private const int PipeBufferSize = 192000 * 10;
 
     private readonly string _id;
     private readonly Stream _inputStream;
@@ -170,8 +169,43 @@ public class AudioStream : IDisposable
                 return;
             }
 
+            // Read from the pre-loaded pipe one frame at a time.
+            // The pipe holds ~10s of read-ahead from disk for filesystem
+            // resilience. Writing one frame per iteration lets us check
+            // cancellation every ~60ms. VoiceStream's SpeedNormalizingStream
+            // back-pressures each WriteAsync to real-time pace, so no
+            // explicit delay is needed here.
             var sourceStream = _pipe.Reader.AsStream(true);
-            await sourceStream.CopyToAsync(_outputStream, NetworkFrameSize, token);
+            var sendBuffer = new byte[FrameSize];
+
+            while (!token.IsCancellationRequested)
+            {
+                // Fill exactly one frame (may need multiple reads for a full frame)
+                var totalRead = 0;
+                while (totalRead < FrameSize)
+                {
+                    var bytesRead = await sourceStream.ReadAsync(
+                        sendBuffer.AsMemory(totalRead, FrameSize - totalRead),
+                        token
+                    );
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+
+                    totalRead += bytesRead;
+                }
+
+                if (totalRead == 0)
+                {
+                    break;
+                }
+
+                await _outputStream.WriteAsync(
+                    sendBuffer.AsMemory(0, totalRead),
+                    token
+                );
+            }
 
             // If a Seek happened while we were copying, we must not transition to Ended.
             if (generation != Volatile.Read(ref _playbackGeneration))

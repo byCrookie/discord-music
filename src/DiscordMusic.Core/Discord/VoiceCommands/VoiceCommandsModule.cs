@@ -4,11 +4,13 @@ namespace DiscordMusic.Core.Discord.VoiceCommands;
 
 public static class VoiceCommandsModule
 {
-    public static IServiceCollection AddVoiceCommands(this IServiceCollection services)
+    public static void AddVoiceCommands(this IServiceCollection services)
     {
-        services.AddSingleton<IVoiceCommandParser, SimpleVoiceCommandParser>();
-        services.AddSingleton<IVoiceTranscriber, WhisperVoiceTranscriber>();
+        services.AddSingleton<SimpleVoiceCommandParser>();
+        services.AddSingleton<WhisperVoiceTranscriber>();
         services.AddSingleton<VoiceCommandDispatcher>();
-        return services;
+        services.AddSingleton<VoiceCommandManager>();
+        services.AddSingleton<VoiceCommandSubscriptions>();
+        services.AddHostedService<VoiceCommandService>();
     }
 }

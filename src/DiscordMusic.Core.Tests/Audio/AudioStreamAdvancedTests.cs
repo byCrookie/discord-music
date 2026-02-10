@@ -375,9 +375,8 @@ public class AudioStreamAdvancedTests
             CancellationToken.None
         );
 
-        var tasks = new List<Task>();
-
-        tasks.Add(
+        var tasks = new List<Task>
+        {
             Task.Run(() =>
             {
                 for (var i = 0; i < 30; i++)
@@ -385,10 +384,7 @@ public class AudioStreamAdvancedTests
                     audioStream.Pause();
                     audioStream.Resume();
                 }
-            })
-        );
-
-        tasks.Add(
+            }),
             Task.Run(() =>
             {
                 for (var i = 0; i < 30; i++)
@@ -398,17 +394,14 @@ public class AudioStreamAdvancedTests
                         AudioStream.SeekMode.Position
                     );
                 }
-            })
-        );
-
-        tasks.Add(
+            }),
             Task.Run(() =>
             {
                 // Dispose mid-flight.
                 Thread.Sleep(50);
                 audioStream.Dispose();
-            })
-        );
+            }),
+        };
 
         await Task.WhenAll(tasks);
 
@@ -689,6 +682,98 @@ public class AudioStreamAdvancedTests
             // In case the test exited early, don't leak.
             audioStream.Dispose();
         }
+    }
+
+    [Test]
+    public async Task StreamFailed_DoesNotFire_AfterStreamEnded_OnSuccessfulPlayback()
+    {
+        var (fs, path) = AudioStreamTestHelpers.CreateAudioFile(
+            // Small enough to finish quickly but large enough to exercise the pipe.
+            AudioStreamTestHelpers.CreateAudioBytes(200_000)
+        );
+
+        await using var output = new MemoryStream();
+
+        using var audioStream = await AudioStreamTestHelpers.LoadAsync(
+            AudioStream.AudioState.Playing,
+            fs,
+            path,
+            output,
+            CancellationToken.None
+        );
+
+        var endedTcs = AudioStreamTestHelpers.CreateTcs();
+        var failedTcs = AudioStreamTestHelpers.CreateTcs();
+
+        audioStream.StreamEnded += (_, _) =>
+        {
+            endedTcs.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        audioStream.StreamFailed += (_, _, _) =>
+        {
+            failedTcs.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        // Wait for ended.
+        var endedCompleted = await Task.WhenAny(endedTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        await Assert.That(endedCompleted == endedTcs.Task).IsTrue();
+
+        // Give a small window for any late failure signals.
+        var failedCompleted = await Task.WhenAny(
+            failedTcs.Task,
+            Task.Delay(TimeSpan.FromMilliseconds(300))
+        );
+
+        await Assert.That(failedCompleted == failedTcs.Task).IsFalse();
+    }
+
+    [Test]
+    public async Task SwitchingStreams_OnSameOutput_SecondStreamProducesOutput()
+    {
+        var (fs, path1) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(800_000)
+        );
+        var (_, path2) = AudioStreamTestHelpers.CreateAudioFile(
+            AudioStreamTestHelpers.CreateAudioBytes(800_000)
+        );
+
+        await using var output = new MemoryStream();
+
+        using var stream1 = await AudioStreamTestHelpers.LoadAsync(
+            AudioStream.AudioState.Playing,
+            fs,
+            path1,
+            output,
+            CancellationToken.None
+        );
+
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > 0,
+            TimeSpan.FromSeconds(2)
+        );
+
+        // Dispose the first stream to simulate track change.
+        stream1.Dispose();
+        var beforeSecond = output.Length;
+
+        using var stream2 = await AudioStreamTestHelpers.LoadAsync(
+            AudioStream.AudioState.Playing,
+            fs,
+            path2,
+            output,
+            CancellationToken.None
+        );
+
+        await AudioStreamTestHelpers.WaitUntilAsync(
+            () => output.Length > beforeSecond,
+            TimeSpan.FromSeconds(2)
+        );
+
+        await Assert.That(stream2.State is AudioStream.AudioState.Playing or AudioStream.AudioState.Ended)
+            .IsTrue();
     }
 
     private sealed class ThrowingWriteStream : Stream

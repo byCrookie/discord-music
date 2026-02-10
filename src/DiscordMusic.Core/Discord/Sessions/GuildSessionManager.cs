@@ -15,11 +15,14 @@ internal class GuildSessionManager(
     IServiceProvider serviceProvider,
     ILogger<GuildSessionManager> logger,
     GatewayClient gatewayClient,
-    IVoiceCommandSubscriptions voiceCommandSubscriptions
+    VoiceCommandSubscriptions voiceCommandSubscriptions
 )
 {
     private readonly AsyncLock _lock = new();
     private readonly Dictionary<ulong, GuildSession> _sessions = new();
+
+    // 60ms frames: lower CPU/bandwidth, slightly higher latency.
+    private const float VoiceFrameDurationMs = 60;
 
     public async Task<ErrorOr<GuildSession>> JoinAsync(
         ApplicationCommandContext context,
@@ -227,7 +230,7 @@ internal class GuildSessionManager(
             catch (Exception e)
             {
                 logger.LogError(e, "Failed to start voice client for guild {Guild}", guild.Name);
-                await voiceClientForExisting.CloseAsync();
+                await voiceClientForExisting.CloseAsync(cancellationToken: ct);
                 voiceClientForExisting.Dispose();
                 return Error
                     .Unexpected(description: "Failed to connect to voice channel.")
@@ -248,11 +251,24 @@ internal class GuildSessionManager(
                 voiceChannel.Name
             );
 
+            var voiceStreamForExisting = voiceClientForExisting.CreateVoiceStream(
+                new VoiceStreamConfiguration
+                {
+                    FrameDuration = VoiceFrameDurationMs,
+                    NormalizeSpeed = true,
+                }
+            );
+
             var opusStreamForExisting = new OpusEncodeStream(
-                voiceClientForExisting.CreateOutputStream(),
+                voiceStreamForExisting,
                 PcmFormat.Short,
                 VoiceChannels.Stereo,
-                OpusApplication.Audio
+                OpusApplication.Audio,
+                new OpusEncodeStreamConfiguration
+                {
+                    FrameDuration = VoiceFrameDurationMs,
+                    Segment = true,
+                }
             );
 
             var audioPlayerForExisting = ActivatorUtilities.CreateInstance<AudioPlayer>(
@@ -308,7 +324,7 @@ internal class GuildSessionManager(
         catch (Exception e)
         {
             logger.LogError(e, "Failed to start voice client for guild {Guild}", guild.Name);
-            await voiceClient.CloseAsync();
+            await voiceClient.CloseAsync(cancellationToken: ct);
             voiceClient.Dispose();
             return Error
                 .Unexpected(description: "Failed to connect to voice channel.")
@@ -323,11 +339,24 @@ internal class GuildSessionManager(
 
         UpdateListenBasedOnSession(voiceCommandSetting, guild, voiceClient);
 
+        var voiceStream = voiceClient.CreateVoiceStream(
+            new VoiceStreamConfiguration
+            {
+                FrameDuration = VoiceFrameDurationMs,
+                NormalizeSpeed = true,
+            }
+        );
+
         var opusStream = new OpusEncodeStream(
-            voiceClient.CreateOutputStream(),
+            voiceStream,
             PcmFormat.Short,
             VoiceChannels.Stereo,
-            OpusApplication.Audio
+            OpusApplication.Audio,
+            new OpusEncodeStreamConfiguration
+            {
+                FrameDuration = VoiceFrameDurationMs,
+                Segment = true,
+            }
         );
 
         var audioPlayer = ActivatorUtilities.CreateInstance<AudioPlayer>(

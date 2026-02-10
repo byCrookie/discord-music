@@ -1,5 +1,4 @@
 ﻿using DiscordMusic.Core.Discord.Sessions;
-using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Discord.VoiceCommands;
@@ -12,7 +11,9 @@ internal sealed class VoiceCommandDispatcher(
     public async ValueTask DispatchAsync(VoiceCommand command, ulong guildId, CancellationToken ct)
     {
         if (command.Intent == VoiceCommandIntent.None)
+        {
             return;
+        }
 
         var sessionResult = await guildSessionManager.GetSessionAsync(guildId, ct);
         if (sessionResult.IsError)
@@ -27,11 +28,17 @@ internal sealed class VoiceCommandDispatcher(
         {
             case VoiceCommandIntent.Play:
                 if (!string.IsNullOrWhiteSpace(command.Argument))
+                {
                     _ = await session.PlayAsync(command.Argument!, ct);
+                }
+
                 break;
             case VoiceCommandIntent.PlayNext:
                 if (!string.IsNullOrWhiteSpace(command.Argument))
+                {
                     _ = await session.PlayNextAsync(command.Argument!, ct);
+                }
+
                 break;
             case VoiceCommandIntent.Pause:
                 _ = await session.PauseAsync(ct);
@@ -67,6 +74,7 @@ internal sealed class VoiceCommandDispatcher(
             case VoiceCommandIntent.Ping:
                 logger.LogInformation("Voice ping received");
                 break;
+            case VoiceCommandIntent.None:
             default:
                 logger.LogDebug("Unhandled voice command intent: {Intent}", command.Intent);
                 break;
