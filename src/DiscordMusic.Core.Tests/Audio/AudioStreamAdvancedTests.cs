@@ -695,7 +695,7 @@ public class AudioStreamAdvancedTests
         await using var output = new MemoryStream();
 
         using var audioStream = await AudioStreamTestHelpers.LoadAsync(
-            AudioStream.AudioState.Playing,
+            AudioStream.AudioState.Stopped,
             fs,
             path,
             output,
@@ -716,6 +716,9 @@ public class AudioStreamAdvancedTests
             failedTcs.TrySetResult();
             return Task.CompletedTask;
         };
+
+        // Start playback only after we've subscribed, to avoid missing the event on fast machines.
+        audioStream.Resume();
 
         // Wait for ended.
         var endedCompleted = await Task.WhenAny(endedTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
