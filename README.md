@@ -85,18 +85,18 @@ should change to online.
 ### Docker / Podman (Recommended)
 
 The `latest` tag is used for the newest version and has possibly not been in use for long. If you
-want a better experience, use the `stable` tag.
+want a better experience, use a specific tag.
 
 To run the bot as a container, use the following commands:
 
 ```bash
-docker pull ghcr.io/bycrookie/discord-music:stable
-docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:stable
+docker pull ghcr.io/bycrookie/discord-music:latest
+docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:latest
 ```
 
 ```bash
-podman pull ghcr.io/bycrookie/discord-music:stable
-podman run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:stable
+podman pull ghcr.io/bycrookie/discord-music:latest
+podman run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:latest
 ```
 
 A compose example can be found here [compose.yaml.example](compose.yaml.example).

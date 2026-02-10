@@ -1,6 +1,6 @@
 services:
     discord-music:
-        image: ghcr.io/bycrookie/discord-music:stable
+        image: ghcr.io/bycrookie/discord-music:latest
         container_name: dm
         env_file:
             - .env
