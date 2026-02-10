@@ -90,12 +90,12 @@ want a better experience, use the `stable` tag.
 To run the bot as a container, use the following commands:
 
 ```bash
-docker pull ghcr.io/bycrookie/discord-music:latest
+docker pull ghcr.io/bycrookie/discord-music:stable
 docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:stable
 ```
 
 ```bash
-podman pull ghcr.io/bycrookie/discord-music:latest
+podman pull ghcr.io/bycrookie/discord-music:stable
 podman run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:stable
 ```
 
@@ -138,6 +138,7 @@ Make sure to specify a valid [cache location](#Cache).
   from [Opus Codec](https://opus-codec.org/) or build from
   source.
 - **Libsodium**: Install from [Libsodium](https://libsodium.org/) if needed or build from source.
+- **Libdave**: Install from [libdave](https://github.com/discord/libdave) if needed or build from source.
 
 ## Config
 
