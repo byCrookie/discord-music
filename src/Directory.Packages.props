@@ -19,7 +19,7 @@
         <PackageVersion Include="System.CommandLine" Version="2.0.3" />
         <PackageVersion Include="Testably.Abstractions" Version="10.0.0" />
         <PackageVersion Include="Testably.Abstractions.Testing" Version="5.1.0" />
-        <PackageVersion Include="TUnit" Version="1.13.27" />
+        <PackageVersion Include="TUnit" Version="1.13.30" />
         <PackageVersion Include="ValueOf" Version="2.0.31" />
         <PackageVersion Include="Verify.TUnit" Version="31.12.4" />
         <PackageVersion Include="Whisper.net" Version="1.9.0" />
