@@ -4,25 +4,25 @@
         <PackageVersion Include="Flurl.Http" Version="4.0.2" />
         <PackageVersion Include="HtmlAgilityPack" Version="1.12.4" />
         <PackageVersion Include="Humanizer.Core" Version="3.0.1" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.2" />
-        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-        <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.3" />
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.3" />
         <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageVersion>
         <PackageVersion Include="NetCord" Version="1.0.0-alpha.359" />
         <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.359" />
-        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.455" />
-        <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.455" />
+        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.461" />
+        <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.461" />
         <PackageVersion Include="SpotifyAPI.Web" Version="7.2.1" />
-        <PackageVersion Include="System.CommandLine" Version="2.0.2" />
+        <PackageVersion Include="System.CommandLine" Version="2.0.3" />
         <PackageVersion Include="Testably.Abstractions" Version="10.0.0" />
-        <PackageVersion Include="Testably.Abstractions.Testing" Version="5.0.3" />
-        <PackageVersion Include="TUnit" Version="1.12.111" />
+        <PackageVersion Include="Testably.Abstractions.Testing" Version="5.1.0" />
+        <PackageVersion Include="TUnit" Version="1.13.30" />
         <PackageVersion Include="ValueOf" Version="2.0.31" />
-        <PackageVersion Include="Verify.TUnit" Version="31.10.0" />
+        <PackageVersion Include="Verify.TUnit" Version="31.12.4" />
         <PackageVersion Include="Whisper.net" Version="1.9.0" />
         <PackageVersion Include="Whisper.net.Runtime" Version="1.9.0" />
     </ItemGroup>
