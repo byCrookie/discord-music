@@ -13,7 +13,7 @@
         </PackageVersion>
         <PackageVersion Include="NetCord" Version="1.0.0-alpha.359" />
         <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.359" />
-        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.461" />
+        <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.479" />
         <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.461" />
         <PackageVersion Include="SpotifyAPI.Web" Version="7.2.1" />
         <PackageVersion Include="System.CommandLine" Version="2.0.3" />
