@@ -1,38 +1,23 @@
 version: 2
+
+multi-ecosystem-groups:
+    infrastructure:
+        schedule:
+            interval: "monthly"
+
 updates:
-    -   package-ecosystem: "dotnet-sdk"
-        directory: "/src"
-        schedule:
-            interval: "weekly"
-            day: "wednesday"
-        groups:
-            dotnet-sdk:
-                patterns:
-                    - "*"
+    - package-ecosystem: "dotnet-sdk"
+      directory: "/src"
+      multi-ecosystem-group: "infrastructure"
 
-    -   package-ecosystem: "nuget"
-        directory: "/src"
-        schedule:
-            interval: "weekly"
-        groups:
-            nuget:
-                patterns:
-                    - "*"
+    - package-ecosystem: "nuget"
+      directory: "/src"
+      multi-ecosystem-group: "infrastructure"
 
-    -   package-ecosystem: "docker"
-        directory: "/"
-        schedule:
-            interval: "weekly"
-        groups:
-            docker:
-                patterns:
-                    - "*"
+    - package-ecosystem: "docker"
+      directory: "/"
+      multi-ecosystem-group: "infrastructure"
 
-    -   package-ecosystem: "github-actions"
-        directory: "/"
-        schedule:
-            interval: "weekly"
-        groups:
-            github-actions:
-                patterns:
-                    - "*"
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      multi-ecosystem-group: "infrastructure"
