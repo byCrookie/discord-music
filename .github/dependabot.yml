@@ -4,20 +4,29 @@ multi-ecosystem-groups:
     infrastructure:
         schedule:
             interval: "monthly"
+            timezone: "Europe/Zurich"
 
 updates:
     - package-ecosystem: "dotnet-sdk"
       directory: "/src"
+      patterns: ["*"]
+      open-pull-requests-limit: 0
       multi-ecosystem-group: "infrastructure"
 
     - package-ecosystem: "nuget"
       directory: "/src"
+      patterns: ["*"]
+      open-pull-requests-limit: 0
       multi-ecosystem-group: "infrastructure"
 
     - package-ecosystem: "docker"
       directory: "/"
+      patterns: ["*"]
+      open-pull-requests-limit: 0
       multi-ecosystem-group: "infrastructure"
 
     - package-ecosystem: "github-actions"
       directory: "/"
+      patterns: ["*"]
+      open-pull-requests-limit: 0
       multi-ecosystem-group: "infrastructure"
