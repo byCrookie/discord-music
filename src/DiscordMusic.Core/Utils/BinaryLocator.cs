@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Utils;
 
-public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger)
+internal sealed class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger)
 {
     public enum LocationType
     {
@@ -15,91 +15,91 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
 
     public ErrorOr<BinaryLocation> LocateAndValidate(string? path, string defaultBinaryName)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            logger.LogTrace(
-                "{DefaultBinaryName} will be resolved at runtime by the system by the os.",
-                defaultBinaryName
-            );
-            return new BinaryLocation(LocationType.Runtime, null, null, defaultBinaryName);
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(defaultBinaryName);
+        var configuredPath = string.IsNullOrWhiteSpace(path) ? null : path.Trim();
 
-        if (path.Trim() == ".")
+        switch (configuredPath)
         {
-            logger.LogTrace(
-                "Path is '.', returning current directory for binary {DefaultBinaryName}.",
-                defaultBinaryName
-            );
-            var current = new BinaryLocation(
-                LocationType.Resolved,
-                fileSystem.DirectoryInfo.New(fileSystem.Directory.GetCurrentDirectory()),
-                fileSystem.FileInfo.New(
-                    fileSystem.Path.Combine(
-                        fileSystem.Directory.GetCurrentDirectory(),
-                        defaultBinaryName
-                    )
-                ),
-                defaultBinaryName
-            );
-
-            if (fileSystem.File.Exists(current.Binary!.FullName))
-            {
+            case null:
                 logger.LogTrace(
-                    "Binary {DefaultBinaryName} found in current directory {CurrentDirectory}.",
-                    defaultBinaryName,
-                    current.Directory!.FullName
+                    "{DefaultBinaryName} will be resolved at runtime by the operating system.",
+                    defaultBinaryName
                 );
-                return current;
+                return BinaryLocation.ForRuntime(defaultBinaryName);
+            case ".":
+            {
+                var currentDirectory = fileSystem.Directory.GetCurrentDirectory();
+                var currentDirectoryBinaryPath = ResolveBinaryPath(
+                    currentDirectory,
+                    defaultBinaryName
+                );
+
+                logger.LogTrace(
+                    "Path is '.', returning current directory for binary {DefaultBinaryName}.",
+                    defaultBinaryName
+                );
+
+                if (currentDirectoryBinaryPath is not null)
+                {
+                    var currentDirectoryLocation = BinaryLocation.ForResolved(
+                        fileSystem.DirectoryInfo.New(currentDirectory),
+                        fileSystem.FileInfo.New(currentDirectoryBinaryPath),
+                        defaultBinaryName
+                    );
+
+                    logger.LogTrace(
+                        "Binary {DefaultBinaryName} found in current directory {CurrentDirectory}.",
+                        defaultBinaryName,
+                        currentDirectoryLocation.PathToFolder
+                    );
+                    return currentDirectoryLocation;
+                }
+
+                logger.LogError(
+                    "Binary not found in current directory. BinaryName={BinaryName} CurrentDirectory={CurrentDirectory}",
+                    defaultBinaryName,
+                    currentDirectory
+                );
+
+                return BinaryNotFound(defaultBinaryName)
+                    .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
+                    .WithMetadata("binaryName", defaultBinaryName)
+                    .WithMetadata("path", configuredPath)
+                    .WithMetadata("currentDirectory", currentDirectory);
             }
-
-            logger.LogError(
-                "Binary not found in current directory. BinaryName={BinaryName} CurrentDirectory={CurrentDirectory}",
-                defaultBinaryName,
-                current.Directory!.FullName
-            );
-
-            return Error
-                .Unexpected(
-                    code: "Binary.NotFound",
-                    description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
-                )
-                .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
-                .WithMetadata("binaryName", defaultBinaryName)
-                .WithMetadata("path", path)
-                .WithMetadata("currentDirectory", current.Directory!.FullName);
         }
 
-        if (fileSystem.File.Exists(path))
+        if (fileSystem.File.Exists(configuredPath))
         {
+            var configuredBinary = fileSystem.FileInfo.New(configuredPath);
+
             logger.LogTrace(
                 "Path is a file, returning directory of file for binary {DefaultBinaryName}.",
                 defaultBinaryName
             );
-            return new BinaryLocation(
-                LocationType.Resolved,
+            return BinaryLocation.ForResolved(
                 fileSystem.DirectoryInfo.New(
-                    fileSystem.Path.GetDirectoryName(path)
+                    fileSystem.Path.GetDirectoryName(configuredBinary.FullName)
                         ?? fileSystem.Directory.GetCurrentDirectory()
                 ),
-                fileSystem.FileInfo.New(path),
-                fileSystem.Path.GetFileName(path)
+                configuredBinary,
+                configuredBinary.Name
             );
         }
 
-        if (fileSystem.Directory.Exists(path))
+        if (fileSystem.Directory.Exists(configuredPath))
         {
-            var binaryPath = fileSystem.Path.Combine(path, defaultBinaryName);
-            if (fileSystem.File.Exists(binaryPath))
+            var directoryBinaryPath = ResolveBinaryPath(configuredPath, defaultBinaryName);
+            if (directoryBinaryPath is not null)
             {
                 logger.LogTrace(
                     "Binary {DefaultBinaryName} found in directory {Path}.",
                     defaultBinaryName,
-                    path
+                    configuredPath
                 );
-                return new BinaryLocation(
-                    LocationType.Resolved,
-                    fileSystem.DirectoryInfo.New(path),
-                    fileSystem.FileInfo.New(binaryPath),
+                return BinaryLocation.ForResolved(
+                    fileSystem.DirectoryInfo.New(configuredPath),
+                    fileSystem.FileInfo.New(directoryBinaryPath),
                     defaultBinaryName
                 );
             }
@@ -107,24 +107,20 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             logger.LogError(
                 "Binary not found in directory. BinaryName={BinaryName} Directory={Directory}",
                 defaultBinaryName,
-                path
+                configuredPath
             );
 
-            return Error
-                .Unexpected(
-                    code: "Binary.NotFound",
-                    description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
-                )
+            return BinaryNotFound(defaultBinaryName)
                 .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
                 .WithMetadata("binaryName", defaultBinaryName)
-                .WithMetadata("path", path)
-                .WithMetadata("directory", path);
+                .WithMetadata("path", configuredPath)
+                .WithMetadata("directory", configuredPath);
         }
 
         logger.LogError(
             "Invalid binary path configuration. BinaryName={BinaryName} Path={Path}",
             defaultBinaryName,
-            path
+            configuredPath
         );
 
         return Error
@@ -134,32 +130,74 @@ public class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger
             )
             .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
             .WithMetadata("binaryName", defaultBinaryName)
-            .WithMetadata("path", path);
+            .WithMetadata("path", configuredPath);
     }
 
-    public record BinaryLocation(
-        LocationType Type,
-        IDirectoryInfo? Directory,
-        IFileInfo? Binary,
-        string BinaryName
-    )
+    private string? ResolveBinaryPath(string directory, string defaultBinaryName)
     {
-        public string PathToFile =>
-            Type switch
-            {
-                LocationType.Runtime => BinaryName,
-                LocationType.Resolved => Binary!.FullName,
-                _ => throw new ArgumentOutOfRangeException(nameof(Type)),
-            };
+        return BinaryNameCandidates(defaultBinaryName)
+            .Select(candidate => fileSystem.Path.Combine(directory, candidate))
+            .FirstOrDefault(binaryPath => fileSystem.File.Exists(binaryPath));
+    }
 
-        public string PathToFolder =>
-            Type switch
-            {
-                LocationType.Runtime => throw new UnreachableException(
-                    $"Cannot get folder path for runtime binary {BinaryName}."
-                ),
-                LocationType.Resolved => Directory!.FullName,
-                _ => throw new ArgumentOutOfRangeException(nameof(Type)),
-            };
+    private IEnumerable<string> BinaryNameCandidates(string defaultBinaryName)
+    {
+        yield return defaultBinaryName;
+
+        if (
+            OperatingSystem.IsWindows()
+            && string.IsNullOrEmpty(fileSystem.Path.GetExtension(defaultBinaryName))
+        )
+        {
+            yield return $"{defaultBinaryName}.exe";
+        }
+    }
+
+    private static Error BinaryNotFound(string defaultBinaryName)
+    {
+        return Error.Unexpected(
+            code: "Binary.NotFound",
+            description: $"Required tool `{defaultBinaryName}` wasn't found. Check your configuration."
+        );
+    }
+
+    public abstract record BinaryLocation(LocationType Type, string BinaryName)
+    {
+        public abstract string PathToFile { get; }
+
+        public virtual string PathToFolder =>
+            throw new UnreachableException(
+                $"Cannot get folder path for runtime binary {BinaryName}."
+            );
+
+        public static BinaryLocation ForRuntime(string binaryName)
+        {
+            return new RuntimeLocation(binaryName);
+        }
+
+        public static BinaryLocation ForResolved(
+            IDirectoryInfo directory,
+            IFileInfo binary,
+            string binaryName
+        )
+        {
+            return new ResolvedLocation(directory, binary, binaryName);
+        }
+
+        private sealed record RuntimeLocation(string BinaryName)
+            : BinaryLocation(LocationType.Runtime, BinaryName)
+        {
+            public override string PathToFile => BinaryName;
+        }
+
+        private sealed record ResolvedLocation(
+            IDirectoryInfo Directory,
+            IFileInfo Binary,
+            string BinaryName
+        ) : BinaryLocation(LocationType.Resolved, BinaryName)
+        {
+            public override string PathToFile => Binary.FullName;
+            public override string PathToFolder => Directory.FullName;
+        }
     }
 }

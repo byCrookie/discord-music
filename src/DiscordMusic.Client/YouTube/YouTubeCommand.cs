@@ -2,13 +2,14 @@ using System.CommandLine;
 
 namespace DiscordMusic.Client.YouTube;
 
-public static class YouTubeCommand
+public sealed class YouTubeCommand : Command
 {
-    public static Command Create(string[] args)
+    public YouTubeCommand(string[] args)
+        : base("youtube", "YouTube commands")
     {
-        var command = new Command("youtube", "YouTube commands") { Hidden = true };
-        command.Add(YouTubeSearchCommand.Create(args));
-        command.Add(YouTubeDownloadCommand.Create(args));
-        return command;
+        Add(new YouTubeSearchCommand(args));
+        Add(new YouTubeDownloadCommand(args));
+
+        Hidden = true;
     }
 }

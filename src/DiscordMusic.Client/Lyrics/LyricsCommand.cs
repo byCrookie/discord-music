@@ -2,12 +2,13 @@ using System.CommandLine;
 
 namespace DiscordMusic.Client.Lyrics;
 
-public static class LyricsCommand
+public sealed class LyricsCommand : Command
 {
-    public static Command Create(string[] args)
+    public LyricsCommand(string[] args)
+        : base("lyrics", "Lyric commands")
     {
-        var command = new Command("lyrics", "Lyric commands") { Hidden = true };
-        command.Add(LyricsSearchCommand.Create(args));
-        return command;
+        Add(new LyricsSearchCommand(args));
+
+        Hidden = true;
     }
 }

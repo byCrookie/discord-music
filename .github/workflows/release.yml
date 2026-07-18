@@ -17,38 +17,38 @@ on:
                 default: true
 
 jobs:
-    
+
     version:
         runs-on: ubuntu-latest
         outputs:
             version: ${{ env.GitBuildVersionSimple }}
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
                 with:
                     fetch-depth: 0
 
             -   name: Setup dotnet
-                uses: actions/setup-dotnet@v5
+                uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
                 with:
-                    dotnet-version: '10.0.102'
+                    dotnet-version: '10.0.302'
 
             -   name: Nerdbank.GitVersioning
-                uses: dotnet/nbgv@master
+                uses: dotnet/nbgv@293b36ef77470c667752f376b0515d02a92ba66c
                 with:
                     setCommonVars: true
                     path: ./src
-    
+
     docker:
         needs: version
         if: ${{ inputs.docker }}
         runs-on: ubuntu-latest
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
             -   name: Log in to GitHub Container Registry
-                uses: docker/login-action@v3
+                uses: docker/login-action@06fb636fac595d6fb4b28a5dfcb21a6f5091859c
                 with:
                     registry: ghcr.io
                     username: ${{ github.actor }}
@@ -56,18 +56,18 @@ jobs:
 
             -   name: Extract metadata (tags, labels)
                 id: meta
-                uses: docker/metadata-action@v5
+                uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
                 with:
                     images: ghcr.io/bycrookie/discord-music
 
             -   name: Set up QEMU
-                uses: docker/setup-qemu-action@v3
+                uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8
 
             -   name: Set up Docker Buildx
-                uses: docker/setup-buildx-action@v3
+                uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
 
             -   name: Build and push multi-arch Docker image
-                uses: docker/build-push-action@v6
+                uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
                 with:
                     context: .
                     file: ./Containerfile
@@ -77,7 +77,7 @@ jobs:
                         ghcr.io/bycrookie/discord-music:${{ needs.version.outputs.version }}
                         ghcr.io/bycrookie/discord-music:latest
                     labels: ${{ steps.meta.outputs.labels }}
-    
+
     build:
         needs: version
         strategy:
@@ -109,63 +109,58 @@ jobs:
                         runtime: osx-arm64
         runs-on: ${{ matrix.os }}
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
                 with:
                     fetch-depth: 0
 
             -   name: Setup dotnet
-                uses: actions/setup-dotnet@v5
+                uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
                 with:
                     dotnet-version: '10.0.102'
 
             -   name: Restore
                 run: dotnet restore DiscordMusic.slnx
-                working-directory: ./src
 
             -   name: Build
                 run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
 
             -   name: Test
                 run: dotnet test --solution DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
 
             -   name: Publish
-                run: dotnet publish DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/${{ matrix.runtime }} --runtime ${{ matrix.runtime }} --self-contained true
-                working-directory: ./src
+                run: dotnet publish src/DiscordMusic.Client/DiscordMusic.Client.csproj --configuration Release --output publish/${{ matrix.runtime }} --runtime ${{ matrix.runtime }} --self-contained true
 
             -   name: Zip (Windows)
                 if: runner.os == 'Windows'
                 run: Compress-Archive -Path ./publish/${{ matrix.runtime }}/* -DestinationPath ./publish/dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip
-                working-directory: ./src
 
             -   name: Zip (Linux/macOS)
                 if: runner.os != 'Windows'
                 run: (cd ${{ matrix.runtime }} && zip -r ../dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip .)
-                working-directory: ./src/publish/
+                working-directory: ./publish/
 
             -   name: Upload artifact
-                uses: actions/upload-artifact@v4
+                uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
                 with:
                     name: dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}
-                    path: ./src/publish/dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip
-    
+                    path: ./publish/dm_${{ matrix.runtime }}_${{ needs.version.outputs.version }}.zip
+
     release:
         needs: [ version, docker, build ]
         if: ${{ always() && inputs.release && needs.build.result == 'success' && (needs.docker.result == 'success' || needs.docker.result == 'skipped') }}
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
             -   name: Download all artifacts
-                uses: actions/download-artifact@v4
+                uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
                 with:
                     path: artifacts
                     pattern: 'dm_*'
                     merge-multiple: true
 
             -   name: Create Release
-                uses: softprops/action-gh-release@v2
+                uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
                 with:
                     name: v${{ needs.version.outputs.version }}
                     tag_name: ${{ needs.version.outputs.version }}

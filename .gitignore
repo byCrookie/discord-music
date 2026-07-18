@@ -1,4 +1,17 @@
+# Intellj
+.idea/
+
+# Build
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+# Testing
+*.received.*
+TestResults/
+
 # Env
 .env
 
-data
+# User-specific files
+*.user

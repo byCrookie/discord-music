@@ -13,7 +13,6 @@
         <PackageReference Include="NetCord.Hosting.Services" />
         <PackageReference Include="System.CommandLine" />
         <PackageReference Include="Testably.Abstractions" />
-        <PackageReference Include="ValueOf" />
         <PackageReference Update="Nerdbank.GitVersioning">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -22,14 +21,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-        <Content Include=".dmrc.ini">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-            <TargetPath>.dmrc</TargetPath>
-        </Content>
     </ItemGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">

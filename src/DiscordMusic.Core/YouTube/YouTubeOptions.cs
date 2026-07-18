@@ -6,7 +6,7 @@ namespace DiscordMusic.Core.YouTube;
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 [SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
-public class YouTubeOptions
+internal class YouTubeOptions
 {
     public const string SectionName = "youtube";
 

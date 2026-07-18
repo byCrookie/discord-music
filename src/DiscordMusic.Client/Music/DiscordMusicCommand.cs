@@ -1,7 +1,8 @@
 using System.CommandLine;
-using DiscordMusic.Client.Cache;
+using System.CommandLine.Invocation;
 using DiscordMusic.Client.Lyrics;
 using DiscordMusic.Client.Spotify;
+using DiscordMusic.Client.Storage;
 using DiscordMusic.Client.YouTube;
 using DiscordMusic.Core;
 using Microsoft.Extensions.Hosting;
@@ -9,33 +10,62 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Client.Music;
 
-public static class DiscordMusicCommand
+public sealed class DiscordMusicCommand : RootCommand
 {
-    public static RootCommand Create(string[] args)
+    public DiscordMusicCommand(string[] args)
+        : base("DiscordMusic")
     {
-        var root = new RootCommand("DiscordMusic")
-        {
-            SpotifyCommand.Create(args),
-            YouTubeCommand.Create(args),
-            LyricsCommand.Create(args),
-            CacheCommand.Create(args),
-        };
+        Add(EnvFileOption);
+        Add(new YouTubeCommand(args));
+        Add(new SpotifyCommand(args));
+        Add(new LyricsCommand(args));
+        Add(new StorageCommand(args));
 
-        root.SetAction(
-            async (pr, ct) =>
-            {
-                using var factory = LoggerFactory.Create(builder => builder.AddConsole());
-                var logger = factory.CreateLogger("DiscordMusicCommand");
-
-                var builder = Host.CreateApplicationBuilder(args);
-                builder.Configuration.Sources.Clear();
-                builder.AddCore(logger, ct);
-                var host = builder.Build();
-                host.UseCore();
-                await host.RunAsync(ct);
-            }
-        );
-
-        return root;
+        Action = new DiscordMusicCommandAction(args);
     }
+
+    private class DiscordMusicCommandAction(string[] args) : AsynchronousCommandLineAction
+    {
+        public override async Task<int> InvokeAsync(
+            ParseResult parseResult,
+            CancellationToken cancellationToken = new()
+        )
+        {
+            using var factory = LoggerFactory.Create(builder =>
+                builder.AddSimpleConsole(options =>
+                {
+                    options.IncludeScopes = true;
+                    options.SingleLine = true;
+                    options.TimestampFormat = "HH:mm:ss ";
+                })
+            );
+            var logger = factory.CreateLogger(nameof(DiscordMusicCommand));
+            var dotEnvPath = parseResult.GetRequiredValue(EnvFileOption);
+
+            var builder = Host.CreateApplicationBuilder(args);
+            builder.Configuration.Sources.Clear();
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSimpleConsole(options =>
+            {
+                options.IncludeScopes = true;
+                options.SingleLine = true;
+                options.TimestampFormat = "HH:mm:ss ";
+            });
+            builder.AddYouTubeClient();
+            builder.AddCore(logger, dotEnvPath, cancellationToken);
+            var host = builder.Build();
+            host.UseCore();
+            await host.RunAsync(cancellationToken);
+            return 0;
+        }
+    }
+
+    private static Option<string> EnvFileOption { get; } =
+        new("--env-file")
+        {
+            Description = "The .env file to load for Discord Music configuration.",
+            Recursive = true,
+            DefaultValueFactory = _ => ".env",
+            Required = false,
+        };
 }

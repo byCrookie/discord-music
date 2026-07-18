@@ -16,8 +16,8 @@ Another music bot for Discord with playback/voice controls, song lyrics and queu
 - [Deno](https://deno.com/): JavaScript runtime required by yt-dlp-ejs.
 - [yt-dlp-ejs](https://github.com/yt-dlp/ejs): External JavaScript challenge solver scripts used by
   yt-dlp.
+- [CliWrap](https://github.com/Tyrrrz/CliWrap): For running external binaries.
 - [SpotifyApi-NET](https://github.com/JohnnyCrazy/SpotifyAPI-NET): For Spotify integration.
-- [whisper.net](https://github.com/sandrohanea/whisper.net) For local speech recognition.
 
 > **Important**: This bot uses `yt-dlp` to fetch YouTube audio streams. Since YouTube may block IP
 > ranges from cloud > providers, it's recommended to run the bot on a residential IP for reliable
@@ -31,14 +31,13 @@ Supports single channel per guild with the following features:
 - **Join & Leave**: Auto-connect and disconnect from voice channels.
 - **Play Music**:
     - Stream audio from YouTube (URLs or search queries).
-    - Play from Spotify (search on Spotify and stream via YouTube).
-- **Playback Control**: Pause, resume, and seek to specific timestamps.
-- **Voice Commands**: Control playback using voice commands.
+    - Play Spotify links by resolving Spotify metadata and searching YouTube for the matching tracks.
+- **Playback Control**: Pause, resume, skip, skip to queue index, seek, and interactive audio-bar buttons.
 - **Queue System**:
-    - Add, remove, clear, and skip tracks.
+    - Queue tracks per guild and download only the next needed track to avoid hammering YouTube.
 - **Lyrics Fetching**: Fetch lyrics for the currently playing song.
 - **Audio Controls**: Interactive audio controls with buttons.
-- **Audio Caching**: Cache tracks to reduce load times and enhance performance.
+- **Storage**: Store track metadata/audio and automatically trim old files when the configured storage limit is exceeded.
 - **Auto Disconnect**: Automatically disconnect from the voice channel when empty.
 - **Container Support**: Easily deploy the bot in a containerized environment.
 - **Permission System**: Role-based access control for commands.
@@ -51,19 +50,8 @@ The bot is tested on an ubuntu N100 server with the following specifications:
 - **CPU**: Intel(R) N100 (4) @ 3.40 GHz
 - **RAM**: 16 GB
 
-The bot has the following average resource usage:
-
-- **Voice Commands**: Disabled
-    - **CPU**: ~10% during playback, ~200% during search/download, ~1% idle
-    - **RAM**: ~100 MB during playback, ~300 MB during search/download
-- **Voice Commands**: Enabled (Local Whisper Model loaded)
-    - **CPU**: ~15% during playback, ~200% during search/download, 400% during transcribing (very
-      often), ~1% idle
-    - **RAM**: ~900 MB during playback, ~1.2 GB during search/download
-
-It is recommended that you join the bot without voice commands enabled if you have a less powerful
-cpu and
-less memory available.
+The bot uses roughly ~10% CPU during playback, up to ~200% CPU during search/download, and about
+100-300 MB RAM depending on current activity.
 
 ## Installation
 
@@ -72,8 +60,8 @@ less memory available.
 > **Important**: Keep your tokens secret. If exposed, regenerate them immediately.
 
 To get a token, go to https://discord.com/developers/applications and add an application. Next, go
-to the tab `Bot` and reset Token to get a new token. Add this token to your [.env](.env.example) (
-docker) or [.dmrc](.dmrc.example) (manual). To invite the bot to your server
+to the tab `Bot` and reset Token to get a new token. Add this token through environment variables
+or user-secrets for development. To invite the bot to your server
 go to `Installation` tab and select `Scopes & Permissions` like in the image below.
 
 ![oauth_scopes](docs/images/oauth_scopes.png)
@@ -91,29 +79,41 @@ To run the bot as a container, use the following commands:
 
 ```bash
 docker pull ghcr.io/bycrookie/discord-music:latest
-docker run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:latest
+docker run -d --restart unless-stopped --env-file .env --name dm -v /var/tmp/dm/storage:/app/storage:Z ghcr.io/bycrookie/discord-music:latest
 ```
 
 ```bash
 podman pull ghcr.io/bycrookie/discord-music:latest
-podman run -d --restart always --platform linux/amd64 --env-file .env --name dm -v /var/tmp/dm/data:/data ghcr.io/bycrookie/discord-music:latest
+podman run -d --restart unless-stopped --env-file .env --name dm -v /var/tmp/dm/storage:/app/storage:Z ghcr.io/bycrookie/discord-music:latest
 ```
 
 A compose example can be found here [compose.yaml.example](compose.yaml.example).
 
 Use the `--env-file` option to pass environment variables. An example `.env` file is
-available here [.env.example](.env.example). The image does not contain a `.dmrc` config file.
+available here [.env.example](.env.example).
+
+The container uses `/app/entrypoint.sh` as its entrypoint. Any arguments after the image name are
+optional and are forwarded to the `dm` executable, for example:
+
+```bash
+docker run --rm --env-file .env ghcr.io/bycrookie/discord-music:latest storage size
+```
 
 For custom-builds, refer to the [Containerfile](Containerfile). The published image bundles the
 latest nightly `yt-dlp`, patched `ffmpeg`, and the `deno` runtime so that YouTube extraction works
 out of the box.
+
+The container runs `yt-dlp -U` every 24 hours by default so YouTube extraction can keep up with
+site changes. Set `DISCORD_MUSIC_YTDLP_AUTO_UPDATE=false` if you prefer to keep the bundled
+build-time `yt-dlp` version until the image is rebuilt or updated.
 
 ### Local Installation
 
 **Supported Platforms**: `win-x64`, `linux-x64`, and `linux-arm64`. Other architectures may require
 additional dependencies like `opus` and `libsodium`.
 
-Make sure to specify a valid [cache location](#Cache).
+Optionally specify a valid [storage location](#Storage). If omitted, the bot uses an OS-specific
+default location.
 
 #### Required Binaries and Libraries:
 
@@ -128,10 +128,10 @@ Make sure to specify a valid [cache location](#Cache).
 - Add them to your system PATH or place them in the bot's directory.
 - **Deno**: Install by following
   the [official instructions](https://docs.deno.com/runtime/getting_started/installation/) for your
-  platform. Make sure the `deno` binary is available on the PATH or configure it via the
-  `youtube.deno` setting described below.
+  platform. Make sure the `deno` binary is available on the PATH or configure it via
+  `DISCORD_MUSIC_YOUTUBE__DENO`.
 - **yt-dlp-ejs scripts**: Allow yt-dlp to download the solver scripts by keeping the default
-  `youtube.remoteComponents = ejs:github`, or install
+  `DISCORD_MUSIC_YOUTUBE__REMOTE_COMPONENTS__0=ejs:github`, or install
   the [yt-dlp-ejs](https://pypi.org/project/yt-dlp-ejs/) package alongside yt-dlp if you manage the
   Python environment yourself.
 - **Opus**: Install the Opus codec if not available. Download
@@ -140,62 +140,66 @@ Make sure to specify a valid [cache location](#Cache).
 - **Libsodium**: Install from [Libsodium](https://libsodium.org/) if needed or build from source.
 - **Libdave**: Install from [libdave](https://github.com/discord/libdave) if needed or build from source.
 
-## Config
+## Configuration
 
-### Values
+Configuration is provided through `.env` files and environment variables. During development, .NET
+user-secrets can also be used.
 
-> **Note**: Avoid storing sensitive information in `.dmrc`. Use environment variables instead.
+An example `.env` file is available [here](.env.example).
 
-An example `.dmrc` file is available [here](.dmrc.example). When using container, pass everything
-using environment variables An example `.env` file is available [here](.env.example).
-
-The `[youtube]` section accepts `ffmpeg`, `ytdlp`, and `deno` entries. Each value can point to
+The `youtube` section accepts `ffmpeg`, `ytdlp`, and `deno` entries. Each value can point to
 either a binary file or a directory that contains the executable. Leave them empty to fall back to
 the system `PATH`. Advanced yt-dlp switches can be configured via `jsRuntimes`, `remoteComponents`,
 `noJsRuntimes`, and `noRemoteComponents`, mirroring the `--js-runtimes`/`--remote-components` flags.
 By default, the bot enables the `deno` runtime and remote downloads for `ejs:github` so yt-dlp can
 fetch the latest solver scripts automatically.
 
-### Location
-
-The bot first looks for the `.dmrc` INI file in the executable directory. If it’s not found, it
-checks platform-specific paths. [XDG](https://specifications.freedesktop.org/basedir/latest/) is
-supported. If no source matches, last location for context is used.
-
-> Note: If multiple sources exist, values of higher priority sources override values of lower
-> priority sources.
-
-| Priority (top-down) | Path / Source                                                              | Context                                                       | 
-|---------------------|----------------------------------------------------------------------------|---------------------------------------------------------------|
-| 1                   | [Environment variable](#Environment-Variables) `DISCORD_MUSIC_CONFIG_FILE` | Manual override (highest priority)                            |
-| 2                   | `./.dmrc`                                                                  | Portable mode (executable directory)                          |
-| 3                   | `$XDG_CONFIG_HOME/bycrookie/discord-music/.dmrc`                           | [XDG](https://specifications.freedesktop.org/basedir/latest/) |
-| 5                   | `$HOME/.config/bycrookie/discord-music/.dmrc`                              | Linux/MacOS fallback                                          |
-| 5                   | `%APPDATA%/bycrookie/discord-music/.dmrc`                                  | Windows fallback                                              |
-
 ### Environment Variables
 
-If a setting is missing from the `.dmrc` file, it will look for corresponding environment variables
-prefixed with `DISCORD_MUSIC_`. For nested properties, use double underscores (`__`). Example:
+Configuration values can be provided with or without the `DISCORD_MUSIC_` prefix. Prefixing is
+recommended because prefixed values have higher priority than unprefixed values. The app loads
+configuration in this order, where later sources override earlier ones:
+
+1. `.env` values without `DISCORD_MUSIC_`
+2. OS environment variables without `DISCORD_MUSIC_`
+3. `.env` values with `DISCORD_MUSIC_`
+4. OS environment variables with `DISCORD_MUSIC_`
+5. .NET user-secrets in development
+
+For nested properties, use double underscores (`__`). Example:
 
 ```plaintext
 DISCORD_MUSIC_DISCORD__TOKEN=your-token
 DISCORD_MUSIC_DISCORD__ALLOW__0=music
 ```
 
-### Cache
+### Logging
 
-The cache location is determined pretty similar as the config file location.
-[XDG](https://specifications.freedesktop.org/basedir/latest/) is supported. If no source matches,
-last location for context is used.
+Log levels use standard .NET logging configuration. Set the default level globally or override a
+category:
 
-| Priority (top-down) | Path / Source                                                                  | Context                                                       |
-|---------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------|
-| 1                   | [Environment variable](#Environment-Variables) `DISCORD_MUSIC_CACHE__LOCATION` | Manual override (highest priority)                            |
-| 2                   | `.dmrc`                                                                        | Value for cache location in config file                       |
-| 3                   | `$XDG_CACHE_HOME/bycrookie/discord-music`                                      | [XDG](https://specifications.freedesktop.org/basedir/latest/) |
-| 4                   | `$HOME/.cache/bycrookie/discord-music`                                         | Linux/MacOS fallback                                          |
-| 5                   | `%LOCALAPPDATA%/bycrookie/discord-music/cache`                                 | Windows fallback                                              |
+```plaintext
+DISCORD_MUSIC_LOGGING__LOGLEVEL__DEFAULT=Information
+DISCORD_MUSIC_LOGGING__LOGLEVEL__DISCORDMUSIC=Debug
+DISCORD_MUSIC_LOGGING__LOGLEVEL__MICROSOFT=Warning
+```
+
+Valid levels are `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical`, and `None`.
+
+### Storage
+
+The storage location can be configured with `DISCORD_MUSIC_STORAGE__PATH`. If it is not configured,
+[XDG](https://specifications.freedesktop.org/basedir/latest/) and OS-specific defaults are used.
+
+The bot watches this storage directory and deletes old non-metadata files when it grows above
+`DISCORD_MUSIC_STORAGE__MAX_SIZE`.
+
+| Priority (top-down) | Path / Source                                                             | Context                                                       |
+|---------------------|---------------------------------------------------------------------------|---------------------------------------------------------------|
+| 1                   | `DISCORD_MUSIC_STORAGE__PATH`                                             | Manual override (highest priority)                            |
+| 2                   | `$XDG_CACHE_HOME/bycrookie/discord-music`                                 | [XDG](https://specifications.freedesktop.org/basedir/latest/) |
+| 3                   | `$HOME/.cache/bycrookie/discord-music`                                    | Linux/MacOS fallback                                          |
+| 4                   | `%LOCALAPPDATA%/bycrookie/discord-music/storage`                          | Windows fallback                                              |
 
 ## Support
 
@@ -208,10 +212,8 @@ its development through the following methods:
 
 ## Development
 
-For development, modify the [`.dmrc.ini`](src/DiscordMusic.Client/.dmrc.ini) file to test
-configuration changes. Keep secrets
-secure by using tools
-like [dotnet user-secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets).
+For development, keep secrets secure by using
+[dotnet user-secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets).
 
 ```bash
 dotnet user-secrets set --project ./src/DiscordMusic.Client/DiscordMusic.Client.csproj "discord:token" "your-discord-bot-token"
