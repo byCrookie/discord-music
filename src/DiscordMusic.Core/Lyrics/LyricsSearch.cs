@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Flurl;

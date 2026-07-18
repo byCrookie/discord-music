@@ -3,9 +3,13 @@
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>DiscordMusic.Core.Tests</_Parameter1>
         </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="CliWrap" />
         <PackageReference Include="ErrorOr" />
         <PackageReference Include="Flurl.Http" />
         <PackageReference Include="Humanizer.Core" />
@@ -16,22 +20,16 @@
         <PackageReference Include="NetCord.Hosting.Services" />
         <PackageReference Include="SpotifyAPI.Web" />
         <PackageReference Include="Testably.Abstractions" />
-        <PackageReference Include="ValueOf" />
         <PackageReference Update="Nerdbank.GitVersioning">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Whisper.net" />
-        <PackageReference Include="Whisper.net.Runtime" />
     </ItemGroup>
 
     <!-- Windows -->
-    <ItemGroup
-        Condition="
-        '$(RuntimeIdentifier)' == '' OR
+    <ItemGroup Condition="
         $(RuntimeIdentifier.StartsWith('win-'))
-    "
-    >
+    ">
         <Content Include="Natives/win-x64/opus.dll">
             <Link>opus.dll</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -48,6 +46,7 @@
     <!-- Linux x64 + macOS x64 -->
     <ItemGroup
         Condition="
+     '$(RuntimeIdentifier)' == '' OR
       $(RuntimeIdentifier.StartsWith('linux-x64')) OR
       $(RuntimeIdentifier.StartsWith('linux-musl-x64')) OR
       $(RuntimeIdentifier.StartsWith('osx-x64'))

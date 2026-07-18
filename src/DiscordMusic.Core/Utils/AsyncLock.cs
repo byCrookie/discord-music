@@ -4,7 +4,7 @@ public class AsyncLock
 {
     private readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
 
-    public async Task<Lock> AquireAsync(CancellationToken ct)
+    public async Task<Lock> AcquireAsync(CancellationToken ct)
     {
         await _semaphoreSlim.WaitAsync(ct);
         return new Lock(_semaphoreSlim);

@@ -3,7 +3,7 @@
     "profiles": {
         "DiscordMusic": {
             "commandName": "Project",
-            "commandLineArgs": "",
+            "commandLineArgs": "--env-file ../../../../.env",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
@@ -11,7 +11,7 @@
         },
         "Spotify Search": {
             "commandName": "Project",
-            "commandLineArgs": "spotify search https://open.spotify.com/playlist/60DEeLRtih1FikS2rb9eVF?si=fe6df37fc83744a6",
+            "commandLineArgs": "spotify search --env-file ../../../../.env https://open.spotify.com/playlist/60DEeLRtih1FikS2rb9eVF?si=fe6df37fc83744a6",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
@@ -19,7 +19,7 @@
         },
         "YouTube Search": {
             "commandName": "Project",
-            "commandLineArgs": "youtube search \"https://music.youtube.com/watch?v=t-hi0yCeOJ0&list=RDAMVMt-hi0yCeOJ0\"",
+            "commandLineArgs": "youtube search --env-file ../../../../.env https://music.youtube.com/watch?v=t-hi0yCeOJ0&list=RDAMVMt-hi0yCeOJ0",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
@@ -27,7 +27,7 @@
         },
         "YouTube Download": {
             "commandName": "Project",
-            "commandLineArgs": "youtube download https://music.youtube.com/watch?v=t-hi0yCeOJ0&list=RDAMVMt-hi0yCeOJ0 song",
+            "commandLineArgs": "youtube download --env-file ../../../../.env https://music.youtube.com/watch?v=t-hi0yCeOJ0&list=RDAMVMt-hi0yCeOJ0 song",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
@@ -35,31 +35,23 @@
         },
         "Lyrics Search": {
             "commandName": "Project",
-            "commandLineArgs": "lyrics search --title \"Diamonds\" --artist \"Rihanna\"",
+            "commandLineArgs": "lyrics search --env-file ../../../../.env --title Diamonds --artist Rihanna",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
             }
         },
-        "Cache It": {
+        "Storage Size": {
             "commandName": "Project",
-            "commandLineArgs": "cache it --title \"The Weeknd\" --artist \"Blinding Lights\" --url \"https://music.youtube.com/watch?v=H64a2ggVIWc\"",
+            "commandLineArgs": "storage size --env-file ../../../../.env",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"
             }
         },
-        "Cache Size": {
+        "Storage Clear": {
             "commandName": "Project",
-            "commandLineArgs": "cache size",
-            "environmentVariables": {
-                "ASPNETCORE_ENVIRONMENT": "Development",
-                "DOTNET_ENVIRONMENT": "Development"
-            }
-        },
-        "Cache Clear": {
-            "commandName": "Project",
-            "commandLineArgs": "cache clear",
+            "commandLineArgs": "storage clear --env-file ../../../../.env",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "DOTNET_ENVIRONMENT": "Development"

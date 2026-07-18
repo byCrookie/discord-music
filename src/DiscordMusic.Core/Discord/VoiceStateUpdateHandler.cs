@@ -1,4 +1,5 @@
-﻿using DiscordMusic.Core.Discord.Sessions;
+using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Playback;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
@@ -10,7 +11,8 @@ internal class VoiceStateUpdateHandler(
     ILogger<VoiceStateUpdateHandler> logger,
     Cancellation cancellation,
     GatewayClient gatewayClient,
-    GuildSessionManager guildSessionManager
+    VoiceConnectionRegistry voiceInstances,
+    PlaybackService playbackService
 ) : IVoiceStateUpdateGatewayHandler
 {
     public async ValueTask HandleAsync(VoiceState voiceState)
@@ -24,7 +26,7 @@ internal class VoiceStateUpdateHandler(
             return;
         }
 
-        if (voiceState.UserId == bot.Id && voiceState.ChannelId is not null)
+        if (voiceState.UserId == bot.Id && voiceState.ChannelId is null)
         {
             logger.LogInformation("Bot left voice channel");
             return;
@@ -41,14 +43,6 @@ internal class VoiceStateUpdateHandler(
         else
         {
             logger.LogInformation("User {UserId} left voice channel", voiceState.UserId);
-        }
-
-        var session = await guildSessionManager.GetSessionAsync(voiceState.GuildId, ct);
-
-        if (session.IsError)
-        {
-            logger.LogInformation("No active session for guild {GuildId}", voiceState.GuildId);
-            return;
         }
 
         if (!gatewayClient.Cache.Guilds.TryGetValue(voiceState.GuildId, out var guild))
@@ -81,6 +75,38 @@ internal class VoiceStateUpdateHandler(
         }
 
         logger.LogInformation("Bot is alone in the voice channel. Disconnecting.");
-        await guildSessionManager.LeaveAsync(voiceState.GuildId, ct);
+
+        if (
+            !voiceInstances.Mapping.TryGetValue(voiceState.GuildId, out var voiceInstance)
+            || voiceInstance is null
+        )
+        {
+            logger.LogInformation(
+                "No voice instance found for guild {GuildId}. Nothing to disconnect.",
+                voiceState.GuildId
+            );
+            return;
+        }
+
+        if (
+            voiceInstances.Mapping.TryRemove(
+                item: new KeyValuePair<ulong, VoiceConnection?>(voiceState.GuildId, voiceInstance)
+            )
+        )
+        {
+            try
+            {
+                playbackService.Stop(voiceState.GuildId);
+                await voiceInstance.Client.CloseAsync(cancellationToken: ct);
+            }
+            finally
+            {
+                voiceInstance.Dispose();
+                await gatewayClient.UpdateVoiceStateAsync(
+                    new VoiceStateProperties(voiceState.GuildId, null),
+                    cancellationToken: ct
+                );
+            }
+        }
     }
 }

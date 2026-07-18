@@ -2,12 +2,13 @@ using System.CommandLine;
 
 namespace DiscordMusic.Client.Spotify;
 
-public static class SpotifyCommand
+public sealed class SpotifyCommand : Command
 {
-    public static Command Create(string[] args)
+    public SpotifyCommand(string[] args)
+        : base("spotify", "Spotify commands")
     {
-        var command = new Command("spotify", "Spotify commands") { Hidden = true };
-        command.Add(SpotifySearchCommand.Create(args));
-        return command;
+        Add(new SpotifySearchCommand(args));
+
+        Hidden = true;
     }
 }

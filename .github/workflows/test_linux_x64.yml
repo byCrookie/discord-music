@@ -11,23 +11,20 @@ jobs:
     build:
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
                 with:
                     fetch-depth: 0
 
             -   name: Setup dotnet
-                uses: actions/setup-dotnet@v4
+                uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
                 with:
-                    dotnet-version: '10.0.102'
+                    dotnet-version: '10.0.302'
 
             -   name: Restore
                 run: dotnet restore DiscordMusic.slnx
-                working-directory: ./src
 
             -   name: Build
                 run: dotnet build DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src
 
             -   name: Test
                 run: dotnet test --solution DiscordMusic.slnx --configuration Release --no-restore
-                working-directory: ./src

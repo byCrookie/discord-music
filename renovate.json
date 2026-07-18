@@ -1,0 +1,51 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended", ":configMigration", "helpers:pinGitHubActionDigests"],
+    "vulnerabilityAlerts": {
+        "labels": ["security"],
+        "enabled": true
+    },
+    "customManagers": [
+        {
+            "customType": "regex",
+            "description": "Update ARG versions in Containerfiles via inline comments",
+            "managerFilePatterns": ["/(^|/)Containerfile$/"],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)(?: versioning=(?<versioning>[^\\s]+))?\\s+ARG \\w+=(?<currentValue>[^\\s]+)"
+            ],
+            "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}loose{{/if}}"
+        }
+    ],
+    "packageRules": [
+        {
+            "description": "Pin container image digests",
+            "matchDatasources": ["docker"],
+            "pinDigests": true
+        },
+        {
+            "description": "Group all minor/patch updates for auto-merge",
+            "matchUpdateTypes": ["minor", "patch", "digest"],
+            "automerge": true
+        },
+        {
+            "description": "Require manual approval for major version bumps",
+            "matchUpdateTypes": ["major"],
+            "automerge": false
+        }
+    ],
+    "timezone": "Europe/Zurich",
+    "schedule": ["at any time"],
+    "dependencyDashboard": true,
+    "minimumReleaseAge": "14 days",
+    "prCreation": "not-pending",
+    "internalChecksFilter": "strict",
+    "lockFileMaintenance": {
+        "enabled": true,
+        "automerge": true,
+        "automergeType": "pr",
+        "platformAutomerge": true
+    },
+    "prConcurrentLimit": 0,
+    "prHourlyLimit": 0,
+    "ignoreTests": false
+}

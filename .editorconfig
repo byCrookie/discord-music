@@ -6,3 +6,18 @@ end_of_line = lf
 indent_style = space
 indent_size = 4
 max_line_length = 100
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_prefer_braces = true:suggestion
+
+# Verify settings
+[*.{received,verified}.{json,txt,xml}]
+indent_size = unset
+indent_style = unset
+insert_final_newline = false
+tab_width = unset
+trim_trailing_whitespace = false

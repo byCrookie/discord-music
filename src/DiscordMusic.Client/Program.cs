@@ -1,4 +1,4 @@
-﻿using DiscordMusic.Client.Music;
+using DiscordMusic.Client.Music;
 
-var rootCommand = DiscordMusicCommand.Create(args);
+var rootCommand = new DiscordMusicCommand(args);
 return await rootCommand.Parse(args).InvokeAsync();

@@ -1,15 +1,21 @@
 using System.Text;
+using System.Threading.Channels;
+using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.Utils;
+using DiscordMusic.Core.YouTube.Conversion;
+using DiscordMusic.Core.YouTube.Downloading;
+using DiscordMusic.Core.YouTube.Searching;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.YouTube;
 
-public static class YouTubeModule
+internal static class YouTubeModule
 {
-    public static IHostApplicationBuilder AddYouTube(this IHostApplicationBuilder builder)
+    public static void AddYouTube(this IHostApplicationBuilder builder)
     {
         builder
             .Services.AddOptions<YouTubeOptions>()
@@ -21,49 +27,116 @@ public static class YouTubeModule
             ServiceDescriptor.Singleton<IValidateOptions<YouTubeOptions>, ValidateSettingsOptions>()
         );
 
-        builder.Services.AddTransient<IYoutubeSearch, YoutubeSearch>();
+        builder.Services.AddSingleton<YouTubeToolLocations>();
+        builder.Services.AddTransient<IYouTubeSearch, YouTubeSearch>();
+        builder.Services.AddTransient<IYouTubeAudioDownloader, YouTubeAudioDownloader>();
+        builder.Services.AddTransient<IAudioConverter, FfmpegPcmConverter>();
         builder.Services.AddTransient<IYouTubeDownload, YouTubeDownload>();
+        builder.Services.AddSingleton<IYouTubeDownloadScheduler, YouTubeDownloadScheduler>();
+        builder.Services.AddTransient<
+            IYouTubeSearchRequestProcessor,
+            YouTubeSearchRequestProcessor
+        >();
+        builder.Services.AddTransient<
+            IYouTubeDownloadRequestProcessor,
+            YouTubeDownloadRequestProcessor
+        >();
 
-        return builder;
+        var ytRequestQueue = new BackgroundQueue<YouTubeSearchRequest>(
+            new BoundedChannelOptions(100)
+            {
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleWriter = false,
+                SingleReader = true,
+            }
+        );
+
+        builder.Services.AddSingleton<IBackgroundQueue<YouTubeSearchRequest>>(ytRequestQueue);
+
+        var ytDownloadQueue = new BackgroundQueue<YouTubeDownloadRequest>(
+            new BoundedChannelOptions(100)
+            {
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleWriter = false,
+                SingleReader = true,
+            }
+        );
+
+        builder.Services.AddSingleton<IBackgroundQueue<YouTubeDownloadRequest>>(ytDownloadQueue);
     }
 
-    private sealed class ValidateSettingsOptions(BinaryLocator binaryLocator)
-        : IValidateOptions<YouTubeOptions>
+    private sealed class ValidateSettingsOptions(
+        YouTubeToolLocations toolLocations,
+        ILogger<ValidateSettingsOptions> logger
+    ) : IValidateOptions<YouTubeOptions>
     {
         public ValidateOptionsResult Validate(string? name, YouTubeOptions options)
         {
             StringBuilder? failure = null;
+            var loadedLocations = toolLocations.Load(options);
 
-            var ffmpeg = binaryLocator.LocateAndValidate(options.Ffmpeg, "ffmpeg");
-
-            if (ffmpeg.IsError)
+            if (loadedLocations.Ffmpeg.IsError)
             {
                 (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Ffmpeg)} {ffmpeg.ToErrorContent()}"
+                    $"{nameof(YouTubeOptions.Ffmpeg)} {loadedLocations.Ffmpeg.ToErrorContent()}"
                 );
             }
+            else
+            {
+                LogBinaryLocation("ffmpeg", loadedLocations.Ffmpeg.Value);
+            }
 
-            var deno = binaryLocator.LocateAndValidate(options.Deno, "deno");
-
-            if (deno.IsError)
+            if (loadedLocations.Deno.IsError)
             {
                 (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Deno)} {deno.ToErrorContent()}"
+                    $"{nameof(YouTubeOptions.Deno)} {loadedLocations.Deno.ToErrorContent()}"
                 );
             }
+            else
+            {
+                LogBinaryLocation("deno", loadedLocations.Deno.Value);
+            }
 
-            var ytdlp = binaryLocator.LocateAndValidate(options.Ytdlp, "yt-dlp");
-
-            if (ytdlp.IsError)
+            if (loadedLocations.Ytdlp.IsError)
             {
                 (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Ytdlp)} {ytdlp.ToErrorContent()}"
+                    $"{nameof(YouTubeOptions.Ytdlp)} {loadedLocations.Ytdlp.ToErrorContent()}"
                 );
             }
+            else
+            {
+                LogBinaryLocation("yt-dlp", loadedLocations.Ytdlp.Value);
+            }
+
+            logger.LogInformation(
+                "YouTube tool options loaded. JsRuntimes={JsRuntimes}, RemoteComponents={RemoteComponents}, NoJsRuntimes={NoJsRuntimes}, NoRemoteComponents={NoRemoteComponents}",
+                string.Join(",", options.JsRuntimes),
+                string.Join(",", options.RemoteComponents),
+                options.NoJsRuntimes,
+                options.NoRemoteComponents
+            );
 
             return failure is not null
                 ? ValidateOptionsResult.Fail(failure.ToString())
                 : ValidateOptionsResult.Success;
+        }
+
+        private void LogBinaryLocation(string binaryName, BinaryLocator.BinaryLocation location)
+        {
+            if (location.Type == BinaryLocator.LocationType.Runtime)
+            {
+                logger.LogInformation(
+                    "Using runtime-resolved {BinaryName} binary from PATH.",
+                    binaryName
+                );
+                return;
+            }
+
+            logger.LogInformation(
+                "Using configured {BinaryName} binary {BinaryPath}.",
+                binaryName,
+                location.PathToFile
+            );
         }
     }
 }

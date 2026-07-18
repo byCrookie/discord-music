@@ -10,6 +10,7 @@ public static class UtilsModule
     {
         builder.Services.AddSingleton<IJsonSerializer>(new JsonSerializer());
         builder.Services.AddTransient<BinaryLocator>();
+        builder.Services.AddSingleton<ICliCommandRunner, CliWrapCommandRunner>();
         return builder;
     }
 }
