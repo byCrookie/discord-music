@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Text;
 using CliWrap;
+using DiscordMusic.Core.Observability;
 
 namespace DiscordMusic.Core.Utils;
 
@@ -12,6 +14,15 @@ internal sealed class CliWrapCommandRunner : ICliCommandRunner
         CancellationToken cancellationToken
     )
     {
+        var startedAt = Stopwatch.GetTimestamp();
+        var executableName = Path.GetFileName(fileName);
+        var resultTag = "completed";
+        using var activity = DiscordMusicObservability.StartActivity(
+            "process.execute",
+            ActivityKind.Client
+        );
+        DiscordMusicObservability.SetTag(activity, "process.executable.name", executableName);
+
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
 
@@ -26,7 +37,42 @@ internal sealed class CliWrapCommandRunner : ICliCommandRunner
             command = command.WithEnvironmentVariables(environment);
         }
 
-        var result = await command.ExecuteAsync(cancellationToken);
-        return new CliCommandResult(result.ExitCode, stdout.ToString(), stderr.ToString());
+        try
+        {
+            var result = await command.ExecuteAsync(cancellationToken);
+            DiscordMusicObservability.SetTag(activity, "process.exit_code", result.ExitCode);
+
+            if (result.ExitCode != 0)
+            {
+                resultTag = "failed";
+                activity?.SetStatus(ActivityStatusCode.Error, "non_zero_exit_code");
+            }
+            else
+            {
+                activity?.SetStatus(ActivityStatusCode.Ok);
+            }
+
+            return new CliCommandResult(result.ExitCode, stdout.ToString(), stderr.ToString());
+        }
+        catch (Exception ex)
+        {
+            resultTag = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
+        finally
+        {
+            var tags = DiscordMusicObservability.ExternalRequestTags(
+                executableName,
+                "process.execute",
+                resultTag
+            );
+            DiscordMusicObservability.ExternalRequests.Add(1, tags);
+            DiscordMusicObservability.ExternalRequestDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                tags
+            );
+        }
     }
 }

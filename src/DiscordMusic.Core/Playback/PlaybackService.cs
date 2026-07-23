@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using DiscordMusic.Core.Audio.Sending;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.Storage;
 using DiscordMusic.Core.YouTube.Downloading;
@@ -172,6 +174,16 @@ internal sealed class PlaybackService(
 
         while (!cancellationToken.IsCancellationRequested)
         {
+            var startedAt = Stopwatch.GetTimestamp();
+            using var activity = DiscordMusicObservability.StartActivity("playback.track");
+            DiscordMusicObservability.SetGuildTag(activity, guildId);
+            DiscordMusicObservability.SetTag(activity, "music.track.id", track.Id);
+            DiscordMusicObservability.SetTag(
+                activity,
+                "music.playback.start_position_ms",
+                startPosition.TotalMilliseconds
+            );
+
             using var trackLease = voiceInstance.PlaybackSession.BeginTrack(
                 track,
                 startPosition,
@@ -195,6 +207,14 @@ internal sealed class PlaybackService(
                     voiceInstance.PlaybackSession,
                     trackLease.CancellationToken
                 );
+                activity?.SetStatus(ActivityStatusCode.Ok);
+                var tags = DiscordMusicObservability.GuildTags(guildId);
+                tags.Add("result", "completed");
+                DiscordMusicObservability.PlaybackTracks.Add(1, tags);
+                DiscordMusicObservability.PlaybackTrackDuration.Record(
+                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                    tags
+                );
                 return;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -202,14 +222,37 @@ internal sealed class PlaybackService(
                 var request = voiceInstance.PlaybackSession.ConsumeRequest();
                 if (request.Type == PlaybackControlRequestType.Seek)
                 {
+                    activity?.SetStatus(ActivityStatusCode.Ok, "seek");
+                    var tags = DiscordMusicObservability.GuildTags(guildId);
+                    tags.Add("result", "seek");
+                    DiscordMusicObservability.PlaybackTrackDuration.Record(
+                        Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                        tags
+                    );
                     startPosition = request.Position;
                     continue;
                 }
 
+                activity?.SetStatus(ActivityStatusCode.Ok, request.Type.ToString());
+                var controlTags = DiscordMusicObservability.GuildTags(guildId);
+                controlTags.Add("result", request.Type.ToString());
+                DiscordMusicObservability.PlaybackTrackDuration.Record(
+                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                    controlTags
+                );
                 return;
             }
             catch (Exception ex)
             {
+                activity?.SetStatus(ActivityStatusCode.Error, "playback_failed");
+                activity?.AddException(ex);
+                var tags = DiscordMusicObservability.GuildTags(guildId);
+                tags.Add("result", "failed");
+                DiscordMusicObservability.PlaybackTracks.Add(1, tags);
+                DiscordMusicObservability.PlaybackTrackDuration.Record(
+                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                    tags
+                );
                 logger.LogError(
                     ex,
                     "Failed to play track {TrackId} in guild {GuildId}.",

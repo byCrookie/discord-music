@@ -1,6 +1,8 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO.Abstractions;
+using DiscordMusic.Client.Music;
+using DiscordMusic.Core.Configuration;
 using DiscordMusic.Core.Storage;
 using Humanizer;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +25,11 @@ public sealed class StorageSizeCommand : Command
             CancellationToken cancellationToken = new()
         )
         {
-            using var host = StorageCommandHost.Build(args);
+            var dotEnvPath = EnvironmentConfiguration.ResolveDotEnvPath(
+                parseResult.GetValue(DiscordMusicCommand.EnvFileOption),
+                SystemEnvironmentVariables.Instance
+            );
+            using var host = StorageCommandHost.Build(args, dotEnvPath);
             var fileSystem = host.Services.GetRequiredService<IFileSystem>();
             var storagePathProvider = host.Services.GetRequiredService<IStoragePathProvider>();
             var options = host.Services.GetRequiredService<IOptions<StorageOptions>>();

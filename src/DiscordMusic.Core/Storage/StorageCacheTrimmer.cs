@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.IO.Abstractions;
+using DiscordMusic.Core.Observability;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Storage;
@@ -16,11 +18,18 @@ internal sealed class StorageCacheTrimmer(
         CancellationToken cancellationToken
     )
     {
+        using var activity = DiscordMusicObservability.StartActivity("storage.cache.trim");
+        DiscordMusicObservability.SetTag(activity, "storage.cache.max_size", maxBytes);
+        DiscordMusicObservability.SetTag(activity, "storage.path.length", storagePath.Length);
+
         await _trimLock.WaitAsync(cancellationToken);
         try
         {
             var files = GetCacheFiles(storagePath).ToList();
             var totalBytes = files.Sum(file => file.Length);
+            DiscordMusicObservability.SetTag(activity, "storage.cache.file_count", files.Count);
+            DiscordMusicObservability.SetTag(activity, "storage.cache.size", totalBytes);
+            DiscordMusicObservability.StorageCacheSize.Record(totalBytes);
             if (totalBytes <= maxBytes)
             {
                 logger.LogTrace(
@@ -28,6 +37,11 @@ internal sealed class StorageCacheTrimmer(
                     totalBytes,
                     maxBytes
                 );
+                DiscordMusicObservability.StorageTrimRuns.Add(
+                    1,
+                    new KeyValuePair<string, object?>("result", "within_limit")
+                );
+                activity?.SetStatus(ActivityStatusCode.Ok, "within_limit");
                 return;
             }
 
@@ -51,6 +65,8 @@ internal sealed class StorageCacheTrimmer(
                     var length = file.Length;
                     file.Delete();
                     totalBytes -= length;
+                    DiscordMusicObservability.StorageFilesDeleted.Add(1);
+                    DiscordMusicObservability.StorageBytesDeleted.Add(length);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
@@ -64,6 +80,22 @@ internal sealed class StorageCacheTrimmer(
             }
 
             DeleteEmptyDirectories(storagePath);
+            DiscordMusicObservability.SetTag(activity, "storage.cache.trimmed_size", totalBytes);
+            DiscordMusicObservability.StorageTrimRuns.Add(
+                1,
+                new KeyValuePair<string, object?>("result", "trimmed")
+            );
+            activity?.SetStatus(ActivityStatusCode.Ok, "trimmed");
+        }
+        catch (Exception ex)
+        {
+            DiscordMusicObservability.StorageTrimRuns.Add(
+                1,
+                new KeyValuePair<string, object?>("result", "failed")
+            );
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
         }
         finally
         {

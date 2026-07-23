@@ -10,6 +10,24 @@ namespace DiscordMusic.Core.Configuration;
 public static class EnvironmentConfiguration
 {
     private const string Prefix = "DISCORD_MUSIC_";
+    public const string EnvFileVariable = "DISCORD_MUSIC_ENV_FILE";
+    public const string DefaultDotEnvPath = ".env";
+
+    public static string ResolveDotEnvPath(
+        string? dotEnvPath,
+        IEnvironmentVariables environmentVariables
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(dotEnvPath))
+        {
+            return dotEnvPath;
+        }
+
+        var environmentDotEnvPath = environmentVariables.GetVariable(EnvFileVariable);
+        return string.IsNullOrWhiteSpace(environmentDotEnvPath)
+            ? DefaultDotEnvPath
+            : environmentDotEnvPath;
+    }
 
     extension(IConfigurationBuilder configuration)
     {

@@ -28,17 +28,20 @@ renovate dry_run="lookup" log_level="info":
         LOG_LEVEL={{log_level}} RENOVATE_CONFIG_FILE=renovate.json npx --yes renovate --platform=local --dry-run={{dry_run}}; \
     end
 
-user-secrets-discord:
+set-user-secrets-discord:
     #!/usr/bin/env fish
     read --silent --prompt-str "Discord Bot Token: " discord_token
     dotnet user-secrets set --project src/DiscordMusic.Client/DiscordMusic.Client.csproj "discord:token" "$discord_token"
 
-user-secrets-spotify:
+set-user-secrets-spotify:
     #!/usr/bin/env fish
     read --silent --prompt-str "Spotify Client ID: " spotify_client_id
     read --silent --prompt-str "Spotify Client Secret: " spotify_client_secret
     dotnet user-secrets set --project src/DiscordMusic.Client/DiscordMusic.Client.csproj "spotify:clientId" "$spotify_client_id"
     dotnet user-secrets set --project src/DiscordMusic.Client/DiscordMusic.Client.csproj "spotify:clientSecret" "$spotify_client_secret"
+
+list-user-secrets:
+    dotnet user-secrets list --project src/DiscordMusic.Client/DiscordMusic.Client.csproj
 
 manifest image="mcr.microsoft.com/dotnet/sdk" tag="10.0.301" arch="amd64" os="linux":
     podman manifest inspect {{image}}:{{tag}} \

@@ -5,6 +5,9 @@ using DiscordMusic.Client.Spotify;
 using DiscordMusic.Client.Storage;
 using DiscordMusic.Client.YouTube;
 using DiscordMusic.Core;
+using DiscordMusic.Core.Configuration;
+using DiscordMusic.Core.Observability;
+using DiscordMusic.ServiceDefaults;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -40,7 +43,11 @@ public sealed class DiscordMusicCommand : RootCommand
                 })
             );
             var logger = factory.CreateLogger(nameof(DiscordMusicCommand));
-            var dotEnvPath = parseResult.GetRequiredValue(EnvFileOption);
+            var environmentVariables = SystemEnvironmentVariables.Instance;
+            var dotEnvPath = EnvironmentConfiguration.ResolveDotEnvPath(
+                parseResult.GetValue(EnvFileOption),
+                environmentVariables
+            );
 
             var builder = Host.CreateApplicationBuilder(args);
             builder.Configuration.Sources.Clear();
@@ -51,8 +58,12 @@ public sealed class DiscordMusicCommand : RootCommand
                 options.SingleLine = true;
                 options.TimestampFormat = "HH:mm:ss ";
             });
-            builder.AddYouTubeClient();
             builder.AddCore(logger, dotEnvPath, cancellationToken);
+            builder.AddYouTubeClient();
+            builder.AddServiceDefaults(
+                [DiscordMusicObservability.Name],
+                [DiscordMusicObservability.Name]
+            );
             var host = builder.Build();
             host.UseCore();
             await host.RunAsync(cancellationToken);
@@ -60,12 +71,12 @@ public sealed class DiscordMusicCommand : RootCommand
         }
     }
 
-    private static Option<string> EnvFileOption { get; } =
+    internal static Option<string?> EnvFileOption { get; } =
         new("--env-file")
         {
-            Description = "The .env file to load for Discord Music configuration.",
+            Description =
+                $"The .env file to load for Discord Music configuration. Overrides {EnvironmentConfiguration.EnvFileVariable}.",
             Recursive = true,
-            DefaultValueFactory = _ => ".env",
             Required = false,
         };
 }

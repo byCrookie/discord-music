@@ -1,5 +1,6 @@
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Playback;
 using DiscordMusic.Core.Utils;
 using NetCord.Rest;
@@ -16,42 +17,74 @@ internal sealed class AudioBarComponentModule(
     [ComponentInteraction(AudioBarComponents.Rewind30)]
     public Task<InteractionMessageProperties> Rewind30Async()
     {
-        return SeekRelativeAsync(TimeSpan.FromSeconds(-30));
+        return TrackComponentAsync("audiobar.rewind_30", () =>
+            SeekRelativeAsync(TimeSpan.FromSeconds(-30))
+        );
     }
 
     [ComponentInteraction(AudioBarComponents.Rewind10)]
     public Task<InteractionMessageProperties> Rewind10Async()
     {
-        return SeekRelativeAsync(TimeSpan.FromSeconds(-10));
+        return TrackComponentAsync("audiobar.rewind_10", () =>
+            SeekRelativeAsync(TimeSpan.FromSeconds(-10))
+        );
     }
 
     [ComponentInteraction(AudioBarComponents.PlayPause)]
     public InteractionMessageProperties PlayPause()
     {
-        if (!TryGetSession(out var session, out var error))
-        {
-            return error;
-        }
+        return DiscordMusicObservability.TrackDiscordCommand(
+            "audiobar.play_pause",
+            Context.Guild?.Id,
+            Context.User.Id,
+            _ =>
+            {
+                if (!TryGetSession(out var session, out var error))
+                {
+                    return DiscordMusicObservability.CommandResult(error, "missing_session");
+                }
 
-        var snapshot = session.Snapshot();
-        var result =
-            snapshot.State == PlaybackState.Paused
-                ? playbackController.Resume(session)
-                : playbackController.Pause(session);
+                var snapshot = session.Snapshot();
+                var result =
+                    snapshot.State == PlaybackState.Paused
+                        ? playbackController.Resume(session)
+                        : playbackController.Pause(session);
 
-        return DiscordResponses.PlaybackFeedback(result, session);
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.PlaybackFeedback(result, session),
+                    result.IsSuccess ? "completed" : "playback_rejected"
+                );
+            }
+        );
     }
 
     [ComponentInteraction(AudioBarComponents.Forward10)]
     public Task<InteractionMessageProperties> Forward10Async()
     {
-        return SeekRelativeAsync(TimeSpan.FromSeconds(10));
+        return TrackComponentAsync("audiobar.forward_10", () =>
+            SeekRelativeAsync(TimeSpan.FromSeconds(10))
+        );
     }
 
     [ComponentInteraction(AudioBarComponents.Forward30)]
     public Task<InteractionMessageProperties> Forward30Async()
     {
-        return SeekRelativeAsync(TimeSpan.FromSeconds(30));
+        return TrackComponentAsync("audiobar.forward_30", () =>
+            SeekRelativeAsync(TimeSpan.FromSeconds(30))
+        );
+    }
+
+    private Task<InteractionMessageProperties> TrackComponentAsync(
+        string commandName,
+        Func<Task<InteractionMessageProperties>> action
+    )
+    {
+        return DiscordMusicObservability.TrackDiscordCommandAsync(
+            commandName,
+            Context.Guild?.Id,
+            Context.User.Id,
+            async _ => DiscordMusicObservability.CommandResult(await action())
+        );
     }
 
     private Task<InteractionMessageProperties> SeekRelativeAsync(TimeSpan offset)

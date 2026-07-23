@@ -17,7 +17,16 @@ public class YouTubeDownloadRequestConsumerService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var item = await queue.DequeueAsync(stoppingToken);
+            Func<CancellationToken, YouTubeDownloadRequest> item;
+
+            try
+            {
+                item = await queue.DequeueAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
 
             try
             {
@@ -29,6 +38,10 @@ public class YouTubeDownloadRequestConsumerService(
                     request.Track.Name
                 );
                 await processor.ProcessAsync(request, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {

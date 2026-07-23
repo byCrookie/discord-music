@@ -10,6 +10,47 @@ namespace DiscordMusic.Core.Tests.Configuration;
 public class EnvironmentConfigurationTests
 {
     [Test]
+    public async Task ResolveDotEnvPathUsesArgumentBeforeEnvironmentVariable()
+    {
+        var environmentVariables = new TestEnvironmentVariables(
+            new Dictionary<string, string?>
+            {
+                [EnvironmentConfiguration.EnvFileVariable] = "from-env",
+            }
+        );
+
+        var path = EnvironmentConfiguration.ResolveDotEnvPath("from-arg", environmentVariables);
+
+        await Assert.That(path).IsEqualTo("from-arg");
+    }
+
+    [Test]
+    public async Task ResolveDotEnvPathUsesEnvironmentVariableWhenArgumentMissing()
+    {
+        var environmentVariables = new TestEnvironmentVariables(
+            new Dictionary<string, string?>
+            {
+                [EnvironmentConfiguration.EnvFileVariable] = "from-env",
+            }
+        );
+
+        var path = EnvironmentConfiguration.ResolveDotEnvPath(null, environmentVariables);
+
+        await Assert.That(path).IsEqualTo("from-env");
+    }
+
+    [Test]
+    public async Task ResolveDotEnvPathUsesDefaultWhenArgumentAndEnvironmentMissing()
+    {
+        var path = EnvironmentConfiguration.ResolveDotEnvPath(
+            null,
+            new TestEnvironmentVariables()
+        );
+
+        await Assert.That(path).IsEqualTo(EnvironmentConfiguration.DefaultDotEnvPath);
+    }
+
+    [Test]
     [MethodDataSource(typeof(FileSystemTestData), nameof(FileSystemTestData.SimulationModes))]
     public async Task PrefixedValuesHaveHighestPriority(SimulationMode mode)
     {

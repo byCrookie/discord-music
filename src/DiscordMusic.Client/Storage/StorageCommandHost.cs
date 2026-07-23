@@ -13,7 +13,7 @@ namespace DiscordMusic.Client.Storage;
 
 internal static class StorageCommandHost
 {
-    public static IHost Build(string[] args)
+    public static IHost Build(string[] args, string dotEnvPath)
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.Logging.ClearProviders();
@@ -26,7 +26,7 @@ internal static class StorageCommandHost
             NullLogger.Instance,
             fileSystem,
             environmentVariables,
-            ".env"
+            dotEnvPath
         );
         builder.AddUtils();
         builder.AddStorage();

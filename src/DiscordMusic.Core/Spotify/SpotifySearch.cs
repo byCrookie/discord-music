@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Flurl;
@@ -25,6 +27,19 @@ internal class SpotifySearch(
 
     public async Task<ErrorOr<List<SpotifyTrack>>> SearchAsync(string query, CancellationToken ct)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+        var result = "completed";
+        using var activity = DiscordMusicObservability.StartActivity(
+            "spotify.search",
+            ActivityKind.Client
+        );
+        DiscordMusicObservability.SetTag(activity, "music.search.query.length", query.Length);
+        DiscordMusicObservability.SetTag(
+            activity,
+            "music.search.query.kind",
+            Url.IsValid(query) ? "url" : "text"
+        );
+
         logger.LogDebug("Searching Spotify for {Query}.", query);
 
         if (
@@ -32,6 +47,8 @@ internal class SpotifySearch(
             || string.IsNullOrWhiteSpace(spotifyOptions.Value.ClientSecret)
         )
         {
+            result = "validation_failed";
+            activity?.SetStatus(ActivityStatusCode.Error, result);
             logger.LogError("Spotify client id and secret not set");
             return Error.Validation(description: "Spotify client id and secret not set");
         }
@@ -47,20 +64,26 @@ internal class SpotifySearch(
 
         try
         {
-            if (Url.IsValid(query))
-            {
-                return await SearchByUrlAsync(spotify, new Url(query), ct).ToListAsync(ct);
-            }
-
-            return await SearchByQueryAsync(spotify, query, ct).ToListAsync(ct);
+            var tracks = Url.IsValid(query)
+                ? await SearchByUrlAsync(spotify, new Url(query), ct).ToListAsync(ct)
+                : await SearchByQueryAsync(spotify, query, ct).ToListAsync(ct);
+            DiscordMusicObservability.SetTag(activity, "music.track.count", tracks.Count);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            return tracks;
         }
         catch (ArgumentException e)
         {
+            result = "validation_failed";
+            activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+            activity?.AddException(e);
             logger.LogDebug(e, "Invalid Spotify URL {Query}", query);
             return Error.Validation(description: e.Message);
         }
         catch (APITooManyRequestsException e)
         {
+            result = "rate_limited";
+            activity?.SetStatus(ActivityStatusCode.Error, result);
+            activity?.AddException(e);
             logger.LogWarning(e, "Spotify API rate limit exceeded");
             return Error
                 .Unexpected(
@@ -73,11 +96,16 @@ internal class SpotifySearch(
         }
         catch (APIException e)
         {
+            result = "api_error";
+            activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+            activity?.AddException(e);
             var responseBody = e.Response?.Body?.ToString();
             var statusCode = e.Response?.StatusCode;
+            DiscordMusicObservability.SetTag(activity, "http.response.status_code", statusCode);
 
             if (IsPremiumRequiredResponse(statusCode?.ToString(), responseBody))
             {
+                result = "premium_required";
                 logger.LogWarning(
                     e,
                     "Spotify API rejected the request because the app owner account requires Premium. Query={Query}",
@@ -115,12 +143,28 @@ internal class SpotifySearch(
         }
         catch (Exception e)
         {
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+            activity?.AddException(e);
             logger.LogError(e, "Spotify search failed. Query={Query}", query);
             return Error
                 .Unexpected(code: "Spotify.SearchFailed", description: "Spotify search failed.")
                 .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "spotify.search")
                 .WithMetadata("query", query)
                 .WithException(e);
+        }
+        finally
+        {
+            var tags = DiscordMusicObservability.ExternalRequestTags(
+                "spotify",
+                "spotify.search",
+                result
+            );
+            DiscordMusicObservability.ExternalRequests.Add(1, tags);
+            DiscordMusicObservability.ExternalRequestDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                tags
+            );
         }
     }
 

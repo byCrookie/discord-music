@@ -1,4 +1,5 @@
 using DiscordMusic.Core.Discord.CommandSupport;
+using DiscordMusic.Core.Observability;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -16,7 +17,19 @@ internal class PingAction(ILogger<PingAction> logger)
     )]
     public Task<InteractionMessageProperties> Ping()
     {
-        logger.LogTrace("Ping");
-        return Task.FromResult(DiscordResponses.Ephemeral("Pong!"));
+        return Task.FromResult(
+            DiscordMusicObservability.TrackDiscordCommand(
+                "ping",
+                Context.Guild?.Id,
+                Context.User.Id,
+                _ =>
+                {
+                    logger.LogTrace("Ping");
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("Pong!")
+                    );
+                }
+            )
+        );
     }
 }

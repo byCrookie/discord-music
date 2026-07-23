@@ -290,6 +290,16 @@ internal sealed class GuildTrackQueue
         }
     }
 
+    public IReadOnlyDictionary<QueuedTrackStatus, int> CountByStatus()
+    {
+        lock (_lock)
+        {
+            return _items
+                .GroupBy(item => item.Status)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+    }
+
     private TaskCompletionSource MarkChanged()
     {
         var changed = _changed;

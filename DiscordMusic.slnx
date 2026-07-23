@@ -1,5 +1,7 @@
 ﻿<Solution>
+    <Project Path="src/DiscordMusic.AppHost/DiscordMusic.AppHost.csproj" />
     <Project Path="src/DiscordMusic.Client/DiscordMusic.Client.csproj" />
     <Project Path="src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj" />
     <Project Path="src/DiscordMusic.Core/DiscordMusic.Core.csproj" />
+    <Project Path="src/DiscordMusic.ServiceDefaults/DiscordMusic.ServiceDefaults.csproj" />
 </Solution>

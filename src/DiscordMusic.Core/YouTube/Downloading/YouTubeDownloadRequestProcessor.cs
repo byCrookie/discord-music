@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using DiscordMusic.Core.Discord.CommandSupport;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.Storage;
 using DiscordMusic.Core.Utils;
@@ -19,6 +21,17 @@ internal sealed class YouTubeDownloadRequestProcessor(
         CancellationToken cancellationToken
     )
     {
+        var startedAt = Stopwatch.GetTimestamp();
+        using var activity = DiscordMusicObservability.StartActivity("youtube.download.process");
+        DiscordMusicObservability.SetGuildTag(activity, request.Origin.GuildId);
+        DiscordMusicObservability.SetTag(activity, "music.track.id", request.Track.Id);
+        DiscordMusicObservability.SetTag(
+            activity,
+            "music.track.duration_ms",
+            request.Track.Duration.TotalMilliseconds
+        );
+        var metricTags = DiscordMusicObservability.GuildTags(request.Origin.GuildId);
+
         if (
             !trackQueue.TryUpdateStatus(
                 request.Origin.GuildId,
@@ -27,6 +40,13 @@ internal sealed class YouTubeDownloadRequestProcessor(
             )
         )
         {
+            activity?.SetStatus(ActivityStatusCode.Ok, "stale_request");
+            metricTags.Add("result", "stale");
+            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
+            DiscordMusicObservability.DownloadDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                metricTags
+            );
             logger.LogWarning(
                 "Skipping stale YouTube download request because the queue item is gone. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
                 request.Origin.GuildId,
@@ -53,6 +73,13 @@ internal sealed class YouTubeDownloadRequestProcessor(
 
         if (!download.IsSuccess)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, download.ToErrorContent());
+            metricTags.Add("result", "failed");
+            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
+            DiscordMusicObservability.DownloadDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                metricTags
+            );
             logger.LogWarning(
                 "YouTube download failed. GuildId={GuildId}, TrackId={TrackId}, Title={Title}, Error={Error}",
                 request.Origin.GuildId,
@@ -81,6 +108,13 @@ internal sealed class YouTubeDownloadRequestProcessor(
             )
         )
         {
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            metricTags.Add("result", "completed");
+            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
+            DiscordMusicObservability.DownloadDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                metricTags
+            );
             logger.LogInformation(
                 "YouTube download completed. GuildId={GuildId}, TrackId={TrackId}, Title={Title}, Output={Output}",
                 request.Origin.GuildId,
@@ -91,6 +125,13 @@ internal sealed class YouTubeDownloadRequestProcessor(
             return;
         }
 
+        activity?.SetStatus(ActivityStatusCode.Ok, "queue_item_gone");
+        metricTags.Add("result", "stale_after_download");
+        DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
+        DiscordMusicObservability.DownloadDuration.Record(
+            Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+            metricTags
+        );
         logger.LogWarning(
             "YouTube download completed but queue item was gone. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
             request.Origin.GuildId,

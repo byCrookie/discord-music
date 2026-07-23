@@ -3,6 +3,7 @@ using System.IO.Abstractions;
 using System.Text;
 using System.Text.RegularExpressions;
 using DiscordMusic.Core.Configuration;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.Utils.Json;
 using ErrorOr;
@@ -22,6 +23,14 @@ internal partial class YouTubeSearch(
 {
     public async Task<ErrorOr<List<YouTubeTrack>>> SearchAsync(string query, CancellationToken ct)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+        var result = "completed";
+        using var activity = DiscordMusicObservability.StartActivity(
+            "youtube.search",
+            ActivityKind.Client
+        );
+        DiscordMusicObservability.SetTag(activity, "music.search.query.length", query.Length);
+
         try
         {
             logger.LogDebug("Searching YouTube. Query={Query}", query);
@@ -63,6 +72,8 @@ internal partial class YouTubeSearch(
 
             if (process is null)
             {
+                result = "start_failed";
+                activity?.SetStatus(ActivityStatusCode.Error, result);
                 logger.LogError(
                     "Failed to start yt-dlp process for YouTube search. Ytdlp={Ytdlp} Args={Args} Query={Query}",
                     loadedLocations.Ytdlp.PathToFile,
@@ -97,6 +108,9 @@ internal partial class YouTubeSearch(
 
             if (process.ExitCode != 0)
             {
+                result = "failed";
+                activity?.SetStatus(ActivityStatusCode.Error, "non_zero_exit_code");
+                DiscordMusicObservability.SetTag(activity, "process.exit_code", process.ExitCode);
                 var errorMessage = string.Join(Environment.NewLine, errors);
 
                 logger.LogError(
@@ -121,11 +135,16 @@ internal partial class YouTubeSearch(
                 .DistinctBy(e => e.Url)
                 .ToList();
 
+            DiscordMusicObservability.SetTag(activity, "music.track.count", tracks.Count);
+            activity?.SetStatus(ActivityStatusCode.Ok);
             logger.LogDebug("Found {Count} tracks on YouTube for {Query}.", tracks.Count, query);
             return tracks.Count != 0 ? tracks : [];
         }
         catch (Exception e)
         {
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+            activity?.AddException(e);
             logger.LogError(e, "YouTube search crashed. Query={Query}", query);
 
             return Error
@@ -136,6 +155,19 @@ internal partial class YouTubeSearch(
                 .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "youtube.search")
                 .WithMetadata("query", query)
                 .WithException(e);
+        }
+        finally
+        {
+            var tags = DiscordMusicObservability.ExternalRequestTags(
+                "youtube",
+                "youtube.search",
+                result
+            );
+            DiscordMusicObservability.ExternalRequests.Add(1, tags);
+            DiscordMusicObservability.ExternalRequestDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                tags
+            );
         }
     }
 

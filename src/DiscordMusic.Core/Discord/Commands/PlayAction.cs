@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.YouTube.Searching;
 using Microsoft.Extensions.Logging;
@@ -29,61 +31,99 @@ internal class PlayAction(
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task Play([SlashCommandParameter] string query)
     {
-        logger.LogTrace("Play");
-
-        if (Context.Guild is not { } guild)
-        {
-            await RespondAsync(
-                InteractionCallback.Message(
-                    DiscordResponses.Ephemeral("The guild is not available. Try again later.")
-                )
-            );
-            return;
-        }
-
-        var joinResult = await voiceConnectionService.JoinUserChannelAsync(
-            Context.Client,
-            guild.Id,
-            guild.VoiceStates,
+        var startedAt = Stopwatch.GetTimestamp();
+        var guildId = Context.Guild?.Id;
+        var result = "completed";
+        using var activity = DiscordMusicObservability.StartDiscordCommandActivity(
+            "play",
+            guildId,
             Context.User.Id
         );
+        DiscordMusicObservability.SetTag(activity, "music.search.query.length", query.Length);
 
-        if (!joinResult.Succeeded)
+        logger.LogTrace("Play");
+
+        try
         {
-            await RespondAsync(
-                InteractionCallback.Message(DiscordResponses.Ephemeral(joinResult.Message))
+            if (Context.Guild is not { } guild)
+            {
+                result = "missing_guild";
+                activity?.SetStatus(ActivityStatusCode.Ok, result);
+                await RespondAsync(
+                    InteractionCallback.Message(
+                        DiscordResponses.Ephemeral("The guild is not available. Try again later.")
+                    )
+                );
+                return;
+            }
+
+            var joinResult = await voiceConnectionService.JoinUserChannelAsync(
+                Context.Client,
+                guild.Id,
+                guild.VoiceStates,
+                Context.User.Id
             );
-            return;
+
+            if (!joinResult.Succeeded)
+            {
+                result = "voice_join_failed";
+                activity?.SetStatus(ActivityStatusCode.Ok, result);
+                await RespondAsync(
+                    InteractionCallback.Message(DiscordResponses.Ephemeral(joinResult.Message))
+                );
+                return;
+            }
+
+            await RespondAsync(
+                InteractionCallback.Message(
+                    new InteractionMessageProperties
+                    {
+                        Embeds =
+                        [
+                            new EmbedProperties
+                            {
+                                Title = "Request",
+                                Description = BuildRequestMessage(query, joinResult.Status),
+                                Color = new Color(red: 0, green: 255, blue: 0),
+                            },
+                        ],
+                        Flags = MessageFlags.Ephemeral,
+                    }
+                )
+            );
+
+            var queued = await queue.QueueAsync(_ => new YouTubeSearchRequest(
+                query,
+                DiscordRequestOrigin.FromContext(Context),
+                TrackQueuePlacement.Last
+            ));
+
+            if (!queued)
+            {
+                result = "queue_full";
+                activity?.SetStatus(ActivityStatusCode.Ok, result);
+                await FollowupAsync(
+                    DiscordResponses.Ephemeral("The request queue is full. Try again later.")
+                );
+                return;
+            }
+
+            activity?.SetStatus(ActivityStatusCode.Ok);
         }
-
-        await RespondAsync(
-            InteractionCallback.Message(
-                new InteractionMessageProperties
-                {
-                    Embeds =
-                    [
-                        new EmbedProperties
-                        {
-                            Title = "Request",
-                            Description = BuildRequestMessage(query, joinResult.Status),
-                            Color = new Color(red: 0, green: 255, blue: 0),
-                        },
-                    ],
-                    Flags = MessageFlags.Ephemeral,
-                }
-            )
-        );
-
-        var queued = await queue.QueueAsync(_ => new YouTubeSearchRequest(
-            query,
-            DiscordRequestOrigin.FromContext(Context),
-            TrackQueuePlacement.Last
-        ));
-
-        if (!queued)
+        catch (Exception ex)
         {
-            await FollowupAsync(
-                DiscordResponses.Ephemeral("The request queue is full. Try again later.")
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
+        finally
+        {
+            var tags = DiscordMusicObservability.DiscordCommandTags("play", result, guildId);
+            DiscordMusicObservability.DiscordCommands.Add(1, tags);
+            DiscordMusicObservability.DiscordCommandDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                tags
             );
         }
     }
