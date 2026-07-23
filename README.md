@@ -70,17 +70,12 @@ Then copy the install-link, paste it into the browser, enter and select your ser
 see the bot offline as member of your server. After running the bot with your token, the status
 should change to online.
 
-### Docker / Podman (Recommended)
+### Container (Recommended)
 
 The `latest` tag is used for the newest version and has possibly not been in use for long. If you
 want a better experience, use a specific tag.
 
 To run the bot as a container, use the following commands:
-
-```bash
-docker pull ghcr.io/bycrookie/discord-music:latest
-docker run -d --restart unless-stopped --env-file .env --name dm -v /var/tmp/dm/storage:/app/storage:Z ghcr.io/bycrookie/discord-music:latest
-```
 
 ```bash
 podman pull ghcr.io/bycrookie/discord-music:latest
@@ -96,7 +91,7 @@ The container uses `/app/entrypoint.sh` as its entrypoint. Any arguments after t
 optional and are forwarded to the `dm` executable, for example:
 
 ```bash
-docker run --rm --env-file .env ghcr.io/bycrookie/discord-music:latest storage size
+podman run --rm --env-file .env ghcr.io/bycrookie/discord-music:latest storage size
 ```
 
 For custom-builds, refer to the [Containerfile](Containerfile). The published image bundles the

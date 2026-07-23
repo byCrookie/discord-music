@@ -7,7 +7,7 @@ build target="linux/amd64":
         case aarch64 arm64; set build_platform linux/arm64; \
         case '*'; echo "Unsupported build architecture: $arch"; exit 1; \
     end; \
-    podman build --platform "{{target}}" --build-arg BUILDPLATFORM="$build_platform" -t localhost/dm:test .
+    buildah build --platform "{{target}}" --build-arg BUILDPLATFORM="$build_platform" --ignorefile .containerignore -t localhost/dm:test .
 
 run:
     mkdir -p "{{justfile_directory()}}/artifacts/storage"
@@ -30,3 +30,7 @@ user-secrets-spotify:
     read --silent --prompt-str "Spotify Client Secret: " spotify_client_secret
     dotnet user-secrets set --project src/DiscordMusic.Client/DiscordMusic.Client.csproj "spotify:clientId" "$spotify_client_id"
     dotnet user-secrets set --project src/DiscordMusic.Client/DiscordMusic.Client.csproj "spotify:clientSecret" "$spotify_client_secret"
+
+manifest image="mcr.microsoft.com/dotnet/sdk" tag="10.0.301" arch="amd64" os="linux":
+    podman manifest inspect {{image}}:{{tag}} \
+      | jq -r '.manifests[] | select(.platform.architecture=="{{arch}}" and .platform.os=="{{os}}") | .digest'

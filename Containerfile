@@ -1,7 +1,7 @@
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0@sha256:ed034a8bf0b24ded0cbbac07e17825d8e9ebfe21e308191d0f7421eaf5ad4664 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0.301@sha256:493fca072aac81307027cbb7b7c9a82b6e87d222af315504d05dc6530e69b519 AS build
 WORKDIR /build/libs
 
 ARG TARGETPLATFORM
@@ -34,7 +34,8 @@ RUN case "$TARGETARCH" in \
     mkdir ffmpeg-extract && tar -xf ffmpeg.tar.xz -C ffmpeg-extract && rm ffmpeg.tar.xz && \
     cp ffmpeg-extract/*/bin/ffmpeg ffmpeg && cp ffmpeg-extract/*/bin/ffprobe ffprobe && \
     rm -rf ffmpeg-extract && \
-    chmod +x ffmpeg ffprobe && ./ffmpeg -version
+    chmod +x ffmpeg ffprobe && \
+    if [ "$TARGETPLATFORM" = "$BUILDPLATFORM" ]; then ./ffmpeg -version; else echo "Skipping FFmpeg smoke test for cross-build"; fi
 
 RUN case "$TARGETARCH" in \
     amd64)  YTDLP_URL="https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/download/${YTDLP_VERSION}/yt-dlp_linux" ;; \
@@ -43,7 +44,8 @@ RUN case "$TARGETARCH" in \
     esac && \
     echo "Downloading yt-dlp from $YTDLP_URL" && \
     curl -fL "$YTDLP_URL" -o yt-dlp && \
-    chmod +x yt-dlp && ./yt-dlp --version
+    chmod +x yt-dlp && \
+    if [ "$TARGETPLATFORM" = "$BUILDPLATFORM" ]; then ./yt-dlp --version; else echo "Skipping yt-dlp smoke test for cross-build"; fi
 
 RUN case "$TARGETARCH" in \
     amd64)  DENO_URL="https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip" ;; \
@@ -54,7 +56,8 @@ RUN case "$TARGETARCH" in \
     curl -fL "$DENO_URL" -o deno.zip && \
     unzip -q deno.zip deno && \
     rm deno.zip && \
-    chmod +x deno && ./deno --version
+    chmod +x deno && \
+    if [ "$TARGETPLATFORM" = "$BUILDPLATFORM" ]; then ./deno --version; else echo "Skipping Deno smoke test for cross-build"; fi
 
 WORKDIR /build/source
 
@@ -84,7 +87,7 @@ RUN case "$TARGETARCH" in \
 COPY containers/entrypoint.sh /build/publish/entrypoint.sh
 RUN chmod +x /build/publish/entrypoint.sh
 
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/runtime:10.0@sha256:ed5d539b27842d656a06a5984dbcb5114d3e885fbada612a49a5a7c3c3a44e1c AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0@sha256:ca17638b4cbab2063771e8943dbe887ea6c0ae00c5fede3498d5938758c85dfe AS final
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
