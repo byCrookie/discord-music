@@ -31,13 +31,33 @@
             "depNameTemplate": "dotnet-sdk",
             "datasourceTemplate": "dotnet-version",
             "versioningTemplate": "semver"
+        },
+        {
+            "customType": "regex",
+            "description": "Update the pinned .NET SDK container image",
+            "managerFilePatterns": ["/(^|/)Containerfile$/"],
+            "matchStrings": [
+                "mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]+)"
+            ],
+            "depNameTemplate": "dotnet/sdk",
+            "packageNameTemplate": "dotnet/sdk",
+            "datasourceTemplate": "docker",
+            "registryUrlTemplate": "https://mcr.microsoft.com",
+            "versioningTemplate": "semver"
         }
     ],
     "packageRules": [
         {
+            "description": "Use dotnet-version datasource for the SDK container tag instead of Docker's MCR lookup",
+            "matchManagers": ["dockerfile"],
+            "matchDatasources": ["docker"],
+            "matchPackageNames": ["mcr.microsoft.com/dotnet/sdk", "dotnet/sdk"],
+            "enabled": false
+        },
+        {
             "description": "Group .NET SDK updates across global.json, GitHub Actions, helpers, and container images",
             "matchDatasources": ["dotnet-version", "docker"],
-            "matchPackageNames": ["dotnet-sdk", "mcr.microsoft.com/dotnet/sdk"],
+            "matchPackageNames": ["dotnet-sdk", "dotnet/sdk"],
             "groupName": ".NET SDK",
             "versioning": "semver"
         },
