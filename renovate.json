@@ -17,32 +17,30 @@
         },
         {
             "customType": "regex",
+            "description": "Update the pinned .NET SDK container digest",
+            "managerFilePatterns": ["/(^|/)Containerfile$/"],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>docker) depName=(?<depName>[^\\s]+) registryUrl=(?<registryUrl>https://[^\\s]+)\\s+FROM --platform=\\$BUILDPLATFORM mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]+)"
+            ],
+            "versioningTemplate": "semver"
+        },
+        {
+            "customType": "regex",
             "description": "Update .NET SDK versions in global.json, GitHub Actions, and helper scripts",
             "managerFilePatterns": [
                 "/(^|/)global\\.json$/",
                 "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/",
+                "/(^|/)Containerfile$/",
                 "/(^|/)justfile$/"
             ],
             "matchStrings": [
                 "\"version\"\\s*:\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
                 "dotnet-version:\\s*['\"]?(?<currentValue>\\d+\\.\\d+\\.\\d+)['\"]?",
+                "mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@sha256:[a-f0-9]+",
                 "manifest image=\"mcr\\.microsoft\\.com/dotnet/sdk\" tag=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
             ],
             "depNameTemplate": "dotnet-sdk",
             "datasourceTemplate": "dotnet-version",
-            "versioningTemplate": "semver"
-        },
-        {
-            "customType": "regex",
-            "description": "Update the pinned .NET SDK container image",
-            "managerFilePatterns": ["/(^|/)Containerfile$/"],
-            "matchStrings": [
-                "mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]+)"
-            ],
-            "depNameTemplate": "dotnet/sdk",
-            "packageNameTemplate": "dotnet/sdk",
-            "datasourceTemplate": "docker",
-            "registryUrlTemplate": "https://mcr.microsoft.com",
             "versioningTemplate": "semver"
         }
     ],

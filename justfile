@@ -19,6 +19,15 @@ test: build run
 action:
     act --workflows ".github/workflows/release.yml" --artifact-server-path artifacts/act
 
+renovate dry_run="lookup" log_level="info":
+    if command -q fnm; \
+        set node_version (cat .node-version); \
+        fnm install $node_version; \
+        LOG_LEVEL={{log_level}} RENOVATE_CONFIG_FILE=renovate.json fnm exec --using=$node_version -- npx --yes renovate --platform=local --dry-run={{dry_run}}; \
+    else; \
+        LOG_LEVEL={{log_level}} RENOVATE_CONFIG_FILE=renovate.json npx --yes renovate --platform=local --dry-run={{dry_run}}; \
+    end
+
 user-secrets-discord:
     #!/usr/bin/env fish
     read --silent --prompt-str "Discord Bot Token: " discord_token
