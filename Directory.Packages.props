@@ -13,7 +13,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageVersion>
         <PackageVersion Include="NetCord" Version="1.0.0-alpha.359" />
-        <PackageVersion Include="NetCord.Hosting" Version="1.0.0-alpha.359" />
+        <PackageVersion Include="NetCord.Hosting" Version="1.0.0-beta.11" />
         <PackageVersion Include="NetCord.Hosting.AspNetCore" Version="1.0.0-beta.11" />
         <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-beta.11" />
         <PackageVersion Include="NSubstitute" Version="6.0.0" />
