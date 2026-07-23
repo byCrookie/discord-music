@@ -14,9 +14,33 @@
                 "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)(?: versioning=(?<versioning>[^\\s]+))?\\s+ARG \\w+=(?<currentValue>[^\\s]+)"
             ],
             "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}loose{{/if}}"
+        },
+        {
+            "customType": "regex",
+            "description": "Update .NET SDK versions in global.json, GitHub Actions, and helper scripts",
+            "managerFilePatterns": [
+                "/(^|/)global\\.json$/",
+                "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/",
+                "/(^|/)justfile$/"
+            ],
+            "matchStrings": [
+                "\"version\"\\s*:\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
+                "dotnet-version:\\s*['\"]?(?<currentValue>\\d+\\.\\d+\\.\\d+)['\"]?",
+                "manifest image=\"mcr\\.microsoft\\.com/dotnet/sdk\" tag=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+            ],
+            "depNameTemplate": "dotnet-sdk",
+            "datasourceTemplate": "dotnet-version",
+            "versioningTemplate": "semver"
         }
     ],
     "packageRules": [
+        {
+            "description": "Group .NET SDK updates across global.json, GitHub Actions, helpers, and container images",
+            "matchDatasources": ["dotnet-version", "docker"],
+            "matchPackageNames": ["dotnet-sdk", "mcr.microsoft.com/dotnet/sdk"],
+            "groupName": ".NET SDK",
+            "versioning": "semver"
+        },
         {
             "description": "Pin container image digests",
             "matchDatasources": ["docker"],
