@@ -84,8 +84,9 @@ podman run -d --restart unless-stopped --env-file .env --name dm -v /var/tmp/dm/
 
 A compose example can be found here [compose.yaml.example](compose.yaml.example).
 
-Use the `--env-file` option to pass environment variables. An example `.env` file is
-available here [.env.example](.env.example).
+Use the `--env-file` option or `DISCORD_MUSIC_ENV_FILE` to pass environment variables.
+When both are set, `--env-file` wins. An example `.env` file is available here
+[.env.example](.env.example).
 
 The container uses `/app/entrypoint.sh` as its entrypoint. Any arguments after the image name are
 optional and are forwarded to the `dm` executable, for example:
@@ -181,6 +182,27 @@ DISCORD_MUSIC_LOGGING__LOGLEVEL__MICROSOFT=Warning
 
 Valid levels are `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical`, and `None`.
 
+### Observability
+
+The bot emits OpenTelemetry logs, traces, and metrics when `OTEL_EXPORTER_OTLP_ENDPOINT` is
+configured. This is set automatically when running with .NET Aspire. For another collector:
+
+```plaintext
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+OTEL_SERVICE_NAME=discord-music
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment=prod,service.instance.id=discord-music-1,host.name=my-host
+```
+
+The bot does not override OpenTelemetry resource metadata in code. Set deployment-specific identity
+with standard OpenTelemetry environment variables, or rely on the defaults provided by .NET Aspire
+when running through the AppHost. Use `service.instance.id` for a unique process, pod, or container
+instance and `host.name` for the host name.
+
+Custom telemetry uses dot-separated OpenTelemetry metric names and covers queue operations, live
+queue depth by status, YouTube search/download processing counts and durations, playback attempts
+and durations, and storage cache trimming/size.
+Telemetry avoids raw bot tokens and avoids storing full search queries as span attributes.
+
 ### Storage
 
 The storage location can be configured with `DISCORD_MUSIC_STORAGE__PATH`. If it is not configured,
@@ -213,6 +235,19 @@ For development, keep secrets secure by using
 ```bash
 dotnet user-secrets set --project ./src/DiscordMusic.Client/DiscordMusic.Client.csproj "discord:token" "your-discord-bot-token"
 ```
+
+### .NET Aspire
+
+Run the development AppHost to start the bot with the Aspire dashboard:
+
+```bash
+dotnet run --project ./src/DiscordMusic.AppHost/DiscordMusic.AppHost.csproj
+```
+
+The AppHost keeps the normal `dm` client entrypoint unchanged, passes the repository `.env` file to
+the client by default, and sets a local development storage path unless
+`DISCORD_MUSIC_STORAGE__PATH` is already configured. Set `DISCORD_MUSIC_ENV_FILE` before starting the
+AppHost to point at a different `.env` file. User-secrets still apply in development.
 
 ## Disclaimer
 

@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\DiscordMusic.Core\DiscordMusic.Core.csproj" />
+        <ProjectReference Include="..\DiscordMusic.ServiceDefaults\DiscordMusic.ServiceDefaults.csproj" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">

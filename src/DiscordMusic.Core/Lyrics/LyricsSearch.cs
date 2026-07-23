@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 using Flurl;
@@ -15,6 +17,15 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
         CancellationToken ct
     )
     {
+        var startedAt = Stopwatch.GetTimestamp();
+        var result = "completed";
+        using var activity = DiscordMusicObservability.StartActivity(
+            "lyrics.search",
+            ActivityKind.Client
+        );
+        DiscordMusicObservability.SetTag(activity, "music.track.title.length", title.Length);
+        DiscordMusicObservability.SetTag(activity, "music.track.artist.length", artist.Length);
+
         logger.LogDebug("Search lyrics for {Title} - {Artist}", title, artist);
 
         try
@@ -31,10 +42,15 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
 
             var lyrics = await lyricsResponse.GetJsonAsync<LyricsResponse>();
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
             return new Lyrics(title, artist, lyrics.Lyrics);
         }
         catch (FlurlHttpException e)
         {
+            result = e.StatusCode == 404 ? "not_found" : "api_error";
+            activity?.SetStatus(ActivityStatusCode.Error, result);
+            activity?.AddException(e);
+            DiscordMusicObservability.SetTag(activity, "http.response.status_code", e.StatusCode);
             var error = await e.GetResponseJsonAsync<LyricsResponseError>();
             logger.LogError(e, "Lyrics API error. Title={Title} Artist={Artist}", title, artist);
             return Error
@@ -47,6 +63,9 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
         }
         catch (Exception e)
         {
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+            activity?.AddException(e);
             logger.LogError(
                 e,
                 "Lyrics search failed. Title={Title} Artist={Artist}",
@@ -59,6 +78,19 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
                 .WithMetadata("title", title)
                 .WithMetadata("artist", artist)
                 .WithException(e);
+        }
+        finally
+        {
+            var tags = DiscordMusicObservability.ExternalRequestTags(
+                "lyrics.ovh",
+                "lyrics.search",
+                result
+            );
+            DiscordMusicObservability.ExternalRequests.Add(1, tags);
+            DiscordMusicObservability.ExternalRequestDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                tags
+            );
         }
     }
 

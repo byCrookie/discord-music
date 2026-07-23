@@ -1,5 +1,6 @@
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Playback;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -24,42 +25,62 @@ internal class LeaveAction(
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task<InteractionMessageProperties> Leave()
     {
-        logger.LogTrace("Leave");
-
-        if (Context.Guild is not { } guild)
-        {
-            return DiscordResponses.Ephemeral("The guild is not available. Try again later.");
-        }
-
-        var guildId = guild.Id;
-
-        if (
-            !voiceInstances.Mapping.TryGetValue(guildId, out var voiceInstance)
-            || voiceInstance is null
-        )
-        {
-            return DiscordResponses.Ephemeral("Not connected to a voice channel in this guild.");
-        }
-
-        if (
-            voiceInstances.Mapping.TryRemove(
-                item: new KeyValuePair<ulong, VoiceConnection?>(guildId, voiceInstance)
-            )
-        )
-        {
-            try
+        return await DiscordMusicObservability.TrackDiscordCommandAsync(
+            "leave",
+            Context.Guild?.Id,
+            Context.User.Id,
+            async _ =>
             {
-                playbackService.Stop(guildId);
-                await voiceInstance.Client.CloseAsync();
-            }
-            finally
-            {
-                voiceInstance.Dispose();
+                logger.LogTrace("Leave");
 
-                await Context.Client.UpdateVoiceStateAsync(new VoiceStateProperties(guildId, null));
-            }
-        }
+                if (Context.Guild is not { } guild)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("The guild is not available. Try again later."),
+                        "missing_guild"
+                    );
+                }
 
-        return DiscordResponses.Ephemeral("Left voice channel.");
+                var guildId = guild.Id;
+
+                if (
+                    !voiceInstances.Mapping.TryGetValue(guildId, out var voiceInstance)
+                    || voiceInstance is null
+                )
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral(
+                            "Not connected to a voice channel in this guild."
+                        ),
+                        "not_connected"
+                    );
+                }
+
+                if (
+                    voiceInstances.Mapping.TryRemove(
+                        item: new KeyValuePair<ulong, VoiceConnection?>(guildId, voiceInstance)
+                    )
+                )
+                {
+                    try
+                    {
+                        playbackService.Stop(guildId);
+                        await voiceInstance.Client.CloseAsync();
+                    }
+                    finally
+                    {
+                        voiceInstance.Dispose();
+
+                        await Context.Client.UpdateVoiceStateAsync(
+                            new VoiceStateProperties(guildId, null)
+                        );
+                    }
+                }
+
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.Ephemeral("Left voice channel.")
+                );
+            }
+        );
     }
 }

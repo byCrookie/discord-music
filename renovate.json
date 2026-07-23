@@ -20,8 +20,9 @@
             "description": "Update the pinned .NET SDK container digest",
             "managerFilePatterns": ["/(^|/)Containerfile$/"],
             "matchStrings": [
-                "# renovate: datasource=(?<datasource>docker) depName=(?<depName>[^\\s]+) registryUrl=(?<registryUrl>https://[^\\s]+)\\s+FROM --platform=\\$BUILDPLATFORM mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]+)"
+                "# renovate: datasource=(?<datasource>docker) depName=(?<depName>[^\\s]+)\\s+FROM --platform=\\$BUILDPLATFORM mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]+)"
             ],
+            "registryUrlTemplate": "https://mcr.microsoft.com",
             "versioningTemplate": "semver"
         },
         {
@@ -45,6 +46,12 @@
         }
     ],
     "packageRules": [
+        {
+            "description": "Resolve the .NET SDK digest through the MCR Docker registry",
+            "matchDatasources": ["docker"],
+            "matchPackageNames": ["dotnet/sdk"],
+            "registryUrls": ["https://mcr.microsoft.com"]
+        },
         {
             "description": "Use dotnet-version datasource for the SDK container tag instead of Docker's MCR lookup",
             "matchManagers": ["dockerfile"],

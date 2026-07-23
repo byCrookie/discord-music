@@ -17,13 +17,26 @@ public class YouTubeSearchRequestConsumerService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var item = await searchQueue.DequeueAsync(stoppingToken);
+            Func<CancellationToken, YouTubeSearchRequest> item;
+
+            try
+            {
+                item = await searchQueue.DequeueAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
 
             try
             {
                 var request = item(stoppingToken);
                 logger.LogInformation("Processing YouTube search request: {Request}...", request);
                 await processor.ProcessAsync(request, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {

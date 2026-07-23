@@ -1,7 +1,7 @@
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 
-# renovate: datasource=docker depName=dotnet/sdk registryUrl=https://mcr.microsoft.com
+# renovate: datasource=docker depName=dotnet/sdk
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0.301@sha256:493fca072aac81307027cbb7b7c9a82b6e87d222af315504d05dc6530e69b519 AS build
 WORKDIR /build/libs
 
@@ -63,9 +63,11 @@ RUN case "$TARGETARCH" in \
 WORKDIR /build/source
 
 COPY DiscordMusic.slnx DiscordMusic.slnx
+COPY src/DiscordMusic.AppHost/DiscordMusic.AppHost.csproj src/DiscordMusic.AppHost/DiscordMusic.AppHost.csproj
 COPY src/DiscordMusic.Client/DiscordMusic.Client.csproj src/DiscordMusic.Client/DiscordMusic.Client.csproj
 COPY src/DiscordMusic.Core/DiscordMusic.Core.csproj src/DiscordMusic.Core/DiscordMusic.Core.csproj
 COPY src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj src/DiscordMusic.Core.Tests/DiscordMusic.Core.Tests.csproj
+COPY src/DiscordMusic.ServiceDefaults/DiscordMusic.ServiceDefaults.csproj src/DiscordMusic.ServiceDefaults/DiscordMusic.ServiceDefaults.csproj
 COPY Directory.Build.props Directory.Build.props
 COPY Directory.Packages.props Directory.Packages.props
 COPY global.json global.json

@@ -1,5 +1,6 @@
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -27,25 +28,39 @@ internal class JoinAction(
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task<InteractionMessageProperties> Join()
     {
-        logger.LogTrace("Join");
+        return await DiscordMusicObservability.TrackDiscordCommandAsync(
+            "join",
+            Context.Guild?.Id,
+            Context.User.Id,
+            async _ =>
+            {
+                logger.LogTrace("Join");
 
-        if (Context.Guild is not { } guild)
-        {
-            return DiscordResponses.Ephemeral("The guild is not available. Try again later.");
-        }
+                if (Context.Guild is not { } guild)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("The guild is not available. Try again later."),
+                        "missing_guild"
+                    );
+                }
 
-        var user = Context.User;
+                var user = Context.User;
 
-        var result = await voiceConnectionService.JoinUserChannelAsync(
-            Context.Client,
-            guild.Id,
-            guild.VoiceStates,
-            user.Id,
-            channel?.Id
+                var result = await voiceConnectionService.JoinUserChannelAsync(
+                    Context.Client,
+                    guild.Id,
+                    guild.VoiceStates,
+                    user.Id,
+                    channel?.Id
+                );
+
+                return DiscordMusicObservability.CommandResult(
+                    result.Status == VoiceConnectionResultStatus.Connected
+                        ? DiscordResponses.Ephemeral("Joined voice channel.")
+                        : DiscordResponses.Ephemeral(result.Message),
+                    result.Succeeded ? "completed" : "voice_join_failed"
+                );
+            }
         );
-
-        return result.Status == VoiceConnectionResultStatus.Connected
-            ? DiscordResponses.Ephemeral("Joined voice channel.")
-            : DiscordResponses.Ephemeral(result.Message);
     }
 }

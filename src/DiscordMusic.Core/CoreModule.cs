@@ -24,8 +24,11 @@ public static class CoreModule
     {
         var fileSystem = new RealFileSystem();
         var environmentVariables = SystemEnvironmentVariables.Instance;
+        var timeProvider = TimeProvider.System;
+
         builder.Services.AddSingleton<IFileSystem>(fileSystem);
         builder.Services.AddSingleton<IEnvironmentVariables>(environmentVariables);
+        builder.Services.AddSingleton(timeProvider);
 
         builder.Configuration.AddDiscordMusicEnvironment(
             builder.Environment,

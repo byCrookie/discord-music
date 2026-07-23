@@ -1,5 +1,6 @@
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Playback;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -22,22 +23,32 @@ internal class NowPlayingAction(
     [RequireChannelMusic<ApplicationCommandContext>]
     public InteractionMessageProperties NowPlaying()
     {
-        logger.LogTrace("NowPlaying");
+        return DiscordMusicObservability.TrackDiscordCommand(
+            "nowplaying",
+            Context.Guild?.Id,
+            Context.User.Id,
+            activity =>
+            {
+                logger.LogTrace("NowPlaying");
 
-        if (
-            !VoiceCommandGuard.TryGetPlaybackSession(
-                Context,
-                voiceInstances,
-                playbackService,
-                out var session,
-                out _,
-                out var error
-            )
-        )
-        {
-            return error;
-        }
+                if (
+                    !VoiceCommandGuard.TryGetPlaybackSession(
+                        Context,
+                        voiceInstances,
+                        playbackService,
+                        out var session,
+                        out _,
+                        out var error
+                    )
+                )
+                {
+                    return DiscordMusicObservability.CommandResult(error, "missing_session");
+                }
 
-        return DiscordResponses.Public(AudioBarRenderer.Render(session.Snapshot()));
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.Public(AudioBarRenderer.Render(session.Snapshot()))
+                );
+            }
+        );
     }
 }

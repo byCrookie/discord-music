@@ -1,5 +1,6 @@
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Playback;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -20,22 +21,34 @@ internal class ResumeAction(
     [RequireRoleDj<ApplicationCommandContext>]
     public InteractionMessageProperties Resume()
     {
-        logger.LogTrace("Resume");
+        return DiscordMusicObservability.TrackDiscordCommand(
+            "resume",
+            Context.Guild?.Id,
+            Context.User.Id,
+            activity =>
+            {
+                logger.LogTrace("Resume");
 
-        if (
-            !VoiceCommandGuard.TryGetPlaybackSession(
-                Context,
-                voiceInstances,
-                playbackService,
-                out var session,
-                out _,
-                out var error
-            )
-        )
-        {
-            return error;
-        }
+                if (
+                    !VoiceCommandGuard.TryGetPlaybackSession(
+                        Context,
+                        voiceInstances,
+                        playbackService,
+                        out var session,
+                        out _,
+                        out var error
+                    )
+                )
+                {
+                    return DiscordMusicObservability.CommandResult(error, "missing_session");
+                }
 
-        return DiscordResponses.PlaybackFeedback(playbackController.Resume(session), session);
+                var result = playbackController.Resume(session);
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.PlaybackFeedback(result, session),
+                    result.IsSuccess ? "completed" : "playback_rejected"
+                );
+            }
+        );
     }
 }

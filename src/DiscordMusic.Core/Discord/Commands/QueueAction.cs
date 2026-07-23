@@ -1,6 +1,7 @@
 using System.Text;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Playback;
 using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.Utils;
@@ -29,73 +30,99 @@ internal class QueueAction(
             int page = 1
     )
     {
-        logger.LogTrace("Queue");
-
-        if (page <= 0)
-        {
-            return DiscordResponses.Ephemeral("Invalid page number. It must be 1 or higher.");
-        }
-
-        if (Context.Guild is not { } guild)
-        {
-            return DiscordResponses.Ephemeral("The guild is not available. Try again later.");
-        }
-
-        var queuedTracks = trackQueue.QueuedTracks(guild.Id);
-        var playbackProgress = TryRenderPlaybackProgress(guild.Id, out var progress)
-            ? $"{progress}\n\n"
-            : string.Empty;
-
-        if (queuedTracks.Count == 0)
-        {
-            if (playbackProgress.Length == 0)
+        return DiscordMusicObservability.TrackDiscordCommand(
+            "queue.list",
+            Context.Guild?.Id,
+            Context.User.Id,
+            activity =>
             {
-                return DiscordResponses.Ephemeral("The queue is empty.");
-            }
+                logger.LogTrace("Queue");
 
-            return DiscordResponses.Public(
-                $"""
-                ### Queue
-                {playbackProgress}No upcoming tracks queued.
-                """
-            );
-        }
+                if (page <= 0)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("Invalid page number. It must be 1 or higher."),
+                        "invalid_page"
+                    );
+                }
 
-        var pageCount = (queuedTracks.Count + PageSize - 1) / PageSize;
-        if (page > pageCount)
-        {
-            return DiscordResponses.Ephemeral(
-                $"Invalid page number. There are only {pageCount} pages."
-            );
-        }
+                if (Context.Guild is not { } guild)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("The guild is not available. Try again later."),
+                        "missing_guild"
+                    );
+                }
 
-        var pageTracks = queuedTracks.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+                var queuedTracks = trackQueue.QueuedTracks(guild.Id);
+                DiscordMusicObservability.SetTag(activity, "music.queue.track.count", queuedTracks.Count);
+                var playbackProgress = TryRenderPlaybackProgress(guild.Id, out var progress)
+                    ? $"{progress}\n\n"
+                    : string.Empty;
 
-        var queue = new StringBuilder();
-        queue.AppendLine($"Page {page}/{pageCount}");
-        queue.AppendLine();
-        foreach (var (index, track) in pageTracks.Select((track, index) => (index, track)))
-        {
-            var counter = $"{index + 1}".PadRight(2 + $"{pageTracks.Count}".Length);
-            if (track.Track.Duration == TimeSpan.Zero)
-            {
-                queue.AppendLine(
-                    $"{counter} {track.Track.Name} - {track.Track.Artists} ({Status(track)})"
+                if (queuedTracks.Count == 0)
+                {
+                    if (playbackProgress.Length == 0)
+                    {
+                        return DiscordMusicObservability.CommandResult(
+                            DiscordResponses.Ephemeral("The queue is empty."),
+                            "empty"
+                        );
+                    }
+
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Public(
+                            $"""
+                            ### Queue
+                            {playbackProgress}No upcoming tracks queued.
+                            """
+                        ),
+                        "empty"
+                    );
+                }
+
+                var pageCount = (queuedTracks.Count + PageSize - 1) / PageSize;
+                if (page > pageCount)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral(
+                            $"Invalid page number. There are only {pageCount} pages."
+                        ),
+                        "invalid_page"
+                    );
+                }
+
+                var pageTracks = queuedTracks.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+
+                var queue = new StringBuilder();
+                queue.AppendLine($"Page {page}/{pageCount}");
+                queue.AppendLine();
+                foreach (var (index, track) in pageTracks.Select((track, index) => (index, track)))
+                {
+                    var counter = $"{index + 1}".PadRight(2 + $"{pageTracks.Count}".Length);
+                    if (track.Track.Duration == TimeSpan.Zero)
+                    {
+                        queue.AppendLine(
+                            $"{counter} {track.Track.Name} - {track.Track.Artists} ({Status(track)})"
+                        );
+                    }
+                    else
+                    {
+                        queue.AppendLine(
+                            $"{counter} {track.Track.Name} - {track.Track.Artists} [{track.Track.Duration.HumanizeSecond()}] ({Status(track)})"
+                        );
+                    }
+                }
+
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.Public(
+                        $"""
+                        ### Queue
+                        {playbackProgress}{queue}
+                        """
+                    )
                 );
             }
-            else
-            {
-                queue.AppendLine(
-                    $"{counter} {track.Track.Name} - {track.Track.Artists} [{track.Track.Duration.HumanizeSecond()}] ({Status(track)})"
-                );
-            }
-        }
-
-        return DiscordResponses.Public(
-            $"""
-            ### Queue
-            {playbackProgress}{queue}
-            """
         );
     }
 
@@ -146,21 +173,36 @@ internal class QueueAction(
             bool failedOnly = false
     )
     {
-        logger.LogTrace("Queue clear");
+        return DiscordMusicObservability.TrackDiscordCommand(
+            "queue.clear",
+            Context.Guild?.Id,
+            Context.User.Id,
+            _ =>
+            {
+                logger.LogTrace("Queue clear");
 
-        if (Context.Guild is not { } guild)
-        {
-            return DiscordResponses.Ephemeral("The guild is not available. Try again later.");
-        }
+                if (Context.Guild is not { } guild)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("The guild is not available. Try again later."),
+                        "missing_guild"
+                    );
+                }
 
-        if (failedOnly)
-        {
-            trackQueue.ClearFailedOnly(guild.Id);
-            return DiscordResponses.Ephemeral("Queue cleared of failed tracks.");
-        }
+                if (failedOnly)
+                {
+                    trackQueue.ClearFailedOnly(guild.Id);
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("Queue cleared of failed tracks.")
+                    );
+                }
 
-        trackQueue.Clear(guild.Id);
-        return DiscordResponses.Ephemeral("Queue cleared.");
+                trackQueue.Clear(guild.Id);
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.Ephemeral("Queue cleared.")
+                );
+            }
+        );
     }
 
     [SubSlashCommand("shuffle", "Shuffle the queue.")]
@@ -168,13 +210,26 @@ internal class QueueAction(
     [RequireRoleDj<ApplicationCommandContext>]
     public InteractionMessageProperties Shuffle()
     {
-        logger.LogTrace("Shuffle");
-        if (Context.Guild is not { } guild)
-        {
-            return DiscordResponses.Ephemeral("The guild is not available. Try again later.");
-        }
+        return DiscordMusicObservability.TrackDiscordCommand(
+            "queue.shuffle",
+            Context.Guild?.Id,
+            Context.User.Id,
+            _ =>
+            {
+                logger.LogTrace("Shuffle");
+                if (Context.Guild is not { } guild)
+                {
+                    return DiscordMusicObservability.CommandResult(
+                        DiscordResponses.Ephemeral("The guild is not available. Try again later."),
+                        "missing_guild"
+                    );
+                }
 
-        trackQueue.Shuffle(guild.Id);
-        return DiscordResponses.Ephemeral("Queue shuffled.");
+                trackQueue.Shuffle(guild.Id);
+                return DiscordMusicObservability.CommandResult(
+                    DiscordResponses.Ephemeral("Queue shuffled.")
+                );
+            }
+        );
     }
 }

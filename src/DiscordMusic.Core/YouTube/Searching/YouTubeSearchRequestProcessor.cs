@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Discord.CommandSupport;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.Spotify;
 using DiscordMusic.Core.Storage;
@@ -25,65 +27,112 @@ internal sealed class YouTubeSearchRequestProcessor(
         CancellationToken cancellationToken
     )
     {
-        logger.LogInformation(
-            "Processing play request. GuildId={GuildId}, UserId={UserId}, Placement={Placement}, Query={Query}",
-            request.Origin.GuildId,
-            request.Origin.UserId,
-            request.Placement,
-            request.Query
+        var startedAt = Stopwatch.GetTimestamp();
+        var result = "completed";
+        var source = spotifySearch.IsSpotifyQuery(request.Query) ? "spotify" : "youtube";
+        using var activity = DiscordMusicObservability.StartActivity("youtube.search.process");
+        DiscordMusicObservability.SetGuildTag(activity, request.Origin.GuildId);
+        DiscordMusicObservability.SetTag(
+            activity,
+            "discord.user.id",
+            request.Origin.UserId.ToString()
         );
+        DiscordMusicObservability.SetTag(
+            activity,
+            "music.queue.placement",
+            request.Placement.ToString()
+        );
+        DiscordMusicObservability.SetTag(activity, "music.search.source", source);
+        DiscordMusicObservability.SetTag(
+            activity,
+            "music.search.query.length",
+            request.Query.Length
+        );
+        var requestTags = DiscordMusicObservability.GuildTags(request.Origin.GuildId);
+        requestTags.Add("source", source);
+        DiscordMusicObservability.SearchRequests.Add(1, requestTags);
 
-        var tracks = spotifySearch.IsSpotifyQuery(request.Query)
-            ? await SearchYouTubeFromSpotifyAsync(request, cancellationToken)
-            : await SearchYouTubeAsync(request.Query, request.Origin, cancellationToken);
-        if (tracks.Count == 0)
+        try
         {
-            await feedback.SendPrivateAsync(
-                request.Origin,
-                $"No tracks found for `{request.Query}`.",
+            logger.LogInformation(
+                "Processing play request. GuildId={GuildId}, UserId={UserId}, Placement={Placement}, Query={Query}",
+                request.Origin.GuildId,
+                request.Origin.UserId,
+                request.Placement,
+                request.Query
+            );
+
+            var tracks = source == "spotify"
+                ? await SearchYouTubeFromSpotifyAsync(request, cancellationToken)
+                : await SearchYouTubeAsync(request.Query, request.Origin, cancellationToken);
+            DiscordMusicObservability.SetTag(activity, "music.track.count", tracks.Count);
+            if (tracks.Count == 0)
+            {
+                result = "no_tracks_found";
+                activity?.SetStatus(ActivityStatusCode.Ok, result);
+                await feedback.SendPrivateAsync(
+                    request.Origin,
+                    $"No tracks found for `{request.Query}`.",
+                    cancellationToken
+                );
+                return;
+            }
+
+            var tracksToEnqueue =
+                request.Placement == TrackQueuePlacement.Next
+                    ? tracks.AsEnumerable().Reverse()
+                    : tracks;
+
+            foreach (var track in tracksToEnqueue)
+            {
+                trackStorage.SaveMetadata(track);
+                var queuedTrack = new QueuedTrack(track, QueuedTrackStatus.Pending, request.Origin);
+                if (request.Placement == TrackQueuePlacement.Next)
+                {
+                    trackQueue.EnqueueFirst(request.Origin.GuildId, queuedTrack);
+                }
+                else
+                {
+                    trackQueue.EnqueueLast(request.Origin.GuildId, queuedTrack);
+                }
+            }
+
+            logger.LogInformation(
+                "Queued {TrackCount} track(s). GuildId={GuildId}, Placement={Placement}",
+                tracks.Count,
+                request.Origin.GuildId,
+                request.Placement
+            );
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            await downloadScheduler.EnsureNextTrackQueuedAsync(
+                request.Origin.GuildId,
                 cancellationToken
             );
-            return;
+
+            await feedback.SendPrivateAsync(
+                request.Origin,
+                tracks.Count == 1
+                    ? $"Queued **{DiscordResponses.FormatTrack(tracks[0])}**."
+                    : $"Queued {tracks.Count} tracks for `{request.Query}`.",
+                cancellationToken
+            );
         }
-
-        var tracksToEnqueue =
-            request.Placement == TrackQueuePlacement.Next
-                ? tracks.AsEnumerable().Reverse()
-                : tracks;
-
-        foreach (var track in tracksToEnqueue)
+        catch (Exception)
         {
-            trackStorage.SaveMetadata(track);
-            var queuedTrack = new QueuedTrack(track, QueuedTrackStatus.Pending, request.Origin);
-            if (request.Placement == TrackQueuePlacement.Next)
-            {
-                trackQueue.EnqueueFirst(request.Origin.GuildId, queuedTrack);
-            }
-            else
-            {
-                trackQueue.EnqueueLast(request.Origin.GuildId, queuedTrack);
-            }
+            result = "failed";
+            throw;
         }
-
-        logger.LogInformation(
-            "Queued {TrackCount} track(s). GuildId={GuildId}, Placement={Placement}",
-            tracks.Count,
-            request.Origin.GuildId,
-            request.Placement
-        );
-
-        await downloadScheduler.EnsureNextTrackQueuedAsync(
-            request.Origin.GuildId,
-            cancellationToken
-        );
-
-        await feedback.SendPrivateAsync(
-            request.Origin,
-            tracks.Count == 1
-                ? $"Queued **{DiscordResponses.FormatTrack(tracks[0])}**."
-                : $"Queued {tracks.Count} tracks for `{request.Query}`.",
-            cancellationToken
-        );
+        finally
+        {
+            var durationTags = DiscordMusicObservability.GuildTags(request.Origin.GuildId);
+            durationTags.Add("source", source);
+            durationTags.Add("result", result);
+            DiscordMusicObservability.SearchDuration.Record(
+                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                durationTags
+            );
+        }
     }
 
     private async Task<List<Track>> SearchYouTubeFromSpotifyAsync(
