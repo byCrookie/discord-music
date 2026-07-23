@@ -1,7 +1,7 @@
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 
-# renovate: datasource=docker depName=dotnet/sdk registryUrl=https://mcr.microsoft.com
+# renovate: datasource=docker depName=dotnet/sdk
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0.301@sha256:493fca072aac81307027cbb7b7c9a82b6e87d222af315504d05dc6530e69b519 AS build
 WORKDIR /build/libs
 
