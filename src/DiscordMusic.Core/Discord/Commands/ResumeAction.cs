@@ -9,11 +9,12 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class ResumeAction(
+internal sealed class ResumeAction(
     ILogger<ResumeAction> logger,
     VoiceConnectionRegistry voiceInstances,
     PlaybackService playbackService,
-    IPlaybackController playbackController
+    IPlaybackController playbackController,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("resume", "Resume paused playback.", Contexts = [InteractionContextType.Guild])]
@@ -25,6 +26,7 @@ internal class ResumeAction(
             "resume",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             activity =>
             {
                 logger.LogTrace("Resume");

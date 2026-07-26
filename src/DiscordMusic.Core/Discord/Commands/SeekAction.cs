@@ -10,11 +10,12 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class SeekAction(
+internal sealed class SeekAction(
     ILogger<SeekAction> logger,
     VoiceConnectionRegistry voiceInstances,
     PlaybackService playbackService,
-    IPlaybackController playbackController
+    IPlaybackController playbackController,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -33,6 +34,7 @@ internal class SeekAction(
             "seek",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             activity =>
             {
                 logger.LogTrace("Seek");

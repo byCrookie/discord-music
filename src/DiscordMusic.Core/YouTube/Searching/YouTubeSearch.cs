@@ -12,18 +12,19 @@ using Microsoft.Extensions.Options;
 
 namespace DiscordMusic.Core.YouTube.Searching;
 
-internal partial class YouTubeSearch(
+internal sealed partial class YouTubeSearch(
     ILogger<YouTubeSearch> logger,
     IOptions<YouTubeOptions> youTubeOptions,
     IJsonSerializer jsonSerializer,
     YouTubeToolLocations toolLocations,
     IEnvironmentVariables environmentVariables,
-    IFileSystem fileSystem
+    IFileSystem fileSystem,
+    TimeProvider timeProvider
 ) : IYouTubeSearch
 {
     public async Task<ErrorOr<List<YouTubeTrack>>> SearchAsync(string query, CancellationToken ct)
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "completed";
         using var activity = DiscordMusicObservability.StartActivity(
             "youtube.search",
@@ -165,7 +166,7 @@ internal partial class YouTubeSearch(
             );
             DiscordMusicObservability.ExternalRequests.Add(1, tags);
             DiscordMusicObservability.ExternalRequestDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );
         }

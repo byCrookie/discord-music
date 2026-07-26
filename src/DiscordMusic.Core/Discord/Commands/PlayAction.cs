@@ -12,10 +12,11 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class PlayAction(
+internal sealed class PlayAction(
     ILogger<PlayAction> logger,
     IBackgroundQueue<YouTubeSearchRequest> queue,
-    VoiceConnectionService voiceConnectionService
+    VoiceConnectionService voiceConnectionService,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -31,7 +32,7 @@ internal class PlayAction(
     [RequireRoleDj<ApplicationCommandContext>]
     public async Task Play([SlashCommandParameter] string query)
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var guildId = Context.Guild?.Id;
         var result = "completed";
         using var activity = DiscordMusicObservability.StartDiscordCommandActivity(
@@ -122,7 +123,7 @@ internal class PlayAction(
             var tags = DiscordMusicObservability.DiscordCommandTags("play", result, guildId);
             DiscordMusicObservability.DiscordCommands.Add(1, tags);
             DiscordMusicObservability.DiscordCommandDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );
         }

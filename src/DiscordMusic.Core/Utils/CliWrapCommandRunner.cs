@@ -5,7 +5,7 @@ using DiscordMusic.Core.Observability;
 
 namespace DiscordMusic.Core.Utils;
 
-internal sealed class CliWrapCommandRunner : ICliCommandRunner
+internal sealed class CliWrapCommandRunner(TimeProvider timeProvider) : ICliCommandRunner
 {
     public async Task<CliCommandResult> RunAsync(
         string fileName,
@@ -14,7 +14,7 @@ internal sealed class CliWrapCommandRunner : ICliCommandRunner
         CancellationToken cancellationToken
     )
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var executableName = Path.GetFileName(fileName);
         var resultTag = "completed";
         using var activity = DiscordMusicObservability.StartActivity(
@@ -70,7 +70,7 @@ internal sealed class CliWrapCommandRunner : ICliCommandRunner
             );
             DiscordMusicObservability.ExternalRequests.Add(1, tags);
             DiscordMusicObservability.ExternalRequestDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );
         }

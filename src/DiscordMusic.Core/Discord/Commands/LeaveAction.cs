@@ -10,10 +10,11 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class LeaveAction(
+internal sealed class LeaveAction(
     ILogger<LeaveAction> logger,
     VoiceConnectionRegistry voiceInstances,
-    PlaybackService playbackService
+    PlaybackService playbackService,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -29,6 +30,7 @@ internal class LeaveAction(
             "leave",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             async _ =>
             {
                 logger.LogTrace("Leave");

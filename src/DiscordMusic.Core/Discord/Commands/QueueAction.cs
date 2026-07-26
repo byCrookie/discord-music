@@ -13,11 +13,12 @@ using NetCord.Services.ApplicationCommands;
 namespace DiscordMusic.Core.Discord.Commands;
 
 [SlashCommand("queue", "Various queue commands.", Contexts = [InteractionContextType.Guild])]
-internal class QueueAction(
+internal sealed class QueueAction(
     ILogger<QueueAction> logger,
     ITrackQueue trackQueue,
     VoiceConnectionRegistry voiceInstances,
-    PlaybackService playbackService
+    PlaybackService playbackService,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     private const int PageSize = 20;
@@ -34,6 +35,7 @@ internal class QueueAction(
             "queue.list",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             activity =>
             {
                 logger.LogTrace("Queue");
@@ -55,7 +57,11 @@ internal class QueueAction(
                 }
 
                 var queuedTracks = trackQueue.QueuedTracks(guild.Id);
-                DiscordMusicObservability.SetTag(activity, "music.queue.track.count", queuedTracks.Count);
+                DiscordMusicObservability.SetTag(
+                    activity,
+                    "music.queue.track.count",
+                    queuedTracks.Count
+                );
                 var playbackProgress = TryRenderPlaybackProgress(guild.Id, out var progress)
                     ? $"{progress}\n\n"
                     : string.Empty;
@@ -177,6 +183,7 @@ internal class QueueAction(
             "queue.clear",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             _ =>
             {
                 logger.LogTrace("Queue clear");
@@ -214,6 +221,7 @@ internal class QueueAction(
             "queue.shuffle",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             _ =>
             {
                 logger.LogTrace("Shuffle");

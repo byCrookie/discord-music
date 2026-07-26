@@ -87,6 +87,11 @@ public static class DiscordMusicObservability
         unit: "{run}",
         description: "Storage cache trim runs."
     );
+    public static readonly Counter<long> TrackCacheLookups = Meter.CreateCounter<long>(
+        "discord.music.storage.track_cache.lookups",
+        unit: "{lookup}",
+        description: "Track audio cache lookups."
+    );
     public static readonly Histogram<long> StorageCacheSize = Meter.CreateHistogram<long>(
         "discord.music.storage.cache.size",
         unit: "By",
@@ -170,10 +175,11 @@ public static class DiscordMusicObservability
         string commandName,
         ulong? guildId,
         ulong userId,
+        TimeProvider timeProvider,
         Func<Activity?, DiscordCommandResult<T>> action
     )
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "completed";
         using var activity = StartDiscordCommandActivity(commandName, guildId, userId);
 
@@ -193,7 +199,7 @@ public static class DiscordMusicObservability
         }
         finally
         {
-            RecordDiscordCommand(commandName, guildId, result, startedAt);
+            RecordDiscordCommand(commandName, guildId, result, startedAt, timeProvider);
         }
     }
 
@@ -201,10 +207,11 @@ public static class DiscordMusicObservability
         string commandName,
         ulong? guildId,
         ulong userId,
+        TimeProvider timeProvider,
         Func<Activity?, Task<DiscordCommandResult<T>>> action
     )
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "completed";
         using var activity = StartDiscordCommandActivity(commandName, guildId, userId);
 
@@ -224,7 +231,7 @@ public static class DiscordMusicObservability
         }
         finally
         {
-            RecordDiscordCommand(commandName, guildId, result, startedAt);
+            RecordDiscordCommand(commandName, guildId, result, startedAt, timeProvider);
         }
     }
 
@@ -232,12 +239,13 @@ public static class DiscordMusicObservability
         string commandName,
         ulong? guildId,
         string result,
-        long startedAt
+        long startedAt,
+        TimeProvider timeProvider
     )
     {
         var tags = DiscordCommandTags(commandName, result, guildId);
         DiscordCommands.Add(1, tags);
-        DiscordCommandDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalSeconds, tags);
+        DiscordCommandDuration.Record(timeProvider.GetElapsedTime(startedAt).TotalSeconds, tags);
     }
 
     public static TagList ExternalRequestTags(string system, string operation, string result)
@@ -248,6 +256,14 @@ public static class DiscordMusicObservability
             { "operation", operation },
             { "result", result },
         };
+    }
+
+    public static void RecordTrackCacheLookup(ulong guildId, string source, bool hit)
+    {
+        var tags = GuildTags(guildId);
+        tags.Add("source", source);
+        tags.Add("result", hit ? "hit" : "miss");
+        TrackCacheLookups.Add(1, tags);
     }
 
     public readonly record struct DiscordCommandResult<T>(T Value, string Result);

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Audio.Sources;
 using DiscordMusic.Core.Playback;
@@ -7,7 +6,10 @@ using NetCord.Gateway.Voice;
 
 namespace DiscordMusic.Core.Audio.Sending;
 
-internal sealed class TimedAudioSender(IPcmAudioSourceFactory audioSourceFactory) : IAudioSender
+internal sealed class TimedAudioSender(
+    IPcmAudioSourceFactory audioSourceFactory,
+    TimeProvider timeProvider
+) : IAudioSender
 {
     public static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(20);
     private const int SampleRate = 48_000;
@@ -45,7 +47,7 @@ internal sealed class TimedAudioSender(IPcmAudioSourceFactory audioSourceFactory
 
         var frame = new byte[FrameSizeBytes];
         var position = startPosition;
-        var stopwatch = Stopwatch.StartNew();
+        var startedAt = timeProvider.GetTimestamp();
         var nextFrameAt = TimeSpan.Zero;
 
         while (true)
@@ -54,7 +56,7 @@ internal sealed class TimedAudioSender(IPcmAudioSourceFactory audioSourceFactory
 
             if (await playbackSession.WaitWhilePausedAsync(cancellationToken))
             {
-                stopwatch.Restart();
+                startedAt = timeProvider.GetTimestamp();
                 nextFrameAt = TimeSpan.Zero;
             }
 
@@ -70,14 +72,14 @@ internal sealed class TimedAudioSender(IPcmAudioSourceFactory audioSourceFactory
             playbackSession.UpdatePosition(position);
 
             nextFrameAt += FrameDuration;
-            var delay = nextFrameAt - stopwatch.Elapsed;
+            var delay = nextFrameAt - timeProvider.GetElapsedTime(startedAt);
             if (delay > TimeSpan.Zero)
             {
-                await Task.Delay(delay, cancellationToken);
+                await Task.Delay(delay, timeProvider, cancellationToken);
             }
             else if (-delay > TimeSpan.FromMilliseconds(100))
             {
-                stopwatch.Restart();
+                startedAt = timeProvider.GetTimestamp();
                 nextFrameAt = TimeSpan.Zero;
             }
         }

@@ -11,7 +11,8 @@ namespace DiscordMusic.Core.Discord.Voice;
 internal sealed class VoiceConnectionService(
     ILogger<VoiceConnectionService> logger,
     VoiceConnectionRegistry voiceConnections,
-    PlaybackService playbackService
+    PlaybackService playbackService,
+    TimeProvider timeProvider
 )
 {
     public async Task<VoiceConnectionResult> JoinUserChannelAsync(
@@ -22,7 +23,7 @@ internal sealed class VoiceConnectionService(
         ulong? requestedChannelId = null
     )
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "failed";
         using var activity = DiscordMusicObservability.StartActivity(
             "discord.voice.join",
@@ -141,7 +142,7 @@ internal sealed class VoiceConnectionService(
             tags.Add("result", result);
             DiscordMusicObservability.VoiceConnections.Add(1, tags);
             DiscordMusicObservability.VoiceConnectionDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );
         }

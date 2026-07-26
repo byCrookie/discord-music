@@ -18,7 +18,8 @@ internal sealed class PlaybackService(
     IAudioSender audioSender,
     IYouTubeDownloadScheduler downloadScheduler,
     IDiscordFeedbackService feedback,
-    ILogger<PlaybackService> logger
+    ILogger<PlaybackService> logger,
+    TimeProvider timeProvider
 ) : BackgroundService
 {
     private readonly ConcurrentDictionary<ulong, PlaybackLoop> _playbackLoops = [];
@@ -66,7 +67,7 @@ internal sealed class PlaybackService(
     {
         try
         {
-            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+            await Task.Delay(Timeout.InfiniteTimeSpan, timeProvider, stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -113,7 +114,11 @@ internal sealed class PlaybackService(
                 using var job = voiceInstance.TryEnterJob(VoiceJobType.Playing);
                 if (job is null)
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+                    await Task.Delay(
+                        TimeSpan.FromMilliseconds(250),
+                        timeProvider,
+                        cancellationToken
+                    );
                     continue;
                 }
 
@@ -126,7 +131,7 @@ internal sealed class PlaybackService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Guild playback loop crashed. GuildId={GuildId}", guildId);
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(1), timeProvider, cancellationToken);
             }
         }
     }
@@ -174,7 +179,7 @@ internal sealed class PlaybackService(
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var startedAt = Stopwatch.GetTimestamp();
+            var startedAt = timeProvider.GetTimestamp();
             using var activity = DiscordMusicObservability.StartActivity("playback.track");
             DiscordMusicObservability.SetGuildTag(activity, guildId);
             DiscordMusicObservability.SetTag(activity, "music.track.id", track.Id);
@@ -212,7 +217,7 @@ internal sealed class PlaybackService(
                 tags.Add("result", "completed");
                 DiscordMusicObservability.PlaybackTracks.Add(1, tags);
                 DiscordMusicObservability.PlaybackTrackDuration.Record(
-                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                    timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     tags
                 );
                 return;
@@ -226,7 +231,7 @@ internal sealed class PlaybackService(
                     var tags = DiscordMusicObservability.GuildTags(guildId);
                     tags.Add("result", "seek");
                     DiscordMusicObservability.PlaybackTrackDuration.Record(
-                        Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                        timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                         tags
                     );
                     startPosition = request.Position;
@@ -237,7 +242,7 @@ internal sealed class PlaybackService(
                 var controlTags = DiscordMusicObservability.GuildTags(guildId);
                 controlTags.Add("result", request.Type.ToString());
                 DiscordMusicObservability.PlaybackTrackDuration.Record(
-                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                    timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     controlTags
                 );
                 return;
@@ -250,7 +255,7 @@ internal sealed class PlaybackService(
                 tags.Add("result", "failed");
                 DiscordMusicObservability.PlaybackTracks.Add(1, tags);
                 DiscordMusicObservability.PlaybackTrackDuration.Record(
-                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                    timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     tags
                 );
                 logger.LogError(

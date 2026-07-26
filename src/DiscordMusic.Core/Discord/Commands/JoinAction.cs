@@ -9,9 +9,10 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class JoinAction(
+internal sealed class JoinAction(
     ILogger<JoinAction> logger,
     VoiceConnectionService voiceConnectionService,
+    TimeProvider timeProvider,
     IVoiceGuildChannel? channel = null
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
@@ -32,6 +33,7 @@ internal class JoinAction(
             "join",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             async _ =>
             {
                 logger.LogTrace("Join");

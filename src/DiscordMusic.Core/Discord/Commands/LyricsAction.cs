@@ -11,12 +11,13 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class LyricsAction(
+internal sealed class LyricsAction(
     ILogger<LyricsAction> logger,
     VoiceConnectionRegistry voiceInstances,
     PlaybackService playbackService,
     ILyricsSearch lyricsSearch,
-    Cancellation cancellation
+    Cancellation cancellation,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     private const int MaxLyricsLength = 1800;
@@ -38,6 +39,7 @@ internal class LyricsAction(
             "lyrics",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             async commandActivity =>
             {
                 logger.LogTrace("Lyrics");
@@ -92,9 +94,7 @@ internal class LyricsAction(
                 if (search.IsError)
                 {
                     return DiscordMusicObservability.CommandResult(
-                        DiscordResponses.Ephemeral(
-                            $"Lyrics not found: {search.ToErrorContent()}"
-                        ),
+                        DiscordResponses.Ephemeral($"Lyrics not found: {search.ToErrorContent()}"),
                         "not_found"
                     );
                 }

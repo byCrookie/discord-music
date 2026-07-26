@@ -7,4 +7,5 @@ public interface ITrackStorage
 {
     public void SaveMetadata(Track track);
     public IFileInfo GetTrackPath(Track track, string extension);
+    public bool IsTrackCached(Track track, string extension);
 }

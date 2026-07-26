@@ -42,10 +42,7 @@ public class EnvironmentConfigurationTests
     [Test]
     public async Task ResolveDotEnvPathUsesDefaultWhenArgumentAndEnvironmentMissing()
     {
-        var path = EnvironmentConfiguration.ResolveDotEnvPath(
-            null,
-            new TestEnvironmentVariables()
-        );
+        var path = EnvironmentConfiguration.ResolveDotEnvPath(null, new TestEnvironmentVariables());
 
         await Assert.That(path).IsEqualTo(EnvironmentConfiguration.DefaultDotEnvPath);
     }

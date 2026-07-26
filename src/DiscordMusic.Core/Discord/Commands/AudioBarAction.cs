@@ -9,10 +9,11 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class AudioBarAction(
+internal sealed class AudioBarAction(
     ILogger<AudioBarAction> logger,
     VoiceConnectionRegistry voiceInstances,
-    PlaybackService playbackService
+    PlaybackService playbackService,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -28,6 +29,7 @@ internal class AudioBarAction(
             "audiobar",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             activity =>
             {
                 logger.LogTrace("AudioBar");

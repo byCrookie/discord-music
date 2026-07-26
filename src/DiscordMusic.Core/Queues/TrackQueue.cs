@@ -74,7 +74,11 @@ internal class TrackQueue : ITrackQueue
         var updated = Queue(guildId).TryUpdateStatus(id, status);
         if (!updated)
         {
-            _logger.LogTrace("No item found with id {Id} in guild {GuildId} to update", id, guildId);
+            _logger.LogTrace(
+                "No item found with id {Id} in guild {GuildId} to update",
+                id,
+                guildId
+            );
         }
 
         return updated;
@@ -86,6 +90,7 @@ internal class TrackQueue : ITrackQueue
         Queue(guildId).EnqueueLast(item);
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("placement", "last");
+        tags.Add("music.queue.status", item.Status.ToString());
         DiscordMusicObservability.TracksQueued.Add(1, tags);
     }
 
@@ -95,6 +100,7 @@ internal class TrackQueue : ITrackQueue
         Queue(guildId).EnqueueFirst(item);
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("placement", "first");
+        tags.Add("music.queue.status", item.Status.ToString());
         DiscordMusicObservability.TracksQueued.Add(1, tags);
     }
 
@@ -119,7 +125,7 @@ internal class TrackQueue : ITrackQueue
         if (marked && item is { } queuedTrack)
         {
             _logger.LogInformation(
-                "Queued track {TrackId} for lazy download in guild {GuildId}.",
+                "Marked queued track {TrackId} as downloading in guild {GuildId}.",
                 queuedTrack.Track.Id,
                 guildId
             );

@@ -13,7 +13,8 @@ namespace DiscordMusic.Core.Spotify;
 internal class SpotifySearch(
     ILogger<SpotifySearch> logger,
     IOptions<SpotifyOptions> spotifyOptions,
-    SpotifyClientConfig spotifyClientConfig
+    SpotifyClientConfig spotifyClientConfig,
+    TimeProvider timeProvider
 ) : ISpotifySearch
 {
     private const string SpotifyDomain = "open.spotify.com";
@@ -27,7 +28,7 @@ internal class SpotifySearch(
 
     public async Task<ErrorOr<List<SpotifyTrack>>> SearchAsync(string query, CancellationToken ct)
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "completed";
         using var activity = DiscordMusicObservability.StartActivity(
             "spotify.search",
@@ -162,7 +163,7 @@ internal class SpotifySearch(
             );
             DiscordMusicObservability.ExternalRequests.Add(1, tags);
             DiscordMusicObservability.ExternalRequestDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );
         }

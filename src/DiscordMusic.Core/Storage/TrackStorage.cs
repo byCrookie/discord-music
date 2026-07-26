@@ -48,6 +48,11 @@ internal class TrackStorage(
         );
     }
 
+    public bool IsTrackCached(Track track, string extension)
+    {
+        return GetTrackPath(track, extension).Exists;
+    }
+
     private string TracksPath =>
         fileSystem.Path.Combine(storagePathProvider.StorageDirectory().FullName, SubDirectory);
 }
