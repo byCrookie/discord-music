@@ -43,7 +43,7 @@ internal sealed class AudioBarComponentModule(
             timeProvider,
             _ =>
             {
-                if (!TryGetSession(out var session, out var error))
+                if (!TryGetSession(out var session, out var guildId, out var error))
                 {
                     return DiscordMusicObservability.CommandResult(error, "missing_session");
                 }
@@ -51,8 +51,8 @@ internal sealed class AudioBarComponentModule(
                 var snapshot = session.Snapshot();
                 var result =
                     snapshot.State == PlaybackState.Paused
-                        ? playbackController.Resume(session)
-                        : playbackController.Pause(session);
+                        ? playbackController.Resume(guildId, session)
+                        : playbackController.Pause(guildId, session);
 
                 return DiscordMusicObservability.CommandResult(
                     DiscordResponses.PlaybackFeedback(result, session),
@@ -96,7 +96,7 @@ internal sealed class AudioBarComponentModule(
 
     private Task<InteractionMessageProperties> SeekRelativeAsync(TimeSpan offset)
     {
-        if (!TryGetSession(out var session, out var error))
+        if (!TryGetSession(out var session, out var guildId, out var error))
         {
             return Task.FromResult(error);
         }
@@ -121,7 +121,7 @@ internal sealed class AudioBarComponentModule(
             position = snapshot.CurrentTrack.Duration - TimeSpan.FromSeconds(1);
         }
 
-        var result = playbackController.Seek(session, position);
+        var result = playbackController.Seek(guildId, session, position);
         var direction = offset < TimeSpan.Zero ? "backward" : "forward";
         return Task.FromResult(
             DiscordResponses.PlaybackFeedback(
@@ -136,9 +136,14 @@ internal sealed class AudioBarComponentModule(
         );
     }
 
-    private bool TryGetSession(out PlaybackSession session, out InteractionMessageProperties error)
+    private bool TryGetSession(
+        out PlaybackSession session,
+        out ulong guildId,
+        out InteractionMessageProperties error
+    )
     {
         session = null!;
+        guildId = 0;
 
         if (Context.Guild is not { } guild)
         {
@@ -146,6 +151,7 @@ internal sealed class AudioBarComponentModule(
             return false;
         }
 
+        guildId = guild.Id;
         if (
             voiceConnections.Mapping.TryGetValue(guild.Id, out var voiceConnection)
             && voiceConnection is not null

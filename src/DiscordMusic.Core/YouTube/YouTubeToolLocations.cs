@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Utils;
 using ErrorOr;
 
@@ -24,26 +26,63 @@ internal sealed class YouTubeToolLocations(BinaryLocator binaryLocator)
 
     public YouTubeToolLocationLoadResult Load(YouTubeOptions options)
     {
-        var ffmpeg = binaryLocator.LocateAndValidate(options.Ffmpeg, "ffmpeg");
-        var deno = binaryLocator.LocateAndValidate(options.Deno, "deno");
-        var ytdlp = binaryLocator.LocateAndValidate(options.Ytdlp, "yt-dlp");
+        using var activity = DiscordMusicObservability.StartActivity("youtube.tools.load");
+        var result = "completed";
 
-        if (!ffmpeg.IsError && !deno.IsError && !ytdlp.IsError)
+        try
         {
-            lock (_loadLock)
-            {
-                _value = new YouTubeToolLocationSet(ffmpeg.Value, deno.Value, ytdlp.Value);
-            }
-        }
-        else
-        {
-            lock (_loadLock)
-            {
-                _value = null;
-            }
-        }
+            var ffmpeg = binaryLocator.LocateAndValidate(options.Ffmpeg, "ffmpeg");
+            var deno = binaryLocator.LocateAndValidate(options.Deno, "deno");
+            var ytdlp = binaryLocator.LocateAndValidate(options.Ytdlp, "yt-dlp");
 
-        return new YouTubeToolLocationLoadResult(ffmpeg, deno, ytdlp);
+            if (!ffmpeg.IsError && !deno.IsError && !ytdlp.IsError)
+            {
+                lock (_loadLock)
+                {
+                    _value = new YouTubeToolLocationSet(ffmpeg.Value, deno.Value, ytdlp.Value);
+                }
+
+                activity?.SetStatus(ActivityStatusCode.Ok);
+            }
+            else
+            {
+                result = "failed";
+                activity?.SetStatus(ActivityStatusCode.Error, result);
+                lock (_loadLock)
+                {
+                    _value = null;
+                }
+            }
+
+            DiscordMusicObservability.SetTag(
+                activity,
+                "youtube.tools.ffmpeg.result",
+                Result(ffmpeg)
+            );
+            DiscordMusicObservability.SetTag(activity, "youtube.tools.deno.result", Result(deno));
+            DiscordMusicObservability.SetTag(activity, "youtube.tools.ytdlp.result", Result(ytdlp));
+            return new YouTubeToolLocationLoadResult(ffmpeg, deno, ytdlp);
+        }
+        catch (Exception ex)
+        {
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
+        finally
+        {
+            DiscordMusicObservability.SetTag(activity, "result", result);
+            DiscordMusicObservability.YouTubeToolLoads.Add(
+                1,
+                new KeyValuePair<string, object?>("result", result)
+            );
+        }
+    }
+
+    private static string Result(ErrorOr<BinaryLocator.BinaryLocation> location)
+    {
+        return location.IsError ? "failed" : location.Value.Type.ToString().ToLowerInvariant();
     }
 }
 

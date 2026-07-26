@@ -9,6 +9,24 @@ internal class TrackQueue : ITrackQueue
     private readonly Lock _lock = new();
     private readonly Dictionary<ulong, GuildTrackQueue> _queues = [];
     private readonly ILogger<TrackQueue> _logger;
+    private static readonly Counter<long> TracksEnqueued =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.queue.tracks.enqueued",
+            unit: "1",
+            description: "Tracks added to the playback queue."
+        );
+    private static readonly Counter<long> QueueMutations =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.queue.mutations",
+            unit: "1",
+            description: "Queue mutation operations."
+        );
+    private static readonly Counter<long> QueueStatusTransitions =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.queue.status.transitions",
+            unit: "1",
+            description: "Queued track status transitions."
+        );
 
     public TrackQueue(ILogger<TrackQueue> logger)
     {
@@ -16,7 +34,7 @@ internal class TrackQueue : ITrackQueue
         DiscordMusicObservability.Meter.CreateObservableGauge(
             "discord.music.queue.tracks.current",
             ObserveCurrentTracks,
-            unit: "{track}",
+            unit: "1",
             description: "Current queued tracks by guild and status."
         );
     }
@@ -32,7 +50,7 @@ internal class TrackQueue : ITrackQueue
         Queue(guildId).Clear();
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("operation", "clear");
-        DiscordMusicObservability.QueueMutations.Add(1, tags);
+        QueueMutations.Add(1, tags);
     }
 
     public void ClearFailedOnly(ulong guildId)
@@ -41,7 +59,7 @@ internal class TrackQueue : ITrackQueue
         Queue(guildId).ClearFailedOnly();
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("operation", "clear_failed");
-        DiscordMusicObservability.QueueMutations.Add(1, tags);
+        QueueMutations.Add(1, tags);
     }
 
     public void SkipTo(ulong guildId, int index)
@@ -50,7 +68,7 @@ internal class TrackQueue : ITrackQueue
         Queue(guildId).SkipTo(index);
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("operation", "skip_to");
-        DiscordMusicObservability.QueueMutations.Add(1, tags);
+        QueueMutations.Add(1, tags);
     }
 
     public int Count(ulong guildId)
@@ -66,12 +84,12 @@ internal class TrackQueue : ITrackQueue
         Queue(guildId).Shuffle();
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("operation", "shuffle");
-        DiscordMusicObservability.QueueMutations.Add(1, tags);
+        QueueMutations.Add(1, tags);
     }
 
     public bool TryUpdateStatus(ulong guildId, string id, QueuedTrackStatus status)
     {
-        var updated = Queue(guildId).TryUpdateStatus(id, status);
+        var updated = Queue(guildId).TryUpdateStatus(id, status, out var previousStatus);
         if (!updated)
         {
             _logger.LogTrace(
@@ -79,6 +97,10 @@ internal class TrackQueue : ITrackQueue
                 id,
                 guildId
             );
+        }
+        else if (previousStatus != status)
+        {
+            RecordStatusTransition(guildId, previousStatus, status);
         }
 
         return updated;
@@ -91,7 +113,7 @@ internal class TrackQueue : ITrackQueue
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("placement", "last");
         tags.Add("music.queue.status", item.Status.ToString());
-        DiscordMusicObservability.TracksQueued.Add(1, tags);
+        TracksEnqueued.Add(1, tags);
     }
 
     public void EnqueueFirst(ulong guildId, QueuedTrack item)
@@ -101,7 +123,7 @@ internal class TrackQueue : ITrackQueue
         var tags = DiscordMusicObservability.GuildTags(guildId);
         tags.Add("placement", "first");
         tags.Add("music.queue.status", item.Status.ToString());
-        DiscordMusicObservability.TracksQueued.Add(1, tags);
+        TracksEnqueued.Add(1, tags);
     }
 
     public bool TryDequeueFirstAvailable(ulong guildId, out QueuedTrack? item)
@@ -124,6 +146,11 @@ internal class TrackQueue : ITrackQueue
         var marked = Queue(guildId).TryMarkNextPendingAsDownloading(out item);
         if (marked && item is { } queuedTrack)
         {
+            RecordStatusTransition(
+                guildId,
+                QueuedTrackStatus.Pending,
+                QueuedTrackStatus.Downloading
+            );
             _logger.LogInformation(
                 "Marked queued track {TrackId} as downloading in guild {GuildId}.",
                 queuedTrack.Track.Id,
@@ -146,7 +173,7 @@ internal class TrackQueue : ITrackQueue
             );
             var tags = DiscordMusicObservability.GuildTags(guildId);
             tags.Add("operation", "remove_first_non_failed");
-            DiscordMusicObservability.QueueMutations.Add(1, tags);
+            QueueMutations.Add(1, tags);
         }
 
         return removed;
@@ -173,16 +200,12 @@ internal class TrackQueue : ITrackQueue
 
     private IEnumerable<Measurement<int>> ObserveCurrentTracks()
     {
-        KeyValuePair<ulong, GuildTrackQueue>[] queues;
-        lock (_lock)
+        foreach (var (guildId, queue) in SnapshotQueues())
         {
-            queues = _queues.ToArray();
-        }
-
-        foreach (var (guildId, queue) in queues)
-        {
-            foreach (var (status, count) in queue.CountByStatus())
+            var counts = queue.CountByStatus();
+            foreach (var status in Enum.GetValues<QueuedTrackStatus>())
             {
+                counts.TryGetValue(status, out var count);
                 yield return new Measurement<int>(
                     count,
                     new KeyValuePair<string, object?>("discord.guild.id", guildId.ToString()),
@@ -190,5 +213,25 @@ internal class TrackQueue : ITrackQueue
                 );
             }
         }
+    }
+
+    private KeyValuePair<ulong, GuildTrackQueue>[] SnapshotQueues()
+    {
+        lock (_lock)
+        {
+            return [.. _queues];
+        }
+    }
+
+    private static void RecordStatusTransition(
+        ulong guildId,
+        QueuedTrackStatus from,
+        QueuedTrackStatus to
+    )
+    {
+        var tags = DiscordMusicObservability.GuildTags(guildId);
+        tags.Add("from_status", from.ToString());
+        tags.Add("to_status", to.ToString());
+        QueueStatusTransitions.Add(1, tags);
     }
 }

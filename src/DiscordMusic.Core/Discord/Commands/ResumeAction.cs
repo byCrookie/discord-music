@@ -37,7 +37,7 @@ internal sealed class ResumeAction(
                         voiceInstances,
                         playbackService,
                         out var session,
-                        out _,
+                        out var guildId,
                         out var error
                     )
                 )
@@ -45,7 +45,7 @@ internal sealed class ResumeAction(
                     return DiscordMusicObservability.CommandResult(error, "missing_session");
                 }
 
-                var result = playbackController.Resume(session);
+                var result = playbackController.Resume(guildId, session);
                 return DiscordMusicObservability.CommandResult(
                     DiscordResponses.PlaybackFeedback(result, session),
                     result.IsSuccess ? "completed" : "playback_rejected"

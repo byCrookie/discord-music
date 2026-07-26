@@ -95,8 +95,13 @@ internal sealed class GuildTrackQueue
         changed.TrySetResult();
     }
 
-    public bool TryUpdateStatus(string id, QueuedTrackStatus status)
+    public bool TryUpdateStatus(
+        string id,
+        QueuedTrackStatus status,
+        out QueuedTrackStatus previousStatus
+    )
     {
+        previousStatus = default;
         TaskCompletionSource? changed = null;
         var updated = false;
         lock (_lock)
@@ -106,6 +111,7 @@ internal sealed class GuildTrackQueue
             {
                 if (node.Value.Track.Id == id)
                 {
+                    previousStatus = node.Value.Status;
                     node.Value = node.Value with { Status = status };
                     changed = MarkChanged();
                     updated = true;

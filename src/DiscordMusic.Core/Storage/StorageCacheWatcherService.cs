@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.IO.Abstractions;
+using DiscordMusic.Core.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,8 +21,17 @@ internal sealed class StorageCacheWatcherService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var activity = DiscordMusicObservability.StartActivity("storage.cache.watch");
+        DiscordMusicObservability.SetTag(
+            activity,
+            "storage.max_size",
+            storageOptions.Value.MaxSize
+        );
+
         if (!StorageSizeParser.TryParseBytes(storageOptions.Value.MaxSize, out var maxBytes))
         {
+            RecordWatcherEvent("disabled", "invalid_max_size");
+            activity?.SetStatus(ActivityStatusCode.Error, "invalid_max_size");
             logger.LogError(
                 "Invalid storage max size {MaxSize}. Cache watcher is disabled.",
                 storageOptions.Value.MaxSize
@@ -30,6 +41,8 @@ internal sealed class StorageCacheWatcherService(
 
         if (maxBytes <= 0)
         {
+            RecordWatcherEvent("disabled", "non_positive_max_size");
+            activity?.SetStatus(ActivityStatusCode.Ok, "disabled");
             logger.LogWarning(
                 "Storage max size is {MaxBytes}. Cache watcher is disabled.",
                 maxBytes
@@ -38,6 +51,8 @@ internal sealed class StorageCacheWatcherService(
         }
 
         var storagePath = storagePathProvider.StorageDirectory().FullName;
+        DiscordMusicObservability.SetTag(activity, "storage.path.length", storagePath.Length);
+        DiscordMusicObservability.SetTag(activity, "storage.cache.max_size", maxBytes);
         if (!fileSystem.Directory.Exists(storagePath))
         {
             logger.LogInformation("Creating storage directory {StoragePath}.", storagePath);
@@ -61,8 +76,8 @@ internal sealed class StorageCacheWatcherService(
             | NotifyFilters.LastWrite
             | NotifyFilters.CreationTime;
 
-        FileSystemEventHandler onChanged = (_, _) => SignalTrim();
-        RenamedEventHandler onRenamed = (_, _) => SignalTrim();
+        FileSystemEventHandler onChanged = (_, args) => SignalTrim(args.ChangeType.ToString());
+        RenamedEventHandler onRenamed = (_, _) => SignalTrim("Renamed");
 
         watcher.Created += onChanged;
         watcher.Changed += onChanged;
@@ -71,6 +86,7 @@ internal sealed class StorageCacheWatcherService(
 
         try
         {
+            RecordWatcherEvent("started", "running");
             await TrimCacheAsync(storagePath, maxBytes, stoppingToken);
 
             using var timer = new PeriodicTimer(TrimDebounce, timeProvider);
@@ -81,12 +97,22 @@ internal sealed class StorageCacheWatcherService(
                     continue;
                 }
 
+                RecordWatcherEvent("trim", "debounced");
                 await TrimCacheAsync(storagePath, maxBytes, stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
+            RecordWatcherEvent("stopped", "cancelled");
+            activity?.SetStatus(ActivityStatusCode.Ok, "stopped");
             logger.LogInformation("Storage cache watcher is stopping.");
+        }
+        catch (Exception ex)
+        {
+            RecordWatcherEvent("failed", "exception");
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
         }
         finally
         {
@@ -97,8 +123,18 @@ internal sealed class StorageCacheWatcherService(
         }
     }
 
-    private void SignalTrim()
+    private static void RecordWatcherEvent(string eventName, string result)
     {
+        DiscordMusicObservability.StorageWatcherEvents.Add(
+            1,
+            new KeyValuePair<string, object?>("event", eventName),
+            new KeyValuePair<string, object?>("result", result)
+        );
+    }
+
+    private void SignalTrim(string eventName)
+    {
+        RecordWatcherEvent(eventName, "requested");
         Interlocked.Exchange(ref _trimRequested, 1);
     }
 

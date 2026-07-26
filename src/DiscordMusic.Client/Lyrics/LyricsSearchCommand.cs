@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text;
 using DiscordMusic.Core.Lyrics;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,38 +27,56 @@ public sealed class LyricsSearchCommand : Command
             CancellationToken cancellationToken = new()
         )
         {
-            var title = parseResult.GetRequiredValue(TitleOption);
-            var artist = parseResult.GetRequiredValue(ArtistOption);
+            return await DiscordMusicObservability.TrackCliCommandAsync(
+                "lyrics.search",
+                async activity =>
+                {
+                    var title = parseResult.GetRequiredValue(TitleOption);
+                    var artist = parseResult.GetRequiredValue(ArtistOption);
+                    DiscordMusicObservability.SetTag(
+                        activity,
+                        "music.track.title.length",
+                        title.Length
+                    );
+                    DiscordMusicObservability.SetTag(
+                        activity,
+                        "music.track.artist.length",
+                        artist.Length
+                    );
 
-            if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(artist))
-            {
-                await parseResult.InvocationConfiguration.Error.WriteLineAsync(
-                    "Title and artist are required"
-                );
-                return 1;
-            }
+                    if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(artist))
+                    {
+                        await parseResult.InvocationConfiguration.Error.WriteLineAsync(
+                            "Title and artist are required"
+                        );
+                        return 1;
+                    }
 
-            var builder = Host.CreateApplicationBuilder(args);
-            builder.AddLyrics();
-            var host = builder.Build();
-            var lyricsSearch = host.Services.GetRequiredService<ILyricsSearch>();
-            var search = await lyricsSearch.SearchAsync(title, artist, cancellationToken);
+                    var builder = Host.CreateApplicationBuilder(args);
+                    builder.AddLyrics();
+                    var host = builder.Build();
+                    var lyricsSearch = host.Services.GetRequiredService<ILyricsSearch>();
+                    var search = await lyricsSearch.SearchAsync(title, artist, cancellationToken);
 
-            if (search.IsError)
-            {
-                await parseResult.InvocationConfiguration.Error.WriteLineAsync(
-                    search.ToErrorContent()
-                );
-                return 1;
-            }
+                    if (search.IsError)
+                    {
+                        await parseResult.InvocationConfiguration.Error.WriteLineAsync(
+                            search.ToErrorContent()
+                        );
+                        return 1;
+                    }
 
-            var lyricsOutput = new StringBuilder();
-            lyricsOutput.AppendLine($"Lyrics for {search.Value.Title} - {search.Value.Artist}");
-            lyricsOutput.AppendLine(search.Value.Text);
-            await parseResult.InvocationConfiguration.Output.WriteLineAsync(
-                lyricsOutput.ToString()
+                    var lyricsOutput = new StringBuilder();
+                    lyricsOutput.AppendLine(
+                        $"Lyrics for {search.Value.Title} - {search.Value.Artist}"
+                    );
+                    lyricsOutput.AppendLine(search.Value.Text);
+                    await parseResult.InvocationConfiguration.Output.WriteLineAsync(
+                        lyricsOutput.ToString()
+                    );
+                    return 0;
+                }
             );
-            return 0;
         }
     }
 

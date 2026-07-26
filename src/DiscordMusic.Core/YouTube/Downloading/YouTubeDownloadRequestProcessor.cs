@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
@@ -17,6 +18,25 @@ internal sealed class YouTubeDownloadRequestProcessor(
     TimeProvider timeProvider
 ) : IYouTubeDownloadRequestProcessor
 {
+    private static readonly Counter<long> DownloadRequests =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.youtube.download.requests",
+            unit: "1",
+            description: "YouTube download requests."
+        );
+    private static readonly Histogram<double> DownloadDuration =
+        DiscordMusicObservability.Meter.CreateHistogram<double>(
+            "discord.music.youtube.download.duration",
+            unit: "s",
+            description: "YouTube download processing duration."
+        );
+    private static readonly Histogram<long> DownloadOutputSize =
+        DiscordMusicObservability.Meter.CreateHistogram<long>(
+            "discord.music.youtube.download.output.size",
+            unit: "By",
+            description: "Downloaded PCM file size."
+        );
+
     public async Task ProcessAsync(
         YouTubeDownloadRequest request,
         CancellationToken cancellationToken
@@ -43,8 +63,8 @@ internal sealed class YouTubeDownloadRequestProcessor(
         {
             activity?.SetStatus(ActivityStatusCode.Ok, "stale_request");
             metricTags.Add("result", "stale");
-            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
-            DiscordMusicObservability.DownloadDuration.Record(
+            DownloadRequests.Add(1, metricTags);
+            DownloadDuration.Record(
                 timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 metricTags
             );
@@ -78,8 +98,8 @@ internal sealed class YouTubeDownloadRequestProcessor(
             {
                 activity?.SetStatus(ActivityStatusCode.Ok, "cached");
                 metricTags.Add("result", "cached");
-                DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
-                DiscordMusicObservability.DownloadDuration.Record(
+                DownloadRequests.Add(1, metricTags);
+                DownloadDuration.Record(
                     timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     metricTags
                 );
@@ -100,8 +120,8 @@ internal sealed class YouTubeDownloadRequestProcessor(
 
             activity?.SetStatus(ActivityStatusCode.Ok, "queue_item_gone_cached");
             metricTags.Add("result", "stale_cached");
-            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
-            DiscordMusicObservability.DownloadDuration.Record(
+            DownloadRequests.Add(1, metricTags);
+            DownloadDuration.Record(
                 timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 metricTags
             );
@@ -135,8 +155,8 @@ internal sealed class YouTubeDownloadRequestProcessor(
         {
             activity?.SetStatus(ActivityStatusCode.Error, download.ToErrorContent());
             metricTags.Add("result", "failed");
-            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
-            DiscordMusicObservability.DownloadDuration.Record(
+            DownloadRequests.Add(1, metricTags);
+            DownloadDuration.Record(
                 timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 metricTags
             );
@@ -170,8 +190,9 @@ internal sealed class YouTubeDownloadRequestProcessor(
         {
             activity?.SetStatus(ActivityStatusCode.Ok);
             metricTags.Add("result", "completed");
-            DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
-            DiscordMusicObservability.DownloadDuration.Record(
+            DownloadRequests.Add(1, metricTags);
+            DownloadOutputSize.Record(outputFile.Length, metricTags);
+            DownloadDuration.Record(
                 timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 metricTags
             );
@@ -187,11 +208,8 @@ internal sealed class YouTubeDownloadRequestProcessor(
 
         activity?.SetStatus(ActivityStatusCode.Ok, "queue_item_gone");
         metricTags.Add("result", "stale_after_download");
-        DiscordMusicObservability.DownloadRequests.Add(1, metricTags);
-        DiscordMusicObservability.DownloadDuration.Record(
-            timeProvider.GetElapsedTime(startedAt).TotalSeconds,
-            metricTags
-        );
+        DownloadRequests.Add(1, metricTags);
+        DownloadDuration.Record(timeProvider.GetElapsedTime(startedAt).TotalSeconds, metricTags);
         logger.LogWarning(
             "YouTube download completed but queue item was gone. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
             request.Origin.GuildId,

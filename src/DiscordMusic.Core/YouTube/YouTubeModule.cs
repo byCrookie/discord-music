@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Channels;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
 using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube.Conversion;
@@ -72,53 +74,78 @@ internal static class YouTubeModule
     {
         public ValidateOptionsResult Validate(string? name, YouTubeOptions options)
         {
-            StringBuilder? failure = null;
-            var loadedLocations = toolLocations.Load(options);
-
-            if (loadedLocations.Ffmpeg.IsError)
-            {
-                (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Ffmpeg)} {loadedLocations.Ffmpeg.ToErrorContent()}"
-                );
-            }
-            else
-            {
-                LogBinaryLocation("ffmpeg", loadedLocations.Ffmpeg.Value);
-            }
-
-            if (loadedLocations.Deno.IsError)
-            {
-                (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Deno)} {loadedLocations.Deno.ToErrorContent()}"
-                );
-            }
-            else
-            {
-                LogBinaryLocation("deno", loadedLocations.Deno.Value);
-            }
-
-            if (loadedLocations.Ytdlp.IsError)
-            {
-                (failure ??= new StringBuilder()).AppendLine(
-                    $"{nameof(YouTubeOptions.Ytdlp)} {loadedLocations.Ytdlp.ToErrorContent()}"
-                );
-            }
-            else
-            {
-                LogBinaryLocation("yt-dlp", loadedLocations.Ytdlp.Value);
-            }
-
-            logger.LogInformation(
-                "YouTube tool options loaded. JsRuntimes={JsRuntimes}, RemoteComponents={RemoteComponents}, NoJsRuntimes={NoJsRuntimes}, NoRemoteComponents={NoRemoteComponents}",
-                string.Join(",", options.JsRuntimes),
-                string.Join(",", options.RemoteComponents),
-                options.NoJsRuntimes,
-                options.NoRemoteComponents
+            using var activity = DiscordMusicObservability.StartActivity(
+                "youtube.options.validate"
             );
+            StringBuilder? failure = null;
+            var result = "completed";
 
-            return failure is not null
-                ? ValidateOptionsResult.Fail(failure.ToString())
-                : ValidateOptionsResult.Success;
+            try
+            {
+                var loadedLocations = toolLocations.Load(options);
+
+                if (loadedLocations.Ffmpeg.IsError)
+                {
+                    (failure ??= new StringBuilder()).AppendLine(
+                        $"{nameof(YouTubeOptions.Ffmpeg)} {loadedLocations.Ffmpeg.ToErrorContent()}"
+                    );
+                }
+                else
+                {
+                    LogBinaryLocation("ffmpeg", loadedLocations.Ffmpeg.Value);
+                }
+
+                if (loadedLocations.Deno.IsError)
+                {
+                    (failure ??= new StringBuilder()).AppendLine(
+                        $"{nameof(YouTubeOptions.Deno)} {loadedLocations.Deno.ToErrorContent()}"
+                    );
+                }
+                else
+                {
+                    LogBinaryLocation("deno", loadedLocations.Deno.Value);
+                }
+
+                if (loadedLocations.Ytdlp.IsError)
+                {
+                    (failure ??= new StringBuilder()).AppendLine(
+                        $"{nameof(YouTubeOptions.Ytdlp)} {loadedLocations.Ytdlp.ToErrorContent()}"
+                    );
+                }
+                else
+                {
+                    LogBinaryLocation("yt-dlp", loadedLocations.Ytdlp.Value);
+                }
+
+                logger.LogInformation(
+                    "YouTube tool options loaded. JsRuntimes={JsRuntimes}, RemoteComponents={RemoteComponents}, NoJsRuntimes={NoJsRuntimes}, NoRemoteComponents={NoRemoteComponents}",
+                    string.Join(",", options.JsRuntimes),
+                    string.Join(",", options.RemoteComponents),
+                    options.NoJsRuntimes,
+                    options.NoRemoteComponents
+                );
+
+                if (failure is not null)
+                {
+                    result = "failed";
+                    activity?.SetStatus(ActivityStatusCode.Error, result);
+                    return ValidateOptionsResult.Fail(failure.ToString());
+                }
+
+                activity?.SetStatus(ActivityStatusCode.Ok);
+                return ValidateOptionsResult.Success;
+            }
+            catch (Exception ex)
+            {
+                result = "exception";
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.AddException(ex);
+                throw;
+            }
+            finally
+            {
+                DiscordMusicObservability.SetTag(activity, "result", result);
+            }
         }
 
         private void LogBinaryLocation(string binaryName, BinaryLocator.BinaryLocation location)
