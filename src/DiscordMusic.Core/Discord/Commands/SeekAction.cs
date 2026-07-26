@@ -56,7 +56,7 @@ internal sealed class SeekAction(
                         voiceInstances,
                         playbackService,
                         out var session,
-                        out _,
+                        out var guildId,
                         out var error
                     )
                 )
@@ -64,7 +64,7 @@ internal sealed class SeekAction(
                     return DiscordMusicObservability.CommandResult(error, "missing_session");
                 }
 
-                var result = playbackController.Seek(session, targetPosition);
+                var result = playbackController.Seek(guildId, session, targetPosition);
                 return DiscordMusicObservability.CommandResult(
                     DiscordResponses.PlaybackFeedback(
                         result,

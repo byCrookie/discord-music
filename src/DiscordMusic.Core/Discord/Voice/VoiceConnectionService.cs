@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Playback;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,19 @@ internal sealed class VoiceConnectionService(
     TimeProvider timeProvider
 )
 {
+    private static readonly Counter<long> VoiceConnections =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.discord.voice.connections",
+            unit: "1",
+            description: "Discord voice connection attempts."
+        );
+    private static readonly Histogram<double> VoiceConnectionDuration =
+        DiscordMusicObservability.Meter.CreateHistogram<double>(
+            "discord.music.discord.voice.connection.duration",
+            unit: "s",
+            description: "Discord voice connection attempt duration."
+        );
+
     public async Task<VoiceConnectionResult> JoinUserChannelAsync(
         GatewayClient client,
         ulong guildId,
@@ -103,8 +117,31 @@ internal sealed class VoiceConnectionService(
                 )
                 {
                     logger.LogInformation("Voice client disconnected. GuildId={GuildId}", guildId);
-                    playbackService.Stop(guildId);
-                    voiceConnection.Dispose();
+                    DiscordMusicObservability.RecordVoiceDisconnect(
+                        guildId,
+                        "voice_client_disconnect"
+                    );
+                    using var disconnectActivity = DiscordMusicObservability.StartActivity(
+                        "discord.voice.disconnect"
+                    );
+                    DiscordMusicObservability.SetGuildTag(disconnectActivity, guildId);
+                    DiscordMusicObservability.SetTag(
+                        disconnectActivity,
+                        "reason",
+                        "voice_client_disconnect"
+                    );
+                    try
+                    {
+                        playbackService.Stop(guildId);
+                        voiceConnection.Dispose();
+                        disconnectActivity?.SetStatus(ActivityStatusCode.Ok);
+                    }
+                    catch (Exception ex)
+                    {
+                        disconnectActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                        disconnectActivity?.AddException(ex);
+                        throw;
+                    }
                 }
 
                 return default;
@@ -140,8 +177,8 @@ internal sealed class VoiceConnectionService(
         {
             var tags = DiscordMusicObservability.GuildTags(guildId);
             tags.Add("result", result);
-            DiscordMusicObservability.VoiceConnections.Add(1, tags);
-            DiscordMusicObservability.VoiceConnectionDuration.Record(
+            VoiceConnections.Add(1, tags);
+            VoiceConnectionDuration.Record(
                 timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );

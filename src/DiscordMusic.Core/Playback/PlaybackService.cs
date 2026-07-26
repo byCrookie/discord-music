@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using DiscordMusic.Core.Audio.Sending;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
@@ -23,9 +24,30 @@ internal sealed class PlaybackService(
 ) : BackgroundService
 {
     private readonly ConcurrentDictionary<ulong, PlaybackLoop> _playbackLoops = [];
+    private static readonly Counter<long> PlaybackTracks =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.playback.tracks",
+            unit: "1",
+            description: "Playback track attempts."
+        );
+    private static readonly Histogram<double> PlaybackTrackDuration =
+        DiscordMusicObservability.Meter.CreateHistogram<double>(
+            "discord.music.playback.track.duration",
+            unit: "s",
+            description: "Playback track duration."
+        );
+    private static readonly Counter<long> VoiceJobContentions =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.discord.voice.job.contentions",
+            unit: "1",
+            description: "Failed voice job acquisitions because another job is active."
+        );
 
     public void Start(ulong guildId, VoiceConnection voiceInstance)
     {
+        using var activity = DiscordMusicObservability.StartActivity("playback.loop.start");
+        DiscordMusicObservability.SetGuildTag(activity, guildId);
+        RecordPlaybackLoop(guildId, "start", "requested");
         _playbackLoops.AddOrUpdate(
             guildId,
             _ => StartLoop(guildId, voiceInstance),
@@ -40,6 +62,7 @@ internal sealed class PlaybackService(
                 return StartLoop(guildId, voiceInstance);
             }
         );
+        activity?.SetStatus(ActivityStatusCode.Ok);
     }
 
     public bool TryGetPlaybackSession(ulong guildId, out PlaybackSession session)
@@ -58,8 +81,16 @@ internal sealed class PlaybackService(
     {
         if (_playbackLoops.TryRemove(guildId, out var loop))
         {
+            using var activity = DiscordMusicObservability.StartActivity("playback.loop.stop");
+            DiscordMusicObservability.SetGuildTag(activity, guildId);
             loop.CancellationTokenSource.Cancel();
             loop.CancellationTokenSource.Dispose();
+            RecordPlaybackLoop(guildId, "stop", "stopped");
+            activity?.SetStatus(ActivityStatusCode.Ok);
+        }
+        else
+        {
+            RecordPlaybackLoop(guildId, "stop", "not_found");
         }
     }
 
@@ -107,32 +138,54 @@ internal sealed class PlaybackService(
         CancellationToken cancellationToken
     )
     {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                using var job = voiceInstance.TryEnterJob(VoiceJobType.Playing);
-                if (job is null)
-                {
-                    await Task.Delay(
-                        TimeSpan.FromMilliseconds(250),
-                        timeProvider,
-                        cancellationToken
-                    );
-                    continue;
-                }
+        using var activity = DiscordMusicObservability.StartActivity("playback.loop.run");
+        DiscordMusicObservability.SetGuildTag(activity, guildId);
+        RecordPlaybackLoop(guildId, "run", "started");
 
-                await RunPlaybackJobAsync(guildId, voiceInstance, cancellationToken);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
             {
-                break;
+                try
+                {
+                    using var job = voiceInstance.TryEnterJob(VoiceJobType.Playing);
+                    if (job is null)
+                    {
+                        var tags = DiscordMusicObservability.GuildTags(guildId);
+                        tags.Add("voice.job.type", nameof(VoiceJobType.Playing));
+                        VoiceJobContentions.Add(1, tags);
+                        await Task.Delay(
+                            TimeSpan.FromMilliseconds(250),
+                            timeProvider,
+                            cancellationToken
+                        );
+                        continue;
+                    }
+
+                    await RunPlaybackJobAsync(guildId, voiceInstance, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    activity?.AddException(ex);
+                    RecordPlaybackLoop(guildId, "run", "crashed");
+                    logger.LogError(ex, "Guild playback loop crashed. GuildId={GuildId}", guildId);
+                    await Task.Delay(TimeSpan.FromSeconds(1), timeProvider, cancellationToken);
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Guild playback loop crashed. GuildId={GuildId}", guildId);
-                await Task.Delay(TimeSpan.FromSeconds(1), timeProvider, cancellationToken);
-            }
+
+            activity?.SetStatus(ActivityStatusCode.Ok, "stopped");
+            RecordPlaybackLoop(guildId, "run", "stopped");
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            RecordPlaybackLoop(guildId, "run", "failed");
+            throw;
         }
     }
 
@@ -141,6 +194,14 @@ internal sealed class PlaybackService(
         CancellationTokenSource CancellationTokenSource,
         VoiceConnection VoiceConnection
     );
+
+    private static void RecordPlaybackLoop(ulong guildId, string lifecycleEvent, string result)
+    {
+        var tags = DiscordMusicObservability.GuildTags(guildId);
+        tags.Add("event", lifecycleEvent);
+        tags.Add("result", result);
+        DiscordMusicObservability.PlaybackLoops.Add(1, tags);
+    }
 
     private async Task RunPlaybackJobAsync(
         ulong guildId,
@@ -205,6 +266,7 @@ internal sealed class PlaybackService(
                 );
 
                 await audioSender.SendAsync(
+                    guildId,
                     voiceInstance.Client,
                     track,
                     trackStorage.GetTrackPath(track, "pcm"),
@@ -215,8 +277,8 @@ internal sealed class PlaybackService(
                 activity?.SetStatus(ActivityStatusCode.Ok);
                 var tags = DiscordMusicObservability.GuildTags(guildId);
                 tags.Add("result", "completed");
-                DiscordMusicObservability.PlaybackTracks.Add(1, tags);
-                DiscordMusicObservability.PlaybackTrackDuration.Record(
+                PlaybackTracks.Add(1, tags);
+                PlaybackTrackDuration.Record(
                     timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     tags
                 );
@@ -230,7 +292,7 @@ internal sealed class PlaybackService(
                     activity?.SetStatus(ActivityStatusCode.Ok, "seek");
                     var tags = DiscordMusicObservability.GuildTags(guildId);
                     tags.Add("result", "seek");
-                    DiscordMusicObservability.PlaybackTrackDuration.Record(
+                    PlaybackTrackDuration.Record(
                         timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                         tags
                     );
@@ -241,7 +303,7 @@ internal sealed class PlaybackService(
                 activity?.SetStatus(ActivityStatusCode.Ok, request.Type.ToString());
                 var controlTags = DiscordMusicObservability.GuildTags(guildId);
                 controlTags.Add("result", request.Type.ToString());
-                DiscordMusicObservability.PlaybackTrackDuration.Record(
+                PlaybackTrackDuration.Record(
                     timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     controlTags
                 );
@@ -253,8 +315,8 @@ internal sealed class PlaybackService(
                 activity?.AddException(ex);
                 var tags = DiscordMusicObservability.GuildTags(guildId);
                 tags.Add("result", "failed");
-                DiscordMusicObservability.PlaybackTracks.Add(1, tags);
-                DiscordMusicObservability.PlaybackTrackDuration.Record(
+                PlaybackTracks.Add(1, tags);
+                PlaybackTrackDuration.Record(
                     timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                     tags
                 );

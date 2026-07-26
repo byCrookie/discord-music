@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Observability;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,30 @@ internal sealed class StorageCacheTrimmer(
 ) : IStorageCacheTrimmer
 {
     private readonly SemaphoreSlim _trimLock = new(1, 1);
+    private static readonly Counter<long> StorageTrimRuns =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.storage.trim.runs",
+            unit: "1",
+            description: "Storage cache trim runs."
+        );
+    private static readonly Histogram<long> StorageCacheSize =
+        DiscordMusicObservability.Meter.CreateHistogram<long>(
+            "discord.music.storage.cache.size",
+            unit: "By",
+            description: "Observed storage cache size."
+        );
+    private static readonly Counter<long> StorageFilesDeleted =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.storage.files.deleted",
+            unit: "1",
+            description: "Storage cache files deleted."
+        );
+    private static readonly Counter<long> StorageBytesDeleted =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.storage.bytes.deleted",
+            unit: "By",
+            description: "Storage cache bytes deleted."
+        );
 
     public async Task TrimAsync(
         string storagePath,
@@ -29,7 +54,7 @@ internal sealed class StorageCacheTrimmer(
             var totalBytes = files.Sum(file => file.Length);
             DiscordMusicObservability.SetTag(activity, "storage.cache.file_count", files.Count);
             DiscordMusicObservability.SetTag(activity, "storage.cache.size", totalBytes);
-            DiscordMusicObservability.StorageCacheSize.Record(totalBytes);
+            StorageCacheSize.Record(totalBytes);
             if (totalBytes <= maxBytes)
             {
                 logger.LogTrace(
@@ -37,10 +62,7 @@ internal sealed class StorageCacheTrimmer(
                     totalBytes,
                     maxBytes
                 );
-                DiscordMusicObservability.StorageTrimRuns.Add(
-                    1,
-                    new KeyValuePair<string, object?>("result", "within_limit")
-                );
+                StorageTrimRuns.Add(1, new KeyValuePair<string, object?>("result", "within_limit"));
                 activity?.SetStatus(ActivityStatusCode.Ok, "within_limit");
                 return;
             }
@@ -65,8 +87,8 @@ internal sealed class StorageCacheTrimmer(
                     var length = file.Length;
                     file.Delete();
                     totalBytes -= length;
-                    DiscordMusicObservability.StorageFilesDeleted.Add(1);
-                    DiscordMusicObservability.StorageBytesDeleted.Add(length);
+                    StorageFilesDeleted.Add(1);
+                    StorageBytesDeleted.Add(length);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
@@ -81,18 +103,12 @@ internal sealed class StorageCacheTrimmer(
 
             DeleteEmptyDirectories(storagePath);
             DiscordMusicObservability.SetTag(activity, "storage.cache.trimmed_size", totalBytes);
-            DiscordMusicObservability.StorageTrimRuns.Add(
-                1,
-                new KeyValuePair<string, object?>("result", "trimmed")
-            );
+            StorageTrimRuns.Add(1, new KeyValuePair<string, object?>("result", "trimmed"));
             activity?.SetStatus(ActivityStatusCode.Ok, "trimmed");
         }
         catch (Exception ex)
         {
-            DiscordMusicObservability.StorageTrimRuns.Add(
-                1,
-                new KeyValuePair<string, object?>("result", "failed")
-            );
+            StorageTrimRuns.Add(1, new KeyValuePair<string, object?>("result", "failed"));
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddException(ex);
             throw;

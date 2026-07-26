@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Configuration;
+using DiscordMusic.Core.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -25,9 +27,17 @@ internal sealed class StoragePathProvider(
 
     private IDirectoryInfo ResolveStorageDirectory()
     {
+        using var activity = DiscordMusicObservability.StartActivity("storage.path.resolve");
         if (!string.IsNullOrWhiteSpace(storageOptions.Value.Path))
         {
             var configured = fileSystem.DirectoryInfo.New(storageOptions.Value.Path);
+            DiscordMusicObservability.SetTag(activity, "storage.path.source", "configured");
+            DiscordMusicObservability.SetTag(
+                activity,
+                "storage.path.length",
+                configured.FullName.Length
+            );
+            activity?.SetStatus(ActivityStatusCode.Ok);
             logger.LogInformation(
                 "Using configured storage path {StoragePath}.",
                 configured.FullName
@@ -41,6 +51,9 @@ internal sealed class StoragePathProvider(
             var xdg = fileSystem.DirectoryInfo.New(
                 fileSystem.Path.Combine(xdgCacheHome, "bycrookie", "discord-music")
             );
+            DiscordMusicObservability.SetTag(activity, "storage.path.source", "xdg_cache_home");
+            DiscordMusicObservability.SetTag(activity, "storage.path.length", xdg.FullName.Length);
+            activity?.SetStatus(ActivityStatusCode.Ok);
             logger.LogInformation(
                 "Using XDG storage path {StoragePath}. XDG_CACHE_HOME={XdgCacheHome}",
                 xdg.FullName,
@@ -61,6 +74,13 @@ internal sealed class StoragePathProvider(
                     "storage"
                 )
             );
+            DiscordMusicObservability.SetTag(activity, "storage.path.source", "windows");
+            DiscordMusicObservability.SetTag(
+                activity,
+                "storage.path.length",
+                windows.FullName.Length
+            );
+            activity?.SetStatus(ActivityStatusCode.Ok);
             logger.LogInformation("Using Windows storage path {StoragePath}.", windows.FullName);
             return windows;
         }
@@ -73,6 +93,9 @@ internal sealed class StoragePathProvider(
                 "discord-music"
             )
         );
+        DiscordMusicObservability.SetTag(activity, "storage.path.source", "unix");
+        DiscordMusicObservability.SetTag(activity, "storage.path.length", unix.FullName.Length);
+        activity?.SetStatus(ActivityStatusCode.Ok);
         logger.LogInformation("Using Unix storage path {StoragePath}.", unix.FullName);
         return unix;
     }

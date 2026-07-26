@@ -198,9 +198,7 @@ with standard OpenTelemetry environment variables, or rely on the defaults provi
 when running through the AppHost. Use `service.instance.id` for a unique process, pod, or container
 instance and `host.name` for the host name.
 
-Custom telemetry uses dot-separated OpenTelemetry metric names and covers queue operations, live
-queue depth by status, YouTube search/download processing counts and durations, playback attempts
-and durations, and storage cache trimming/size.
+Custom telemetry uses dot-separated OpenTelemetry metric names and covers a lot of different operations.
 Telemetry avoids raw bot tokens and avoids storing full search queries as span attributes.
 
 ### Storage

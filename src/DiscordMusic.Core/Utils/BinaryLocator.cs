@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Abstractions;
+using DiscordMusic.Core.Observability;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
 
@@ -17,120 +18,158 @@ internal sealed class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocato
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(defaultBinaryName);
         var configuredPath = string.IsNullOrWhiteSpace(path) ? null : path.Trim();
+        var result = "resolved";
+        using var activity = DiscordMusicObservability.StartActivity("binary.locate");
+        DiscordMusicObservability.SetTag(activity, "binary.name", defaultBinaryName);
+        DiscordMusicObservability.SetTag(
+            activity,
+            "binary.path.configured",
+            configuredPath is not null
+        );
 
-        switch (configuredPath)
+        try
         {
-            case null:
-                logger.LogTrace(
-                    "{DefaultBinaryName} will be resolved at runtime by the operating system.",
-                    defaultBinaryName
-                );
-                return BinaryLocation.ForRuntime(defaultBinaryName);
-            case ".":
+            switch (configuredPath)
             {
-                var currentDirectory = fileSystem.Directory.GetCurrentDirectory();
-                var currentDirectoryBinaryPath = ResolveBinaryPath(
-                    currentDirectory,
-                    defaultBinaryName
-                );
-
-                logger.LogTrace(
-                    "Path is '.', returning current directory for binary {DefaultBinaryName}.",
-                    defaultBinaryName
-                );
-
-                if (currentDirectoryBinaryPath is not null)
+                case null:
+                    result = "runtime";
+                    activity?.SetStatus(ActivityStatusCode.Ok, result);
+                    logger.LogTrace(
+                        "{DefaultBinaryName} will be resolved at runtime by the operating system.",
+                        defaultBinaryName
+                    );
+                    return BinaryLocation.ForRuntime(defaultBinaryName);
+                case ".":
                 {
-                    var currentDirectoryLocation = BinaryLocation.ForResolved(
-                        fileSystem.DirectoryInfo.New(currentDirectory),
-                        fileSystem.FileInfo.New(currentDirectoryBinaryPath),
+                    var currentDirectory = fileSystem.Directory.GetCurrentDirectory();
+                    var currentDirectoryBinaryPath = ResolveBinaryPath(
+                        currentDirectory,
                         defaultBinaryName
                     );
 
                     logger.LogTrace(
-                        "Binary {DefaultBinaryName} found in current directory {CurrentDirectory}.",
-                        defaultBinaryName,
-                        currentDirectoryLocation.PathToFolder
+                        "Path is '.', returning current directory for binary {DefaultBinaryName}.",
+                        defaultBinaryName
                     );
-                    return currentDirectoryLocation;
+
+                    if (currentDirectoryBinaryPath is not null)
+                    {
+                        var currentDirectoryLocation = BinaryLocation.ForResolved(
+                            fileSystem.DirectoryInfo.New(currentDirectory),
+                            fileSystem.FileInfo.New(currentDirectoryBinaryPath),
+                            defaultBinaryName
+                        );
+
+                        activity?.SetStatus(ActivityStatusCode.Ok, result);
+                        logger.LogTrace(
+                            "Binary {DefaultBinaryName} found in current directory {CurrentDirectory}.",
+                            defaultBinaryName,
+                            currentDirectoryLocation.PathToFolder
+                        );
+                        return currentDirectoryLocation;
+                    }
+
+                    result = "not_found";
+                    activity?.SetStatus(ActivityStatusCode.Error, result);
+                    logger.LogError(
+                        "Binary not found in current directory. BinaryName={BinaryName} CurrentDirectory={CurrentDirectory}",
+                        defaultBinaryName,
+                        currentDirectory
+                    );
+
+                    return BinaryNotFound(defaultBinaryName)
+                        .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
+                        .WithMetadata("binaryName", defaultBinaryName)
+                        .WithMetadata("path", configuredPath)
+                        .WithMetadata("currentDirectory", currentDirectory);
+                }
+            }
+
+            if (fileSystem.File.Exists(configuredPath))
+            {
+                var configuredBinary = fileSystem.FileInfo.New(configuredPath);
+
+                activity?.SetStatus(ActivityStatusCode.Ok, result);
+                logger.LogTrace(
+                    "Path is a file, returning directory of file for binary {DefaultBinaryName}.",
+                    defaultBinaryName
+                );
+                return BinaryLocation.ForResolved(
+                    fileSystem.DirectoryInfo.New(
+                        fileSystem.Path.GetDirectoryName(configuredBinary.FullName)
+                            ?? fileSystem.Directory.GetCurrentDirectory()
+                    ),
+                    configuredBinary,
+                    configuredBinary.Name
+                );
+            }
+
+            if (fileSystem.Directory.Exists(configuredPath))
+            {
+                var directoryBinaryPath = ResolveBinaryPath(configuredPath, defaultBinaryName);
+                if (directoryBinaryPath is not null)
+                {
+                    activity?.SetStatus(ActivityStatusCode.Ok, result);
+                    logger.LogTrace(
+                        "Binary {DefaultBinaryName} found in directory {Path}.",
+                        defaultBinaryName,
+                        configuredPath
+                    );
+                    return BinaryLocation.ForResolved(
+                        fileSystem.DirectoryInfo.New(configuredPath),
+                        fileSystem.FileInfo.New(directoryBinaryPath),
+                        defaultBinaryName
+                    );
                 }
 
+                result = "not_found";
+                activity?.SetStatus(ActivityStatusCode.Error, result);
                 logger.LogError(
-                    "Binary not found in current directory. BinaryName={BinaryName} CurrentDirectory={CurrentDirectory}",
+                    "Binary not found in directory. BinaryName={BinaryName} Directory={Directory}",
                     defaultBinaryName,
-                    currentDirectory
+                    configuredPath
                 );
 
                 return BinaryNotFound(defaultBinaryName)
                     .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
                     .WithMetadata("binaryName", defaultBinaryName)
                     .WithMetadata("path", configuredPath)
-                    .WithMetadata("currentDirectory", currentDirectory);
-            }
-        }
-
-        if (fileSystem.File.Exists(configuredPath))
-        {
-            var configuredBinary = fileSystem.FileInfo.New(configuredPath);
-
-            logger.LogTrace(
-                "Path is a file, returning directory of file for binary {DefaultBinaryName}.",
-                defaultBinaryName
-            );
-            return BinaryLocation.ForResolved(
-                fileSystem.DirectoryInfo.New(
-                    fileSystem.Path.GetDirectoryName(configuredBinary.FullName)
-                        ?? fileSystem.Directory.GetCurrentDirectory()
-                ),
-                configuredBinary,
-                configuredBinary.Name
-            );
-        }
-
-        if (fileSystem.Directory.Exists(configuredPath))
-        {
-            var directoryBinaryPath = ResolveBinaryPath(configuredPath, defaultBinaryName);
-            if (directoryBinaryPath is not null)
-            {
-                logger.LogTrace(
-                    "Binary {DefaultBinaryName} found in directory {Path}.",
-                    defaultBinaryName,
-                    configuredPath
-                );
-                return BinaryLocation.ForResolved(
-                    fileSystem.DirectoryInfo.New(configuredPath),
-                    fileSystem.FileInfo.New(directoryBinaryPath),
-                    defaultBinaryName
-                );
+                    .WithMetadata("directory", configuredPath);
             }
 
+            result = "invalid_path";
+            activity?.SetStatus(ActivityStatusCode.Error, result);
             logger.LogError(
-                "Binary not found in directory. BinaryName={BinaryName} Directory={Directory}",
+                "Invalid binary path configuration. BinaryName={BinaryName} Path={Path}",
                 defaultBinaryName,
                 configuredPath
             );
 
-            return BinaryNotFound(defaultBinaryName)
+            return Error
+                .Unexpected(
+                    code: "Binary.InvalidPath",
+                    description: $"Invalid configuration for `{defaultBinaryName}`."
+                )
                 .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
                 .WithMetadata("binaryName", defaultBinaryName)
-                .WithMetadata("path", configuredPath)
-                .WithMetadata("directory", configuredPath);
+                .WithMetadata("path", configuredPath);
         }
-
-        logger.LogError(
-            "Invalid binary path configuration. BinaryName={BinaryName} Path={Path}",
-            defaultBinaryName,
-            configuredPath
-        );
-
-        return Error
-            .Unexpected(
-                code: "Binary.InvalidPath",
-                description: $"Invalid configuration for `{defaultBinaryName}`."
-            )
-            .WithMetadata(ErrorExtensions.MetadataKeys.Operation, "binary.locate")
-            .WithMetadata("binaryName", defaultBinaryName)
-            .WithMetadata("path", configuredPath);
+        catch (Exception ex)
+        {
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
+        finally
+        {
+            DiscordMusicObservability.SetTag(activity, "result", result);
+            DiscordMusicObservability.BinaryLocateRequests.Add(
+                1,
+                new KeyValuePair<string, object?>("binary.name", defaultBinaryName),
+                new KeyValuePair<string, object?>("result", result)
+            );
+        }
     }
 
     private string? ResolveBinaryPath(string directory, string defaultBinaryName)

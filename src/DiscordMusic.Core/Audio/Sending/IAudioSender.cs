@@ -8,6 +8,7 @@ namespace DiscordMusic.Core.Audio.Sending;
 internal interface IAudioSender
 {
     Task SendAsync(
+        ulong guildId,
         VoiceClient voiceClient,
         Track track,
         IFileInfo inputFile,

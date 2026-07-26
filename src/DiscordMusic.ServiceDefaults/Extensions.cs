@@ -75,7 +75,7 @@ public static class Extensions
                         tracing.AddSource(source);
                     }
 
-                    tracing.AddHttpClientInstrumentation().SetErrorStatusOnException();
+                    tracing.AddHttpClientInstrumentation();
                 });
 
             builder.AddOpenTelemetryExporters();

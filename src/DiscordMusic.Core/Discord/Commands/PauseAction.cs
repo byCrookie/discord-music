@@ -41,7 +41,7 @@ internal sealed class PauseAction(
                         voiceInstances,
                         playbackService,
                         out var session,
-                        out _,
+                        out var guildId,
                         out var error
                     )
                 )
@@ -49,7 +49,7 @@ internal sealed class PauseAction(
                     return DiscordMusicObservability.CommandResult(error, "missing_session");
                 }
 
-                var result = playbackController.Pause(session);
+                var result = playbackController.Pause(guildId, session);
                 return DiscordMusicObservability.CommandResult(
                     DiscordResponses.PlaybackFeedback(result, session),
                     result.IsSuccess ? "completed" : "playback_rejected"

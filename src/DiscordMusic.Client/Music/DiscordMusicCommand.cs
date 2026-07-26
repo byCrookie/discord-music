@@ -34,40 +34,51 @@ public sealed class DiscordMusicCommand : RootCommand
             CancellationToken cancellationToken = new()
         )
         {
-            using var factory = LoggerFactory.Create(builder =>
-                builder.AddSimpleConsole(options =>
+            return await DiscordMusicObservability.TrackCliCommandAsync(
+                "discord-music",
+                async activity =>
                 {
-                    options.IncludeScopes = true;
-                    options.SingleLine = true;
-                    options.TimestampFormat = "HH:mm:ss ";
-                })
-            );
-            var logger = factory.CreateLogger(nameof(DiscordMusicCommand));
-            var environmentVariables = SystemEnvironmentVariables.Instance;
-            var dotEnvPath = EnvironmentConfiguration.ResolveDotEnvPath(
-                parseResult.GetValue(EnvFileOption),
-                environmentVariables
-            );
+                    using var factory = LoggerFactory.Create(builder =>
+                        builder.AddSimpleConsole(options =>
+                        {
+                            options.IncludeScopes = true;
+                            options.SingleLine = true;
+                            options.TimestampFormat = "HH:mm:ss ";
+                        })
+                    );
+                    var logger = factory.CreateLogger(nameof(DiscordMusicCommand));
+                    var environmentVariables = SystemEnvironmentVariables.Instance;
+                    var dotEnvPath = EnvironmentConfiguration.ResolveDotEnvPath(
+                        parseResult.GetValue(EnvFileOption),
+                        environmentVariables
+                    );
+                    DiscordMusicObservability.SetTag(
+                        activity,
+                        "configuration.env_file.configured",
+                        dotEnvPath.Length > 0
+                    );
 
-            var builder = Host.CreateApplicationBuilder(args);
-            builder.Configuration.Sources.Clear();
-            builder.Logging.ClearProviders();
-            builder.Logging.AddSimpleConsole(options =>
-            {
-                options.IncludeScopes = true;
-                options.SingleLine = true;
-                options.TimestampFormat = "HH:mm:ss ";
-            });
-            builder.AddCore(logger, dotEnvPath, cancellationToken);
-            builder.AddYouTubeClient();
-            builder.AddServiceDefaults(
-                [DiscordMusicObservability.Name],
-                [DiscordMusicObservability.Name]
+                    var builder = Host.CreateApplicationBuilder(args);
+                    builder.Configuration.Sources.Clear();
+                    builder.Logging.ClearProviders();
+                    builder.Logging.AddSimpleConsole(options =>
+                    {
+                        options.IncludeScopes = true;
+                        options.SingleLine = true;
+                        options.TimestampFormat = "HH:mm:ss ";
+                    });
+                    builder.AddCore(logger, dotEnvPath, cancellationToken);
+                    builder.AddYouTubeClient();
+                    builder.AddServiceDefaults(
+                        [DiscordMusicObservability.Name],
+                        [DiscordMusicObservability.Name]
+                    );
+                    var host = builder.Build();
+                    host.UseCore();
+                    await host.RunAsync(cancellationToken);
+                    return 0;
+                }
             );
-            var host = builder.Build();
-            host.UseCore();
-            await host.RunAsync(cancellationToken);
-            return 0;
         }
     }
 

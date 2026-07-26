@@ -51,6 +51,19 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger, TimeProvider timeProvi
             activity?.SetStatus(ActivityStatusCode.Error, result);
             activity?.AddException(e);
             DiscordMusicObservability.SetTag(activity, "http.response.status_code", e.StatusCode);
+            if (e.StatusCode == 429)
+            {
+                result = "rate_limited";
+                DiscordMusicObservability.ExternalRateLimits.Add(
+                    1,
+                    DiscordMusicObservability.ExternalRequestTags(
+                        "lyrics.ovh",
+                        "lyrics.search",
+                        result
+                    )
+                );
+            }
+
             var error = await e.GetResponseJsonAsync<LyricsResponseError>();
             logger.LogError(e, "Lyrics API error. Title={Title} Artist={Artist}", title, artist);
             return Error

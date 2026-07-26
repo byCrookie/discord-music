@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Utils;
@@ -19,6 +20,12 @@ internal class SpotifySearch(
 {
     private const string SpotifyDomain = "open.spotify.com";
     private const string SpotifyApiDomain = "api.spotify.com";
+    private static readonly Counter<long> SpotifyUrlSearches =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.spotify.url_searches",
+            unit: "1",
+            description: "Spotify URL searches by URL type."
+        );
 
     public bool IsSpotifyQuery(string query)
     {
@@ -85,6 +92,14 @@ internal class SpotifySearch(
             result = "rate_limited";
             activity?.SetStatus(ActivityStatusCode.Error, result);
             activity?.AddException(e);
+            DiscordMusicObservability.ExternalRateLimits.Add(
+                1,
+                DiscordMusicObservability.ExternalRequestTags(
+                    "spotify",
+                    "spotify.search",
+                    "rate_limited"
+                )
+            );
             logger.LogWarning(e, "Spotify API rate limit exceeded");
             return Error
                 .Unexpected(
@@ -223,6 +238,12 @@ internal class SpotifySearch(
                 $"Unknown url type {url}. Supported types are track, playlist, album, artist"
             );
         }
+
+        SpotifyUrlSearches.Add(
+            1,
+            new KeyValuePair<string, object?>("server.address", "spotify"),
+            new KeyValuePair<string, object?>("spotify.url.type", spotifyUrl.Type.ToString())
+        );
 
         switch (spotifyUrl.Type)
         {

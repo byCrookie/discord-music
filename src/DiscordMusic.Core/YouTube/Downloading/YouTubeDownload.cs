@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO.Abstractions;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.YouTube.Conversion;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
@@ -12,12 +15,22 @@ internal sealed class YouTubeDownload(
     IAudioConverter audioConverter
 ) : IYouTubeDownload
 {
+    private static readonly Counter<long> YouTubeDownloadPipelineRuns =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.youtube.download.pipeline.runs",
+            unit: "1",
+            description: "YouTube audio download and conversion pipeline runs."
+        );
+
     public async Task<ErrorOr<Success>> DownloadAsync(
         string query,
         IFileInfo output,
         CancellationToken ct
     )
     {
+        var result = "completed";
+        using var activity = DiscordMusicObservability.StartActivity("youtube.download.pipeline");
+        DiscordMusicObservability.SetTag(activity, "music.search.query.length", query.Length);
         var tempFile = fileSystem.FileInfo.New($"{output.FullName}.tmp");
         IFileInfo? downloadedFile = null;
 
@@ -26,6 +39,8 @@ internal sealed class YouTubeDownload(
             var download = await audioDownloader.DownloadAsync(query, tempFile, ct);
             if (download.IsError)
             {
+                result = "download_failed";
+                activity?.SetStatus(ActivityStatusCode.Error, result);
                 return download.Errors;
             }
 
@@ -33,9 +48,12 @@ internal sealed class YouTubeDownload(
             var conversion = await audioConverter.ConvertToPcmAsync(downloadedFile, output, ct);
             if (conversion.IsError)
             {
+                result = "conversion_failed";
+                activity?.SetStatus(ActivityStatusCode.Error, result);
                 return conversion.Errors;
             }
 
+            activity?.SetStatus(ActivityStatusCode.Ok);
             logger.LogInformation(
                 "YouTube download succeeded. Query={Query} Output={Output}",
                 query,
@@ -43,8 +61,23 @@ internal sealed class YouTubeDownload(
             );
             return Result.Success;
         }
+        catch (OperationCanceledException)
+        {
+            result = "cancelled";
+            activity?.SetStatus(ActivityStatusCode.Error, result);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            result = "exception";
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
         finally
         {
+            YouTubeDownloadPipelineRuns.Add(1, new KeyValuePair<string, object?>("result", result));
+
             if (fileSystem.File.Exists(tempFile.FullName))
             {
                 logger.LogTrace("Deleting temporary file {TempFile}", tempFile.FullName);

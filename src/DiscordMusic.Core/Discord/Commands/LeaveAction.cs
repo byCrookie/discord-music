@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Discord.Voice;
 using DiscordMusic.Core.Observability;
@@ -64,10 +65,23 @@ internal sealed class LeaveAction(
                     )
                 )
                 {
+                    DiscordMusicObservability.RecordVoiceDisconnect(guildId, "command");
+                    using var disconnectActivity = DiscordMusicObservability.StartActivity(
+                        "discord.voice.disconnect"
+                    );
+                    DiscordMusicObservability.SetGuildTag(disconnectActivity, guildId);
+                    DiscordMusicObservability.SetTag(disconnectActivity, "reason", "command");
                     try
                     {
                         playbackService.Stop(guildId);
                         await voiceInstance.Client.CloseAsync();
+                        disconnectActivity?.SetStatus(ActivityStatusCode.Ok);
+                    }
+                    catch (Exception ex)
+                    {
+                        disconnectActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                        disconnectActivity?.AddException(ex);
+                        throw;
                     }
                     finally
                     {

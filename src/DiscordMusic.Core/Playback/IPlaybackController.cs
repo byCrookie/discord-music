@@ -2,9 +2,9 @@ namespace DiscordMusic.Core.Playback;
 
 internal interface IPlaybackController
 {
-    PlaybackCommandResult Pause(PlaybackSession session);
-    PlaybackCommandResult Resume(PlaybackSession session);
-    PlaybackCommandResult Seek(PlaybackSession session, TimeSpan position);
+    PlaybackCommandResult Pause(ulong guildId, PlaybackSession session);
+    PlaybackCommandResult Resume(ulong guildId, PlaybackSession session);
+    PlaybackCommandResult Seek(ulong guildId, PlaybackSession session, TimeSpan position);
     Task<PlaybackCommandResult> SkipAsync(
         ulong guildId,
         PlaybackSession session,

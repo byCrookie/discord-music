@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using DiscordMusic.Core.Discord;
 using DiscordMusic.Core.Discord.CommandSupport;
 using DiscordMusic.Core.Observability;
@@ -23,6 +24,31 @@ internal sealed class YouTubeSearchRequestProcessor(
     TimeProvider timeProvider
 ) : IYouTubeSearchRequestProcessor
 {
+    private static readonly Counter<long> SearchRequests =
+        DiscordMusicObservability.Meter.CreateCounter<long>(
+            "discord.music.youtube.search.requests",
+            unit: "1",
+            description: "YouTube search requests."
+        );
+    private static readonly Histogram<double> SearchDuration =
+        DiscordMusicObservability.Meter.CreateHistogram<double>(
+            "discord.music.youtube.search.duration",
+            unit: "s",
+            description: "YouTube search processing duration."
+        );
+    private static readonly Histogram<int> SearchResultCount =
+        DiscordMusicObservability.Meter.CreateHistogram<int>(
+            "discord.music.search.results",
+            unit: "1",
+            description: "Tracks found per search request."
+        );
+    private static readonly Histogram<double> SearchToEnqueueDuration =
+        DiscordMusicObservability.Meter.CreateHistogram<double>(
+            "discord.music.search.to_enqueue.duration",
+            unit: "s",
+            description: "Time from search request processing start until matching tracks are enqueued."
+        );
+
     public async Task ProcessAsync(
         YouTubeSearchRequest request,
         CancellationToken cancellationToken
@@ -51,7 +77,7 @@ internal sealed class YouTubeSearchRequestProcessor(
         );
         var requestTags = DiscordMusicObservability.GuildTags(request.Origin.GuildId);
         requestTags.Add("source", source);
-        DiscordMusicObservability.SearchRequests.Add(1, requestTags);
+        SearchRequests.Add(1, requestTags);
 
         try
         {
@@ -68,6 +94,9 @@ internal sealed class YouTubeSearchRequestProcessor(
                     ? await SearchYouTubeFromSpotifyAsync(request, cancellationToken)
                     : await SearchYouTubeAsync(request.Query, request.Origin, cancellationToken);
             DiscordMusicObservability.SetTag(activity, "music.track.count", tracks.Count);
+            var searchTags = DiscordMusicObservability.GuildTags(request.Origin.GuildId);
+            searchTags.Add("source", source);
+            SearchResultCount.Record(tracks.Count, searchTags);
             if (tracks.Count == 0)
             {
                 result = "no_tracks_found";
@@ -126,6 +155,10 @@ internal sealed class YouTubeSearchRequestProcessor(
                 "music.track.cache_hit_count",
                 cachedTrackCount
             );
+            SearchToEnqueueDuration.Record(
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
+                searchTags
+            );
             logger.LogInformation(
                 "Queued {TrackCount} track(s). GuildId={GuildId}, Placement={Placement}, CachedTrackCount={CachedTrackCount}",
                 tracks.Count,
@@ -158,7 +191,7 @@ internal sealed class YouTubeSearchRequestProcessor(
             var durationTags = DiscordMusicObservability.GuildTags(request.Origin.GuildId);
             durationTags.Add("source", source);
             durationTags.Add("result", result);
-            DiscordMusicObservability.SearchDuration.Record(
+            SearchDuration.Record(
                 timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 durationTags
             );
