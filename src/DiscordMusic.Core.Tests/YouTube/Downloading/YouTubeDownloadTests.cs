@@ -80,18 +80,10 @@ public class YouTubeDownloadTests
         var output = fileSystem.FileInfo.New("/downloads/output.pcm");
         var downloadedFile = fileSystem.FileInfo.New($"{output.FullName}.tmp.opus");
         audioDownloader
-            .DownloadAsync(
-                Arg.Any<string>(),
-                Arg.Any<IFileInfo>(),
-                Arg.Any<CancellationToken>()
-            )
+            .DownloadAsync(Arg.Any<string>(), Arg.Any<IFileInfo>(), Arg.Any<CancellationToken>())
             .Returns(ErrorOrFactory.From(downloadedFile));
         audioConverter
-            .ConvertToPcmAsync(
-                downloadedFile,
-                output,
-                Arg.Any<CancellationToken>()
-            )
+            .ConvertToPcmAsync(downloadedFile, output, Arg.Any<CancellationToken>())
             .Returns(Result.Success);
 
         var result = await download.DownloadAsync(

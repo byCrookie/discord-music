@@ -6,7 +6,11 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Utils;
 
-internal sealed class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocator> logger)
+internal sealed class BinaryLocator(
+    IFileSystem fileSystem,
+    ILogger<BinaryLocator> logger,
+    string applicationBaseDirectory
+)
 {
     public enum LocationType
     {
@@ -32,6 +36,20 @@ internal sealed class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocato
             switch (configuredPath)
             {
                 case null:
+                    if (
+                        TryResolveFromApplicationBaseDirectory(defaultBinaryName) is
+                        { } applicationLocation
+                    )
+                    {
+                        activity?.SetStatus(ActivityStatusCode.Ok, result);
+                        logger.LogTrace(
+                            "Binary {DefaultBinaryName} found in application base directory {ApplicationBaseDirectory}.",
+                            defaultBinaryName,
+                            applicationLocation.PathToFolder
+                        );
+                        return applicationLocation;
+                    }
+
                     result = "runtime";
                     activity?.SetStatus(ActivityStatusCode.Ok, result);
                     logger.LogTrace(
@@ -177,6 +195,29 @@ internal sealed class BinaryLocator(IFileSystem fileSystem, ILogger<BinaryLocato
         return BinaryNameCandidates(defaultBinaryName)
             .Select(candidate => fileSystem.Path.Combine(directory, candidate))
             .FirstOrDefault(binaryPath => fileSystem.File.Exists(binaryPath));
+    }
+
+    private BinaryLocation? TryResolveFromApplicationBaseDirectory(string defaultBinaryName)
+    {
+        if (string.IsNullOrWhiteSpace(applicationBaseDirectory))
+        {
+            return null;
+        }
+
+        var applicationDirectory = fileSystem.DirectoryInfo.New(applicationBaseDirectory);
+        if (!applicationDirectory.Exists)
+        {
+            return null;
+        }
+
+        var binaryPath = ResolveBinaryPath(applicationDirectory.FullName, defaultBinaryName);
+        return binaryPath is null
+            ? null
+            : BinaryLocation.ForResolved(
+                applicationDirectory,
+                fileSystem.FileInfo.New(binaryPath),
+                defaultBinaryName
+            );
     }
 
     private IEnumerable<string> BinaryNameCandidates(string defaultBinaryName)

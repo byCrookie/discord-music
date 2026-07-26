@@ -11,13 +11,34 @@ public class BinaryLocatorTests
     [MethodDataSource(typeof(FileSystemTestData), nameof(FileSystemTestData.SimulationModes))]
     public async Task LocateAndValidateReturnsRuntimeLocationForEmptyPath(SimulationMode mode)
     {
-        var locator = CreateLocator(FileSystemTestData.CreateFileSystem(mode));
+        var locator = CreateLocator(FileSystemTestData.CreateFileSystem(mode), "/missing/app");
 
         var result = locator.LocateAndValidate(null, "tool");
 
         await Assert.That(result.IsError).IsFalse();
         await Assert.That(result.Value.Type).IsEqualTo(BinaryLocator.LocationType.Runtime);
         await Assert.That(result.Value.PathToFile).IsEqualTo("tool");
+    }
+
+    [Test]
+    [MethodDataSource(typeof(FileSystemTestData), nameof(FileSystemTestData.SimulationModes))]
+    public async Task LocateAndValidateResolvesEmptyPathFromApplicationBaseDirectory(
+        SimulationMode mode
+    )
+    {
+        var fileSystem = FileSystemTestData.CreateFileSystem(mode);
+        var applicationDirectory = fileSystem.DirectoryInfo.New("/app").FullName;
+        fileSystem.Directory.CreateDirectory(applicationDirectory);
+        var binaryPath = fileSystem.Path.Combine(applicationDirectory, "tool");
+        await fileSystem.File.WriteAllTextAsync(binaryPath, string.Empty);
+        var locator = CreateLocator(fileSystem, applicationDirectory);
+
+        var result = locator.LocateAndValidate(null, "tool");
+
+        await Assert.That(result.IsError).IsFalse();
+        await Assert.That(result.Value.Type).IsEqualTo(BinaryLocator.LocationType.Resolved);
+        await Assert.That(result.Value.PathToFile).IsEqualTo(binaryPath);
+        await Assert.That(result.Value.PathToFolder).IsEqualTo(applicationDirectory);
     }
 
     [Test]
@@ -95,6 +116,18 @@ public class BinaryLocatorTests
 
     private static BinaryLocator CreateLocator(IFileSystem fileSystem)
     {
-        return new BinaryLocator(fileSystem, NullLogger<BinaryLocator>.Instance);
+        return CreateLocator(fileSystem, "/missing/app");
+    }
+
+    private static BinaryLocator CreateLocator(
+        IFileSystem fileSystem,
+        string applicationBaseDirectory
+    )
+    {
+        return new BinaryLocator(
+            fileSystem,
+            NullLogger<BinaryLocator>.Instance,
+            applicationBaseDirectory
+        );
     }
 }
