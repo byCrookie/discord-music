@@ -56,7 +56,11 @@ public class YouTubeAudioDownloaderTests
     )
     {
         var toolLocations = new YouTubeToolLocations(
-            new BinaryLocator(fileSystem, NullLogger<BinaryLocator>.Instance)
+            new BinaryLocator(
+                fileSystem,
+                NullLogger<BinaryLocator>.Instance,
+                AppContext.BaseDirectory
+            )
         );
         toolLocations.Load(options);
         return toolLocations;

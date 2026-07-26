@@ -25,7 +25,11 @@ public class YouTubeToolLocationsTests
             string.Empty
         );
         var toolLocations = new YouTubeToolLocations(
-            new BinaryLocator(fileSystem, NullLogger<BinaryLocator>.Instance)
+            new BinaryLocator(
+                fileSystem,
+                NullLogger<BinaryLocator>.Instance,
+                AppContext.BaseDirectory
+            )
         );
 
         var loadResult = toolLocations.Load(
