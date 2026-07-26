@@ -98,14 +98,17 @@ internal sealed class QueueAction(
                     );
                 }
 
-                var pageTracks = queuedTracks.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+                var pageOffset = (page - 1) * PageSize;
+                var pageTracks = queuedTracks.Skip(pageOffset).Take(PageSize).ToList();
 
                 var queue = new StringBuilder();
                 queue.AppendLine($"Page {page}/{pageCount}");
                 queue.AppendLine();
                 foreach (var (index, track) in pageTracks.Select((track, index) => (index, track)))
                 {
-                    var counter = $"{index + 1}".PadRight(2 + $"{pageTracks.Count}".Length);
+                    var counter = $"{pageOffset + index + 1}".PadRight(
+                        2 + $"{queuedTracks.Count}".Length
+                    );
                     if (track.Track.Duration == TimeSpan.Zero)
                     {
                         queue.AppendLine(
