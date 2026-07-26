@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.Lyrics;
 
-internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
+internal class LyricsSearch(ILogger<LyricsSearch> logger, TimeProvider timeProvider) : ILyricsSearch
 {
     public async Task<ErrorOr<Lyrics>> SearchAsync(
         string title,
@@ -17,7 +17,7 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
         CancellationToken ct
     )
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "completed";
         using var activity = DiscordMusicObservability.StartActivity(
             "lyrics.search",
@@ -88,7 +88,7 @@ internal class LyricsSearch(ILogger<LyricsSearch> logger) : ILyricsSearch
             );
             DiscordMusicObservability.ExternalRequests.Add(1, tags);
             DiscordMusicObservability.ExternalRequestDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 tags
             );
         }

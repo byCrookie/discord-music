@@ -7,7 +7,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class PingAction(ILogger<PingAction> logger)
+internal sealed class PingAction(ILogger<PingAction> logger, TimeProvider timeProvider)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -22,6 +22,7 @@ internal class PingAction(ILogger<PingAction> logger)
                 "ping",
                 Context.Guild?.Id,
                 Context.User.Id,
+                timeProvider,
                 _ =>
                 {
                     logger.LogTrace("Ping");

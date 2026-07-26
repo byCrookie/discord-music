@@ -1,5 +1,6 @@
 using DiscordMusic.Core.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Testably.Abstractions.Testing;
 
 namespace DiscordMusic.Core.Tests.Storage;
@@ -22,9 +23,13 @@ public class StorageCacheTrimmerTests
         await fileSystem.File.WriteAllBytesAsync(newFile, new byte[100]);
         await fileSystem.File.WriteAllBytesAsync(metadataFile, new byte[100]);
 
-        fileSystem.File.SetLastAccessTimeUtc(oldFile, DateTime.UtcNow.AddMinutes(-10));
-        fileSystem.File.SetLastAccessTimeUtc(newFile, DateTime.UtcNow);
-        fileSystem.File.SetLastAccessTimeUtc(metadataFile, DateTime.UtcNow.AddMinutes(-20));
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(2026, 7, 26, 9, 0, 0, TimeSpan.Zero)
+        );
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        fileSystem.File.SetLastAccessTimeUtc(oldFile, now.AddMinutes(-10));
+        fileSystem.File.SetLastAccessTimeUtc(newFile, now);
+        fileSystem.File.SetLastAccessTimeUtc(metadataFile, now.AddMinutes(-20));
 
         var trimmer = new StorageCacheTrimmer(fileSystem, NullLogger<StorageCacheTrimmer>.Instance);
 

@@ -39,6 +39,32 @@ public class TrackStorageTests
         });
     }
 
+    [Test]
+    [MethodDataSource(typeof(FileSystemTestData), nameof(FileSystemTestData.SimulationModes))]
+    public async Task IsTrackCachedReturnsTrueWhenTrackFileExists(SimulationMode mode)
+    {
+        var fileSystem = FileSystemTestData.CreateFileSystem(mode);
+        var storagePath = fileSystem.DirectoryInfo.New("/storage").FullName;
+        var storage = CreateStorage(storagePath, fileSystem);
+        fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(storagePath, "tracks"));
+        await fileSystem.File.WriteAllTextAsync(
+            fileSystem.Path.Combine(storagePath, "tracks", "track-id.pcm"),
+            "cached"
+        );
+
+        await Assert.That(storage.IsTrackCached(CreateTrack(), "pcm")).IsTrue();
+    }
+
+    [Test]
+    [MethodDataSource(typeof(FileSystemTestData), nameof(FileSystemTestData.SimulationModes))]
+    public async Task IsTrackCachedReturnsFalseWhenTrackFileDoesNotExist(SimulationMode mode)
+    {
+        var fileSystem = FileSystemTestData.CreateFileSystem(mode);
+        var storage = CreateStorage(fileSystem.DirectoryInfo.New("/storage").FullName, fileSystem);
+
+        await Assert.That(storage.IsTrackCached(CreateTrack(), "pcm")).IsFalse();
+    }
+
     private static TrackStorage CreateStorage(string storagePath, MockFileSystem fileSystem)
     {
         var storagePathProvider = Substitute.For<IStoragePathProvider>();

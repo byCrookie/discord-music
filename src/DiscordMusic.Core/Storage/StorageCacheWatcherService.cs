@@ -10,7 +10,8 @@ internal sealed class StorageCacheWatcherService(
     IOptions<StorageOptions> storageOptions,
     IStoragePathProvider storagePathProvider,
     IStorageCacheTrimmer cacheTrimmer,
-    ILogger<StorageCacheWatcherService> logger
+    ILogger<StorageCacheWatcherService> logger,
+    TimeProvider timeProvider
 ) : BackgroundService
 {
     private static readonly TimeSpan TrimDebounce = TimeSpan.FromSeconds(2);
@@ -72,7 +73,7 @@ internal sealed class StorageCacheWatcherService(
         {
             await TrimCacheAsync(storagePath, maxBytes, stoppingToken);
 
-            using var timer = new PeriodicTimer(TrimDebounce);
+            using var timer = new PeriodicTimer(TrimDebounce, timeProvider);
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
                 if (Interlocked.Exchange(ref _trimRequested, 0) == 0)

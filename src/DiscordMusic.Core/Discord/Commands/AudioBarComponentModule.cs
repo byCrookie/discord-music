@@ -11,22 +11,25 @@ namespace DiscordMusic.Core.Discord.Commands;
 internal sealed class AudioBarComponentModule(
     VoiceConnectionRegistry voiceConnections,
     PlaybackService playbackService,
-    IPlaybackController playbackController
+    IPlaybackController playbackController,
+    TimeProvider timeProvider
 ) : ComponentInteractionModule<ButtonInteractionContext>
 {
     [ComponentInteraction(AudioBarComponents.Rewind30)]
     public Task<InteractionMessageProperties> Rewind30Async()
     {
-        return TrackComponentAsync("audiobar.rewind_30", () =>
-            SeekRelativeAsync(TimeSpan.FromSeconds(-30))
+        return TrackComponentAsync(
+            "audiobar.rewind_30",
+            () => SeekRelativeAsync(TimeSpan.FromSeconds(-30))
         );
     }
 
     [ComponentInteraction(AudioBarComponents.Rewind10)]
     public Task<InteractionMessageProperties> Rewind10Async()
     {
-        return TrackComponentAsync("audiobar.rewind_10", () =>
-            SeekRelativeAsync(TimeSpan.FromSeconds(-10))
+        return TrackComponentAsync(
+            "audiobar.rewind_10",
+            () => SeekRelativeAsync(TimeSpan.FromSeconds(-10))
         );
     }
 
@@ -37,6 +40,7 @@ internal sealed class AudioBarComponentModule(
             "audiobar.play_pause",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             _ =>
             {
                 if (!TryGetSession(out var session, out var error))
@@ -61,16 +65,18 @@ internal sealed class AudioBarComponentModule(
     [ComponentInteraction(AudioBarComponents.Forward10)]
     public Task<InteractionMessageProperties> Forward10Async()
     {
-        return TrackComponentAsync("audiobar.forward_10", () =>
-            SeekRelativeAsync(TimeSpan.FromSeconds(10))
+        return TrackComponentAsync(
+            "audiobar.forward_10",
+            () => SeekRelativeAsync(TimeSpan.FromSeconds(10))
         );
     }
 
     [ComponentInteraction(AudioBarComponents.Forward30)]
     public Task<InteractionMessageProperties> Forward30Async()
     {
-        return TrackComponentAsync("audiobar.forward_30", () =>
-            SeekRelativeAsync(TimeSpan.FromSeconds(30))
+        return TrackComponentAsync(
+            "audiobar.forward_30",
+            () => SeekRelativeAsync(TimeSpan.FromSeconds(30))
         );
     }
 
@@ -83,6 +89,7 @@ internal sealed class AudioBarComponentModule(
             commandName,
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             async _ => DiscordMusicObservability.CommandResult(await action())
         );
     }

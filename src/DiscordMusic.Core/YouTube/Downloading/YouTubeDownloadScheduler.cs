@@ -1,5 +1,7 @@
 using DiscordMusic.Core.Discord.CommandSupport;
+using DiscordMusic.Core.Observability;
 using DiscordMusic.Core.Queues;
+using DiscordMusic.Core.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordMusic.Core.YouTube.Downloading;
@@ -8,7 +10,8 @@ internal sealed class YouTubeDownloadScheduler(
     ILogger<YouTubeDownloadScheduler> logger,
     ITrackQueue trackQueue,
     IBackgroundQueue<YouTubeDownloadRequest> downloadQueue,
-    IDiscordFeedbackService feedback
+    IDiscordFeedbackService feedback,
+    ITrackStorage trackStorage
 ) : IYouTubeDownloadScheduler
 {
     public async Task EnsureNextTrackQueuedAsync(ulong guildId, CancellationToken cancellationToken)
@@ -37,6 +40,32 @@ internal sealed class YouTubeDownloadScheduler(
             return;
         }
 
+        if (trackStorage.IsTrackCached(item.Track, "pcm"))
+        {
+            DiscordMusicObservability.RecordTrackCacheLookup(guildId, "scheduler", hit: true);
+            if (trackQueue.TryUpdateStatus(guildId, item.Track.Id, QueuedTrackStatus.Available))
+            {
+                logger.LogInformation(
+                    "Skipping lazy download because track is already cached. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
+                    guildId,
+                    item.Track.Id,
+                    item.Track.Name
+                );
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Lazy download found cached track but queue item was gone. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
+                    guildId,
+                    item.Track.Id,
+                    item.Track.Name
+                );
+            }
+
+            return;
+        }
+
+        DiscordMusicObservability.RecordTrackCacheLookup(guildId, "scheduler", hit: false);
         logger.LogInformation(
             "Queueing lazy download for next track. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
             guildId,

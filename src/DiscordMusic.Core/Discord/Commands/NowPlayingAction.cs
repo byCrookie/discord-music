@@ -9,10 +9,11 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class NowPlayingAction(
+internal sealed class NowPlayingAction(
     ILogger<NowPlayingAction> logger,
     VoiceConnectionRegistry voiceInstances,
-    PlaybackService playbackService
+    PlaybackService playbackService,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -27,6 +28,7 @@ internal class NowPlayingAction(
             "nowplaying",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             activity =>
             {
                 logger.LogTrace("NowPlaying");

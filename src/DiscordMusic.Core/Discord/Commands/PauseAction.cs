@@ -9,11 +9,12 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class PauseAction(
+internal sealed class PauseAction(
     ILogger<PauseAction> logger,
     VoiceConnectionRegistry voiceInstances,
     PlaybackService playbackService,
-    IPlaybackController playbackController
+    IPlaybackController playbackController,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -29,6 +30,7 @@ internal class PauseAction(
             "pause",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             activity =>
             {
                 logger.LogTrace("Pause");

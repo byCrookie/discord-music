@@ -10,12 +10,13 @@ using NetCord.Services.ApplicationCommands;
 
 namespace DiscordMusic.Core.Discord.Commands;
 
-internal class SkipAction(
+internal sealed class SkipAction(
     ILogger<SkipAction> logger,
     VoiceConnectionRegistry voiceInstances,
     VoiceConnectionService voiceConnectionService,
     PlaybackService playbackService,
-    IPlaybackController playbackController
+    IPlaybackController playbackController,
+    TimeProvider timeProvider
 ) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand(
@@ -38,6 +39,7 @@ internal class SkipAction(
             index is null ? "skip" : "skip.to",
             Context.Guild?.Id,
             Context.User.Id,
+            timeProvider,
             async _ =>
             {
                 logger.LogTrace("Skip");
@@ -99,7 +101,11 @@ internal class SkipAction(
                             queueIndex,
                             CancellationToken.None
                         )
-                        : await playbackController.SkipAsync(guildId, session, CancellationToken.None)
+                        : await playbackController.SkipAsync(
+                            guildId,
+                            session,
+                            CancellationToken.None
+                        )
                 );
 
                 return DiscordMusicObservability.CommandResult(

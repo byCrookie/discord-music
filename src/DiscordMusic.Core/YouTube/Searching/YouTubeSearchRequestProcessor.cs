@@ -19,7 +19,8 @@ internal sealed class YouTubeSearchRequestProcessor(
     IYouTubeSearch youtubeSearch,
     ITrackQueue trackQueue,
     ITrackStorage trackStorage,
-    IYouTubeDownloadScheduler downloadScheduler
+    IYouTubeDownloadScheduler downloadScheduler,
+    TimeProvider timeProvider
 ) : IYouTubeSearchRequestProcessor
 {
     public async Task ProcessAsync(
@@ -27,7 +28,7 @@ internal sealed class YouTubeSearchRequestProcessor(
         CancellationToken cancellationToken
     )
     {
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = timeProvider.GetTimestamp();
         var result = "completed";
         var source = spotifySearch.IsSpotifyQuery(request.Query) ? "spotify" : "youtube";
         using var activity = DiscordMusicObservability.StartActivity("youtube.search.process");
@@ -62,9 +63,10 @@ internal sealed class YouTubeSearchRequestProcessor(
                 request.Query
             );
 
-            var tracks = source == "spotify"
-                ? await SearchYouTubeFromSpotifyAsync(request, cancellationToken)
-                : await SearchYouTubeAsync(request.Query, request.Origin, cancellationToken);
+            var tracks =
+                source == "spotify"
+                    ? await SearchYouTubeFromSpotifyAsync(request, cancellationToken)
+                    : await SearchYouTubeAsync(request.Query, request.Origin, cancellationToken);
             DiscordMusicObservability.SetTag(activity, "music.track.count", tracks.Count);
             if (tracks.Count == 0)
             {
@@ -83,10 +85,32 @@ internal sealed class YouTubeSearchRequestProcessor(
                     ? tracks.AsEnumerable().Reverse()
                     : tracks;
 
+            var cachedTrackCount = 0;
             foreach (var track in tracksToEnqueue)
             {
                 trackStorage.SaveMetadata(track);
-                var queuedTrack = new QueuedTrack(track, QueuedTrackStatus.Pending, request.Origin);
+                var isCached = trackStorage.IsTrackCached(track, "pcm");
+                DiscordMusicObservability.RecordTrackCacheLookup(
+                    request.Origin.GuildId,
+                    "queue",
+                    isCached
+                );
+                if (isCached)
+                {
+                    cachedTrackCount++;
+                    logger.LogInformation(
+                        "Queued cached track as available. GuildId={GuildId}, TrackId={TrackId}, Title={Title}",
+                        request.Origin.GuildId,
+                        track.Id,
+                        track.Name
+                    );
+                }
+
+                var queuedTrack = new QueuedTrack(
+                    track,
+                    isCached ? QueuedTrackStatus.Available : QueuedTrackStatus.Pending,
+                    request.Origin
+                );
                 if (request.Placement == TrackQueuePlacement.Next)
                 {
                     trackQueue.EnqueueFirst(request.Origin.GuildId, queuedTrack);
@@ -97,11 +121,17 @@ internal sealed class YouTubeSearchRequestProcessor(
                 }
             }
 
+            DiscordMusicObservability.SetTag(
+                activity,
+                "music.track.cache_hit_count",
+                cachedTrackCount
+            );
             logger.LogInformation(
-                "Queued {TrackCount} track(s). GuildId={GuildId}, Placement={Placement}",
+                "Queued {TrackCount} track(s). GuildId={GuildId}, Placement={Placement}, CachedTrackCount={CachedTrackCount}",
                 tracks.Count,
                 request.Origin.GuildId,
-                request.Placement
+                request.Placement,
+                cachedTrackCount
             );
             activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -129,7 +159,7 @@ internal sealed class YouTubeSearchRequestProcessor(
             durationTags.Add("source", source);
             durationTags.Add("result", result);
             DiscordMusicObservability.SearchDuration.Record(
-                Stopwatch.GetElapsedTime(startedAt).TotalSeconds,
+                timeProvider.GetElapsedTime(startedAt).TotalSeconds,
                 durationTags
             );
         }
