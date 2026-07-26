@@ -86,7 +86,7 @@ internal sealed class YouTubeDownloadRequestProcessor(
         );
 
         var outputFile = trackStorage.GetTrackPath(request.Track, "pcm");
-        if (outputFile.Exists)
+        if (outputFile.Exists())
         {
             if (
                 trackQueue.TryUpdateStatus(

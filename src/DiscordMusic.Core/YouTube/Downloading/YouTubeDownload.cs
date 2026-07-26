@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.IO.Abstractions;
 using DiscordMusic.Core.Observability;
+using DiscordMusic.Core.Utils;
 using DiscordMusic.Core.YouTube.Conversion;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
@@ -51,6 +52,28 @@ internal sealed class YouTubeDownload(
                 result = "conversion_failed";
                 activity?.SetStatus(ActivityStatusCode.Error, result);
                 return conversion.Errors;
+            }
+
+            if (!output.Exists())
+            {
+                result = "missing_output";
+                activity?.SetStatus(ActivityStatusCode.Error, result);
+                logger.LogError(
+                    "YouTube download did not produce the expected output file. Query={Query} Output={Output}",
+                    query,
+                    output.FullName
+                );
+                return Error
+                    .Unexpected(
+                        code: "YouTube.DownloadOutputMissing",
+                        description: "The download completed but the expected PCM output file was not created."
+                    )
+                    .WithMetadata(
+                        ErrorExtensions.MetadataKeys.Operation,
+                        "youtube.download.pipeline"
+                    )
+                    .WithMetadata("query", query)
+                    .WithMetadata("output", output.FullName);
             }
 
             activity?.SetStatus(ActivityStatusCode.Ok);

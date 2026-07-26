@@ -43,7 +43,12 @@ public class YouTubeDownloadTests
                 Arg.Do<IFileInfo>(value => conversionOutput = value),
                 Arg.Any<CancellationToken>()
             )
-            .Returns(Result.Success);
+            .Returns(_ =>
+            {
+                fileSystem.Directory.CreateDirectory(output.DirectoryName!);
+                fileSystem.File.WriteAllText(output.FullName, string.Empty);
+                return Result.Success;
+            });
 
         var result = await download.DownloadAsync(
             "https://example.com/video",
@@ -55,5 +60,47 @@ public class YouTubeDownloadTests
         await Assert.That(outputBase?.FullName).IsEqualTo($"{output.FullName}.tmp");
         await Assert.That(conversionInput?.FullName).IsEqualTo(downloadedFile.FullName);
         await Assert.That(conversionOutput?.FullName).IsEqualTo(output.FullName);
+    }
+
+    [Test]
+    [MethodDataSource(typeof(FileSystemTestData), nameof(FileSystemTestData.SimulationModes))]
+    public async Task DownloadAsyncReturnsErrorWhenConversionDoesNotCreateOutput(
+        SimulationMode mode
+    )
+    {
+        var fileSystem = FileSystemTestData.CreateFileSystem(mode);
+        var audioDownloader = Substitute.For<IYouTubeAudioDownloader>();
+        var audioConverter = Substitute.For<IAudioConverter>();
+        var download = new YouTubeDownload(
+            NullLogger<YouTubeDownload>.Instance,
+            fileSystem,
+            audioDownloader,
+            audioConverter
+        );
+        var output = fileSystem.FileInfo.New("/downloads/output.pcm");
+        var downloadedFile = fileSystem.FileInfo.New($"{output.FullName}.tmp.opus");
+        audioDownloader
+            .DownloadAsync(
+                Arg.Any<string>(),
+                Arg.Any<IFileInfo>(),
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(ErrorOrFactory.From(downloadedFile));
+        audioConverter
+            .ConvertToPcmAsync(
+                downloadedFile,
+                output,
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(Result.Success);
+
+        var result = await download.DownloadAsync(
+            "https://example.com/video",
+            output,
+            CancellationToken.None
+        );
+
+        await Assert.That(result.IsError).IsTrue();
+        await Assert.That(result.FirstError.Code).IsEqualTo("YouTube.DownloadOutputMissing");
     }
 }
