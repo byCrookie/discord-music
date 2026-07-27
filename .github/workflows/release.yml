@@ -156,13 +156,13 @@ jobs:
                     fetch-depth: 0
 
             -   name: Generate changelog
-                run: bash .github/scripts/generate-changelog.sh "${{ needs.version.outputs.version }}" release-notes/CHANGELOG.generated.md
+                run: bash .github/scripts/generate-changelog.sh "${{ needs.version.outputs.version }}" release-notes/CHANGELOG.md
 
             -   name: Upload changelog
                 uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
                 with:
                     name: release-notes
-                    path: release-notes/CHANGELOG.generated.md
+                    path: release-notes/CHANGELOG.md
 
     validation:
         name: Release validation
@@ -209,10 +209,10 @@ jobs:
                 with:
                     name: v${{ needs.version.outputs.version }}
                     tag_name: ${{ needs.version.outputs.version }}
-                    body_path: release-notes/CHANGELOG.generated.md
+                    body_path: release-notes/CHANGELOG.md
                     fail_on_unmatched_files: true
                     overwrite_files: false
                     files: |
                         artifacts/*.zip
-                        release-notes/CHANGELOG.generated.md
+                        release-notes/CHANGELOG.md
                         LICENSE
