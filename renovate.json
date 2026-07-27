@@ -31,12 +31,14 @@
             "managerFilePatterns": [
                 "/(^|/)global\\.json$/",
                 "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/",
+                "/(^|/)\\.github/actions/[^/]+/action\\.ya?ml$/",
                 "/(^|/)Containerfile$/",
                 "/(^|/)justfile$/"
             ],
             "matchStrings": [
                 "\"version\"\\s*:\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
                 "dotnet-version:\\s*['\"]?(?<currentValue>\\d+\\.\\d+\\.\\d+)['\"]?",
+                "default:\\s*['\"]?(?<currentValue>\\d+\\.\\d+\\.\\d+)['\"]?",
                 "mcr\\.microsoft\\.com/dotnet/sdk:(?<currentValue>\\d+\\.\\d+\\.\\d+)@sha256:[a-f0-9]+",
                 "manifest image=\"mcr\\.microsoft\\.com/dotnet/sdk\" tag=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
             ],
