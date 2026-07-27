@@ -1,0 +1,32 @@
+name: .NET CI
+description: Restore, build, and test the solution.
+
+inputs:
+    solution:
+        description: Solution file to build.
+        required: false
+        default: DiscordMusic.slnx
+    configuration:
+        description: Build configuration.
+        required: false
+        default: Release
+    run-tests:
+        description: Run tests after building.
+        required: false
+        default: 'true'
+
+runs:
+    using: composite
+    steps:
+        -   name: Restore
+            shell: bash
+            run: dotnet restore "${{ inputs.solution }}"
+
+        -   name: Build
+            shell: bash
+            run: dotnet build "${{ inputs.solution }}" --configuration "${{ inputs.configuration }}" --no-restore
+
+        -   name: Test
+            if: ${{ inputs.run-tests == 'true' }}
+            shell: bash
+            run: dotnet test --solution "${{ inputs.solution }}" --configuration "${{ inputs.configuration }}" --no-restore

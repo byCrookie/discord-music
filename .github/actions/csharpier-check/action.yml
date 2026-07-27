@@ -1,0 +1,9 @@
+name: CSharpier check
+description: Verify C# formatting with the pinned local CSharpier tool.
+
+runs:
+    using: composite
+    steps:
+        -   name: Check formatting
+            shell: bash
+            run: dotnet csharpier check .

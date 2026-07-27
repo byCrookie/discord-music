@@ -1,0 +1,62 @@
+name: CI
+
+permissions:
+    contents: read
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+    pull_request:
+
+jobs:
+    validate-commits:
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+                with:
+                    fetch-depth: 0
+
+            -   name: Validate Conventional Commit messages
+                run: bash .github/scripts/validate-conventional-commits.sh
+                env:
+                    GITHUB_EVENT_NAME: ${{ github.event_name }}
+                    BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                    BEFORE_SHA: ${{ github.event.before }}
+                    AFTER_SHA: ${{ github.sha }}
+
+    format:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+            -   name: Setup dotnet
+                uses: ./.github/actions/setup-dotnet
+
+            -   name: CSharpier check
+                uses: ./.github/actions/csharpier-check
+
+    build:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    -   os: windows-latest
+                    -   os: ubuntu-latest
+                    -   os: macos-latest
+        runs-on: ${{ matrix.os }}
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+                with:
+                    fetch-depth: 0
+
+            -   name: Setup dotnet
+                uses: ./.github/actions/setup-dotnet
+
+            -   name: Build and test
+                uses: ./.github/actions/dotnet-ci
