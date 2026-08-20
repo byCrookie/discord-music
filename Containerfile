@@ -14,7 +14,7 @@ ARG FFMPEG_VERSION=autobuild-2026-07-23-16-00
 # renovate: datasource=github-releases depName=yt-dlp/yt-dlp-nightly-builds
 ARG YTDLP_VERSION=2026.07.21.234255
 # renovate: datasource=github-releases depName=denoland/deno
-ARG DENO_VERSION=v2.9.4
+ARG DENO_VERSION=v2.9.5
 
 RUN echo "Target platform: $TARGETPLATFORM | Build platform: $BUILDPLATFORM | Target architecture: $TARGETARCH" && \
     dotnet --version && dotnet --list-sdks && dotnet --info
