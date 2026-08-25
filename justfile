@@ -43,6 +43,6 @@ set-user-secrets-spotify:
 list-user-secrets:
     dotnet user-secrets list --project src/DiscordMusic.Client/DiscordMusic.Client.csproj
 
-manifest image="mcr.microsoft.com/dotnet/sdk" tag="10.0.301" arch="amd64" os="linux":
+manifest image="mcr.microsoft.com/dotnet/sdk" tag="10.0.400" arch="amd64" os="linux":
     podman manifest inspect {{image}}:{{tag}} \
       | jq -r '.manifests[] | select(.platform.architecture=="{{arch}}" and .platform.os=="{{os}}") | .digest'
