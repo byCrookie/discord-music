@@ -1,7 +1,7 @@
 <Project>
     <ItemGroup>
         <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.6" />
-        <PackageVersion Include="CliWrap" Version="3.10.3" />
+        <PackageVersion Include="CliWrap" Version="3.10.5" />
         <PackageVersion Include="ErrorOr" Version="2.1.1" />
         <PackageVersion Include="Flurl.Http" Version="4.0.2" />
         <PackageVersion Include="Humanizer.Core" Version="3.0.10" />
