@@ -12,7 +12,7 @@ ARG TARGETARCH
 # renovate: datasource=github-releases depName=yt-dlp/FFmpeg-Builds
 ARG FFMPEG_VERSION=autobuild-2026-07-23-16-00
 # renovate: datasource=github-releases depName=yt-dlp/yt-dlp-nightly-builds
-ARG YTDLP_VERSION=2026.07.21.234255
+ARG YTDLP_VERSION=2026.08.20.234504
 # renovate: datasource=github-releases depName=denoland/deno
 ARG DENO_VERSION=v2.9.4
 
