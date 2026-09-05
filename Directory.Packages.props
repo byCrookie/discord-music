@@ -29,7 +29,7 @@
         <PackageVersion Include="System.CommandLine" Version="2.0.10" />
         <PackageVersion Include="Testably.Abstractions" Version="10.3.0" />
         <PackageVersion Include="Testably.Abstractions.Testing" Version="7.0.1" />
-        <PackageVersion Include="TUnit" Version="1.61.38" />
+        <PackageVersion Include="TUnit" Version="1.65.38" />
         <PackageVersion Include="Verify.TUnit" Version="31.27.0" />
     </ItemGroup>
 </Project>
