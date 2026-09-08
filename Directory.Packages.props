@@ -5,13 +5,13 @@
         <PackageVersion Include="ErrorOr" Version="2.1.1" />
         <PackageVersion Include="Flurl.Http" Version="4.0.2" />
         <PackageVersion Include="Humanizer.Core" Version="3.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0" />
-        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.8.0" />
-        <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.8.0" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.9.0" />
+        <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.9.0" />
         <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.91">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,7 +26,7 @@
         <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
         <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.17.0" />
         <PackageVersion Include="SpotifyAPI.Web" Version="7.4.2" />
-        <PackageVersion Include="System.CommandLine" Version="2.0.10" />
+        <PackageVersion Include="System.CommandLine" Version="2.0.11" />
         <PackageVersion Include="Testably.Abstractions" Version="10.3.0" />
         <PackageVersion Include="Testably.Abstractions.Testing" Version="7.0.1" />
         <PackageVersion Include="TUnit" Version="1.61.38" />
