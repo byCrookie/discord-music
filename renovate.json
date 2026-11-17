@@ -86,7 +86,9 @@
     ],
     "timezone": "Europe/Zurich",
     "schedule": ["at any time"],
-    "dependencyDashboard": true,
+    "dependencyDashboard": {
+        "enabled": true
+    },
     "minimumReleaseAge": "14 days",
     "prCreation": "not-pending",
     "internalChecksFilter": "strict",
